@@ -1,7 +1,29 @@
 import json
+import random
 import re
+# from random import random
 from typing import List
 data = []
+
+class TokenizedSentencesDataset:
+    def __init__(self, sentences, tokenizer, max_length, cache_tokenization=False):
+        self.tokenizer = tokenizer
+        self.sentences = sentences
+        self.max_length = max_length
+        self.cache_tokenization = cache_tokenization
+
+    def __getitem__(self, item):
+        if not self.cache_tokenization:
+            return self.tokenizer(self.sentences[item], add_special_tokens=True, truncation=True, max_length=self.max_length, return_special_tokens_mask=True)
+
+        if isinstance(self.sentences[item], str):
+            self.sentences[item] = self.tokenizer(self.sentences[item], add_special_tokens=True, truncation=True, max_length=self.max_length, return_special_tokens_mask=True)
+        return self.sentences[item]
+
+    def __len__(self):
+        return len(self.sentences)
+
+
 
 def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
                             save_data: bool = True, languages: List[str] = ['da_DK']):
@@ -44,15 +66,44 @@ def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
                 with open(f"../data/{lang}_subset.json", "w") as outfile:
                     outfile.write(json.dumps(subset))
 
-            # print()
+
+def split_to_sentences(data_path: str = f"../data/da_DK_subset.json"):
+
+    with open(data_path, "rb") as file:
+        data = json.load(file)
+
+    all_sentences = []
+    for i, url in enumerate(data):
+        sentences = re.split('(\. [A-Z])|\n', url['body'])
+
+        for i, sentence in enumerate(sentences):
+
+            if sentence and not sentence.startswith('.'):
+                new_sentence = sentence
+                if i > 0 and sentences[i - 1]:
+                    new_sentence = sentences[i - 1].split(' ')[1] + new_sentence
+                    # new_sentences.append(sentence)
+                if len(new_sentence) > 10:
+                    all_sentences.append(new_sentence.strip())
+
+    return all_sentences
+
+def split_train_dev(sentences: List[str]):
+    random.shuffle(sentences)
+    train_idx = int(len(sentences)*0.90)
+    train = sentences[:train_idx]
+    dev = sentences[train_idx:]
+
+    return train, dev
 
 
-# preprocess_public_sborg()
+# sentences = split_to_sentences()
+#
+# train, dev = split_train_dev(sentences=sentences)
 
-with open(f"../data/da_DK_subset.json", "rb") as file:
-    data = json.load(file)
 
 print()
+
 
 
 

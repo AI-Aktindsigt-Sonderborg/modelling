@@ -1,16 +1,26 @@
-import argparse
-import json
-import os
+import datetime
+import sys
+import traceback
 from datetime import datetime
-from local_constants import OUTPUT_DIR, DATA_DIR, CONFIG_DIR
-from transformers import AutoTokenizer, Trainer, \
-    TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
+import os
+import argparse
+import numpy as np
+import torch
+from opacus import PrivacyEngine
+from opacus.utils.batch_memory_manager import BatchMemoryManager
+# from helpers import validate_model, evaluate, accuracy, TimeCode
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
+    AutoModelForTokenClassification, Trainer, \
+    TrainingArguments, HfArgumentParser, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
     DataCollatorForLanguageModeling
 
 from data_utils.preprocess_public_scraped_data import split_to_sentences, split_train_dev, \
     TokenizedSentencesDataset
-
 os.environ["WANDB_DISABLED"] = "true"
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--epsilon", type=float, default=1, help="privacy parameter epsilon")
@@ -39,51 +49,40 @@ parser.add_argument("--save_steps", type=int, default=1000,
                     help="save checkpoint after number of steps")
 parser.add_argument("--max_length", type=int, default=100,
                     help="Max length for a text input")
+
 parser.add_argument("--use_fp16", type=bool, default=False,
                     help="Set to True, if your GPU supports FP16 operations")
 parser.add_argument("--whole_word_mask", type=bool, default=True,
                     help="If set to true, whole words are masked")
 parser.add_argument("--mlm_prob", type=float, default=0.15,
                     help="Probability that a word is replaced by a [MASK] token")
-parser.add_argument("--data_file", type=str, default='da_DK_subset.json',
-                    help="Probability that a word is replaced by a [MASK] token")
+
 
 args = parser.parse_args()
 
-
-
 # get data
-sentences = split_to_sentences(data_path= os.path.join(DATA_DIR, args.data_file))
+sentences = split_to_sentences(data_path='data/da_DK_subset.json')
 
 train_sentences, dev_sentences = split_train_dev(sentences=sentences)
+
 
 # Load the model
 model = AutoModelForMaskedLM.from_pretrained(args.model_name)
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
-output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-output_dir = os.path.join(OUTPUT_DIR, output_name)
-
-
-with open(os.path.join(CONFIG_DIR, output_name), 'w') as f:
-    json.dump(args.__dict__, f, indent=2)
-
-
+output_dir = "output/{}-{}".format(args.model_name.replace("/", "_"),  datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
 print("Save checkpoints to:", output_dir)
 
 train_dataset = TokenizedSentencesDataset(train_sentences, tokenizer, args.max_length)
-dev_dataset = TokenizedSentencesDataset(dev_sentences, tokenizer, args.max_length,
-                                        cache_tokenization=True) if len(dev_sentences) > 0 else None
+dev_dataset = TokenizedSentencesDataset(dev_sentences, tokenizer, args.max_length, cache_tokenization=True) if len(dev_sentences) > 0 else None
 
 if args.whole_word_mask:
-    data_collator = DataCollatorForWholeWordMask(tokenizer=tokenizer, mlm=True,
-                                                 mlm_probability=args.mlm_prob)
+    data_collator = DataCollatorForWholeWordMask(tokenizer=tokenizer, mlm=True, mlm_probability=args.mlm_prob)
 else:
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
-                                                    mlm_probability=args.mlm_prob)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True, mlm_probability=args.mlm_prob)
 
 training_args = TrainingArguments(
-    output_dir= os.path.join(OUTPUT_DIR, output_name),
+    output_dir=output_dir,
     overwrite_output_dir=True,
     num_train_epochs=args.epochs,
     evaluation_strategy='steps',
@@ -114,3 +113,7 @@ print("Save model to:", output_dir)
 model.save_pretrained(output_dir)
 
 print("Training done")
+
+
+
+
