@@ -51,7 +51,7 @@ parser.add_argument("--data_file", type=str, default='da_DK_subset.json',
                     help="Probability that a word is replaced by a [MASK] token")
 
 args = parser.parse_args()
-
+print(args)
 # get data
 sentences = split_to_sentences(data_path=os.path.join(DATA_DIR, args.data_file))
 

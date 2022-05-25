@@ -77,7 +77,7 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
 
     all_sentences = []
     for url in data:
-        sentences = re.split('(\. [A-Z])|\n', url['body'])
+        sentences = re.split(r'(\. [A-Z])|\n', url['body'])
 
         for i, sentence in enumerate(sentences):
 

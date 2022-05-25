@@ -14,4 +14,4 @@ if not os.path.exists(DATA_DIR):
 if not os.path.exists(OUTPUT_DIR):
     # Create a new directory because it does not exist
     os.makedirs(OUTPUT_DIR)
-    print("Create data dir!")
+    print("Create output dir!")
