@@ -2,13 +2,14 @@ import argparse
 import json
 import os
 from datetime import datetime
-from local_constants import OUTPUT_DIR, DATA_DIR, CONFIG_DIR
+
 from transformers import AutoTokenizer, Trainer, \
     TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
     DataCollatorForLanguageModeling
 
 from data_utils.preprocess_public_scraped_data import split_to_sentences, split_train_dev, \
     TokenizedSentencesDataset
+from local_constants import OUTPUT_DIR, DATA_DIR, CONFIG_DIR
 
 os.environ["WANDB_DISABLED"] = "true"
 
@@ -17,7 +18,8 @@ parser.add_argument("--epsilon", type=float, default=1, help="privacy parameter 
 parser.add_argument("--lot_size", type=int, default=16,
                     help="Lot size specifies the sample size of which noise is injected into")
 parser.add_argument("--batch_size", type=int, default=16,
-                    help="Batch size specifies the sample size of which the gradients are computed. Depends on memory available")
+                    help="Batch size specifies the sample size of which the gradients are "
+                         "computed. Depends on memory available")
 parser.add_argument("--delta", type=float, default=0.00002,
                     help="privacy parameter delta")
 parser.add_argument("--max_grad_norm", type=float, default=1.2,
@@ -50,10 +52,8 @@ parser.add_argument("--data_file", type=str, default='da_DK_subset.json',
 
 args = parser.parse_args()
 
-
-
 # get data
-sentences = split_to_sentences(data_path= os.path.join(DATA_DIR, args.data_file))
+sentences = split_to_sentences(data_path=os.path.join(DATA_DIR, args.data_file))
 
 train_sentences, dev_sentences = split_train_dev(sentences=sentences)
 
@@ -64,10 +64,8 @@ tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 output_dir = os.path.join(OUTPUT_DIR, output_name)
 
-
-with open(os.path.join(CONFIG_DIR, output_name), 'w') as f:
+with open(os.path.join(CONFIG_DIR, output_name), 'w', encoding='utf-8') as f:
     json.dump(args.__dict__, f, indent=2)
-
 
 print("Save checkpoints to:", output_dir)
 
@@ -83,7 +81,7 @@ else:
                                                     mlm_probability=args.mlm_prob)
 
 training_args = TrainingArguments(
-    output_dir= os.path.join(OUTPUT_DIR, output_name),
+    output_dir=os.path.join(OUTPUT_DIR, output_name),
     overwrite_output_dir=True,
     num_train_epochs=args.epochs,
     evaluation_strategy='steps',

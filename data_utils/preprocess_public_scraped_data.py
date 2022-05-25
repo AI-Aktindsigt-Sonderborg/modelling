@@ -3,7 +3,6 @@ import random
 import re
 # from random import random
 from typing import List
-data = []
 
 class TokenizedSentencesDataset:
     def __init__(self, sentences, tokenizer, max_length, cache_tokenization=False):
@@ -14,28 +13,29 @@ class TokenizedSentencesDataset:
 
     def __getitem__(self, item):
         if not self.cache_tokenization:
-            return self.tokenizer(self.sentences[item], add_special_tokens=True, truncation=True, max_length=self.max_length, return_special_tokens_mask=True)
+            return self.tokenizer(self.sentences[item], add_special_tokens=True,
+                                  truncation=True, max_length=self.max_length,
+                                  return_special_tokens_mask=True)
 
         if isinstance(self.sentences[item], str):
-            self.sentences[item] = self.tokenizer(self.sentences[item], add_special_tokens=True, truncation=True, max_length=self.max_length, return_special_tokens_mask=True)
+            self.sentences[item] = self.tokenizer(self.sentences[item], add_special_tokens=True,
+                                                  truncation=True, max_length=self.max_length,
+                                                  return_special_tokens_mask=True)
         return self.sentences[item]
 
     def __len__(self):
         return len(self.sentences)
 
 
-
 def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
                             save_data: bool = True, languages: List[str] = ['da_DK']):
 
-
+    data = []
     with open(data_path, 'rb') as file:
         for index, line in enumerate(file):
 
             data_dict = json.loads(line)
             data_dict['id'] = index
-            data.append(data_dict)
-
             title = data_dict['title'].split(' | ')[0]
             data_dict['new_title'] = title
 
@@ -44,11 +44,14 @@ def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
                 data_dict['body'] = body[1]
             else:
                 data_dict['body'] = ''
+            data.append(data_dict)
 
     for lang in languages:
         if lang == 'da_DK':
-            # english_locale = [x for x in data if (x['og_locale'] == 'en_GB' or '//en.' in x['url'] or '/en/' in x['url'])]
-            # german_locale = [x for x in data if x['og_locale'] == 'de_DE' or '//de.' in x['url'] or '/de/' in x['url']]
+            # english_locale = [x for x in data if (x['og_locale'] ==
+            # 'en_GB' or '//en.' in x['url'] or '/en/' in x['url'])]
+            # german_locale = [x for x in data if x['og_locale'] ==
+            # 'de_DE' or '//de.' in x['url'] or '/de/' in x['url']]
             # danish_locale = [x for x in data if x['og_locale'] == 'da_DK']
             # empty_locale = [x for x in data if (len(x['og_locale']) == 0 and not
             # ( '//en.' in x['url'] or '/en/' in x['url'] or
@@ -63,17 +66,17 @@ def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
 
                 # return subset
 
-                with open(f"../data/{lang}_subset.json", "w") as outfile:
+                with open(f'../data/{lang}_subset.json', "w", encoding='utf-8') as outfile:
                     outfile.write(json.dumps(subset))
 
 
-def split_to_sentences(data_path: str = f"../data/da_DK_subset.json"):
+def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
 
     with open(data_path, "rb") as file:
         data = json.load(file)
 
     all_sentences = []
-    for i, url in enumerate(data):
+    for url in data:
         sentences = re.split('(\. [A-Z])|\n', url['body'])
 
         for i, sentence in enumerate(sentences):
@@ -96,14 +99,8 @@ def split_train_dev(sentences: List[str]):
 
     return train, dev
 
+# preprocess_public_sborg()
 
 # sentences = split_to_sentences()
 #
 # train, dev = split_train_dev(sentences=sentences)
-
-
-print()
-
-
-
-
