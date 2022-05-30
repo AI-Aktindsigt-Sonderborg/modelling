@@ -3,6 +3,20 @@ import random
 import re
 # from random import random
 from typing import List
+from torch.utils.data import Dataset
+
+
+class DatasetWrapper(Dataset):
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, item):
+        item = int(item)
+        return self.dataset[item]
+
+    def __len__(self):
+        return len(self.dataset)
 
 class TokenizedSentencesDataset:
     def __init__(self, sentences, tokenizer, max_length, cache_tokenization=False):
@@ -91,13 +105,13 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
 
     return all_sentences
 
-def split_train_dev(sentences: List[str]):
+def split_train_val(sentences: List[str]):
     random.shuffle(sentences)
     train_idx = int(len(sentences)*0.90)
     train = sentences[:train_idx]
-    dev = sentences[train_idx:]
+    val = sentences[train_idx:]
 
-    return train, dev
+    return train, val
 
 # preprocess_public_sborg()
 
