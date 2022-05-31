@@ -103,6 +103,19 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
                 if len(new_sentence) > 10:
                     all_sentences.append(new_sentence.strip())
 
+    # train, val = split_train_val(all_sentences)
+
+    with open('../data/all_data.json', 'w', encoding='utf-8') as outfile:
+        for entry in all_sentences:
+            json.dump({'text': entry}, outfile)
+            outfile.write('\n')
+
+    # with open('../data/validation.json', 'w', encoding='utf-8') as outfile:
+    #     for entry in val:
+    #         json.dump({'text': entry}, outfile)
+    #         outfile.write('\n')
+
+
     return all_sentences
 
 def split_train_val(sentences: List[str]):
@@ -113,8 +126,10 @@ def split_train_val(sentences: List[str]):
 
     return train, val
 
-# preprocess_public_sborg()
 
-# sentences = split_to_sentences()
-#
-# train, dev = split_train_dev(sentences=sentences)
+if __name__ == '__main__':
+    # preprocess_public_sborg()
+
+    sentences = split_to_sentences()
+    #
+    # train, dev = split_train_dev(sentences=sentences)

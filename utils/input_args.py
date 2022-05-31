@@ -2,10 +2,10 @@ import argparse
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--epsilon", type=float, default=1, help="privacy parameter epsilon")
-    parser.add_argument("--lot_size", type=int, default=16,
+    parser.add_argument("--lot_size", type=int, default=8,
                         help="Lot size specifies the sample size of which noise is injected into. "
                              "Must be larger and multiple of batch size")
-    parser.add_argument("--batch_size", type=int, default=8,
+    parser.add_argument("--batch_size", type=int, default=4,
                         help="Batch size specifies the sample size of which the gradients are "
                              "computed. Depends on memory available")
     parser.add_argument("--delta", type=float, default=0.00002,
@@ -31,7 +31,7 @@ def create_parser():
                         help="Max length for a text input")
     parser.add_argument("--use_fp16", type=bool, default=False,
                         help="Set to True, if your GPU supports FP16 operations")
-    parser.add_argument("--whole_word_mask", type=bool, default=True,
+    parser.add_argument("--whole_word_mask", type=bool, default=False,
                         help="If set to true, whole words are masked")
     parser.add_argument("--mlm_prob", type=float, default=0.15,
                         help="Probability that a word is replaced by a [MASK] token")
