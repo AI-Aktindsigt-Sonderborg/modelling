@@ -5,7 +5,7 @@ def create_parser():
     parser.add_argument("--lot_size", type=int, default=8,
                         help="Lot size specifies the sample size of which noise is injected into. "
                              "Must be larger and multiple of batch size")
-    parser.add_argument("--batch_size", type=int, default=4,
+    parser.add_argument("--batch_size", type=int, default=2,
                         help="Batch size specifies the sample size of which the gradients are "
                              "computed. Depends on memory available")
     parser.add_argument("--delta", type=float, default=0.00002,
@@ -27,7 +27,7 @@ def create_parser():
                         help="foundation model from huggingface")
     parser.add_argument("--save_steps", type=int, default=1000,
                         help="save checkpoint after number of steps")
-    parser.add_argument("--max_length", type=int, default=512,
+    parser.add_argument("--max_length", type=int, default=128,
                         help="Max length for a text input")
     parser.add_argument("--use_fp16", type=bool, default=False,
                         help="Set to True, if your GPU supports FP16 operations")

@@ -14,6 +14,12 @@ def validate_model(model):
     else:
         print("Model is compatible for DP with opacus.")
 
+def fix_and_validate(model):
+    model = ModuleValidator.fix_and_validate(model)
+    return model
+
+
+
 class TimeCode:
     def __init__(self):
         self.start_time = time.time()

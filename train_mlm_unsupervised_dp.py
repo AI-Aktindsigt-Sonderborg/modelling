@@ -3,6 +3,7 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from opacus.grad_sample import register_grad_sampler
 
 import numpy as np
 import torch
@@ -15,14 +16,14 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, Trainer, \
     TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, BertForMaskedLM
+    DataCollatorForLanguageModeling, BertForMaskedLM, AutoModelForPreTraining
 
 from data_utils.preprocess_public_scraped_data import DatasetWrapper, TokenizedSentencesDataset, \
     split_to_sentences, split_train_val
 from local_constants import OUTPUT_DIR, CONFIG_DIR
 from utils.helpers import validate_model, TimeCode
 from utils.input_args import create_parser
-
+from utils.helpers import fix_and_validate
 os.environ["WANDB_DISABLED"] = "true"
 
 if not torch.cuda.is_available():
@@ -50,6 +51,25 @@ column_names = train_data.column_names
 model = AutoModelForMaskedLM.from_pretrained(args.model_name)
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
+model = model.train()
+
+
+# @register_grad_sampler(BertLMPredictionHead)
+# def compute_bert_lm_head_grads(
+#     layer: BertLMPredictionHead, activations: torch.Tensor, backprops: torch.Tensor
+# ) -> Dict[nn.Parameter, torch.Tensor]:
+#     """
+#     Computes per sample gradients for ``nn.Linear`` layer
+#     Args:
+#         layer: Layer
+#         activations: Activations
+#         backprops: Backpropagations
+#     """
+#     gs = torch.einsum("n...i,n...j->nij", backprops, activations)
+#     ret = {layer.decoder: gs}
+#     if layer.bias is not None:
+
+
 
 def tokenize_function(examples):
     # Remove empty lines
@@ -70,7 +90,7 @@ def tokenize_function(examples):
 train_dataset = train_data.map(
     tokenize_function,
     batched=True,
-    num_proc=1,
+    num_proc=2,
     remove_columns=['text'],
     load_from_cache_file=False,
     desc="Running tokenizer on dataset line_by_line",
@@ -79,7 +99,7 @@ train_dataset = train_data.map(
 val_dataset = val_data.map(
     tokenize_function,
     batched=True,
-    num_proc=1,
+    num_proc=2,
     # remove_columns=['text'],
     # load_from_cache_file=not data_args.overwrite_cache,
     desc="Running tokenizer on dataset line_by_line",
@@ -102,7 +122,7 @@ else:
 # train_dataset = TokenizedSentencesDataset(train, tokenizer, args.max_length)
 train_dataset_wrapped = DatasetWrapper(train_dataset)
 train_data_loader = DataLoader(dataset=train_dataset_wrapped, batch_size=args.lot_size,
-                               collate_fn=data_collator)
+                               collate_fn=data_collator, shuffle=True)
 
 # for index, x in enumerate(train_data_loader.dataset):
 #     train_data_loader.dataset[index] = x.data
@@ -118,7 +138,7 @@ model = model.train()
 
 # validate if model works with opacus
 validate_model(model)
-
+# fix_and_validate(model)
 
 training_args = TrainingArguments(
     output_dir=output_dir,
@@ -173,57 +193,57 @@ def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataL
         max_physical_batch_size=args.batch_size,
         optimizer=optimizer
     ) as memory_safe_data_loader:
+        batch_dims = []
+        for i, batch in enumerate(memory_safe_data_loader):
 
-        try:
-            batch_dims = []
-            for i, batch in enumerate(memory_safe_data_loader):
+            try:
+                optimizer.zero_grad()
 
-                try:
-                    optimizer.zero_grad()
+                # compute output
+                output = model(input_ids=batch["input_ids"].to(device),
+                               attention_mask=batch["attention_mask"].to(device),
+                               labels=batch["labels"].to(device))
+                batch_dims.append(output.logits.size()[0])
+                # if i == 10:
+                #     print(batch_dims)
 
-                    # compute output
-                    output = model(input_ids=batch["input_ids"].to(device),
-                                   attention_mask=batch["attention_mask"].to(device),
-                                   labels=batch["labels"].to(device))
-                    batch_dims.append(output.logits.size()[0])
-                    if i == 10:
-                        print(batch_dims)
+                loss = output[0]
+                # loss.backward(create_graph=False, retain_graph=False, inputs=batch['input_ids'])
 
-                    loss = output[0]
-                    loss.backward()
-                    train_losses.append(loss.item())
-                    optimizer.step()
+                loss.backward()
 
-                    if i > 0 and (i + 1) % args.evaluate_steps == 0:
-                        epsilon = privacy_engine.get_epsilon(args.delta)
-                        print(
-                            f"\tTrain Epoch: {epoch} \t"
-                            f"Loss: {np.mean(losses):.6f} "
-                            f"(ε = {epsilon:.2f}, δ = {args.delta})"
-                        )
-                        model.eval()
-                        val_losses = []
-                        val_logits_arr = []
-                        for batch in val_loader:
-                            val_output = model(input_ids=batch["input_ids"].to('cuda'),
-                                           attention_mask=batch["attention_mask"].to('cuda'),
-                                           labels=batch["labels"].to('cuda'))
+                train_losses.append(loss.item())
+                optimizer.step()
 
-                            val_loss, val_logits = val_output[:2]
-                            print(f'eval loss: {val_loss} \t')
-                            val_losses.append(val_loss.item())
-                        model.train()
-                        val_logits_arr.append(val_logits)
-                        np.mean(val_losses)
+                # if i > 0 and (i + 1) % args.evaluate_steps == 0:
+                #     epsilon = privacy_engine.get_epsilon(args.delta)
+                #     print(
+                #         f"\tTrain Epoch: {epoch} \t"
+                #         f"Loss: {np.mean(losses):.6f} "
+                #         f"(ε = {epsilon:.2f}, δ = {args.delta})"
+                #     )
+                #     model.eval()
+                #     val_losses = []
+                #     val_logits_arr = []
+                #     for batch in val_loader:
+                #         val_output = model(input_ids=batch["input_ids"].to('cuda'),
+                #                        attention_mask=batch["attention_mask"].to('cuda'),
+                #                        labels=batch["labels"].to('cuda'))
+                #
+                #         val_loss, val_logits = val_output[:2]
+                #         print(f'eval loss: {val_loss} \t')
+                #         val_losses.append(val_loss.item())
+                #     model.train()
+                #     val_logits_arr.append(val_logits)
+                #     np.mean(val_losses)
 
-                        # print(f"i = {i} finished")
-                except Exception as e:
-                    traceback.print_exc()
-                    print(e)
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
 
-        except Exception as e:
-            traceback.print_exc()
-            print(e)
+        # except Exception as e:
+        #     traceback.print_exc()
+        #     print(e)
     return model  # , eval_loss, eval_accuracy
 
 
