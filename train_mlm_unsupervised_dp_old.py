@@ -3,7 +3,6 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from datasets import load_dataset
 
 import torch
 from opacus import PrivacyEngine
@@ -35,55 +34,16 @@ output_dir = os.path.join(OUTPUT_DIR, output_name)
 with open(os.path.join(CONFIG_DIR, output_name), 'w', encoding='utf-8') as f:
     json.dump(args.__dict__, f, indent=2)
 
-train_data = load_dataset('json', data_files='data/train.json', split='train')
+print("Save checkpoints to:", output_dir)
 
-val_data = load_dataset('json', data_files='data/validation.json')
+# get data
+sentences = split_to_sentences(data_path=os.path.join(DATA_DIR, args.data_file))
 
-column_names = train_data.column_names
+train_sentences, val_sentences = split_train_val(sentences=sentences)
 
 # Load foundation model, tokenizer and collator
 model = AutoModelForMaskedLM.from_pretrained(args.model_name)
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-
-
-def tokenize_function(examples):
-    # Remove empty lines
-    examples['text'] = [
-        line for line in examples['text'] if len(line) > 0 and not line.isspace()
-    ]
-    return tokenizer(
-        examples['text'],
-        padding='max_length',
-        truncation=True,
-        max_length=args.max_length,
-        # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
-        # receives the `special_tokens_mask`.
-        return_special_tokens_mask=True,
-    )
-
-
-train_dataset = train_data.map(
-                tokenize_function,
-                batched=True,
-                num_proc=1,
-                remove_columns=['text'],
-                load_from_cache_file=False,
-                desc="Running tokenizer on dataset line_by_line",
-            )
-
-val_dataset = val_data.map(
-                tokenize_function,
-                batched=True,
-                num_proc=1,
-                # remove_columns=['text'],
-                # load_from_cache_file=not data_args.overwrite_cache,
-                desc="Running tokenizer on dataset line_by_line",
-            )
-
-
-print("Save checkpoints to:", output_dir)
-
-
 # data_collator = DataCollatorForTokenClassification(tokenizer)
 if args.whole_word_mask:
     data_collator = DataCollatorForWholeWordMask(tokenizer=tokenizer, mlm=True,
@@ -93,7 +53,7 @@ else:
                                                     mlm_probability=args.mlm_prob)
 
 # create train dataset
-# train_dataset = TokenizedSentencesDataset(train_sentences, tokenizer, args.max_length)
+train_dataset = TokenizedSentencesDataset(train_sentences, tokenizer, args.max_length)
 train_dataset_wrapped = DatasetWrapper(train_dataset)
 train_data_loader = DataLoader(dataset=train_dataset_wrapped, batch_size=args.lot_size,
                                collate_fn=data_collator)
@@ -101,8 +61,8 @@ train_data_loader = DataLoader(dataset=train_dataset_wrapped, batch_size=args.lo
 # for index, x in enumerate(train_data_loader.dataset):
 #     train_data_loader.dataset[index] = x.data
 # create val dataset
-# val_dataset = TokenizedSentencesDataset(val_sentences, tokenizer, args.max_length,
-#                                         cache_tokenization=True) if len(val_sentences) > 0 else None
+val_dataset = TokenizedSentencesDataset(val_sentences, tokenizer, args.max_length,
+                                        cache_tokenization=True) if len(val_sentences) > 0 else None
 val_dataset_wrapped = DatasetWrapper(val_dataset)
 val_data_loader = DataLoader(dataset=val_dataset_wrapped, batch_size=args.lot_size,
                              collate_fn=data_collator)
@@ -134,8 +94,6 @@ privacy_engine = PrivacyEngine()
 for p in model.electra.embeddings.parameters():
     p.requires_grad = False
 
-
-
 model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
     module=model,
     optimizer=trainer.create_optimizer(),
@@ -143,7 +101,7 @@ model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
     epochs=args.epochs,
     target_epsilon=args.epsilon,
     target_delta=args.delta,
-    max_grad_norm=args.max_grad_norm
+    max_grad_norm=args.max_grad_norm,
 )
 
 trainer = None

@@ -4,18 +4,22 @@ import sys
 import traceback
 from datetime import datetime
 
+import numpy as np
 import torch
-from opacus import PrivacyEngine
+from datasets import load_dataset
+from opacus import PrivacyEngine, GradSampleModule
+from opacus.data_loader import DPDataLoader
+from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, Trainer, \
     TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling
+    DataCollatorForLanguageModeling, BertForMaskedLM
 
-from data_utils.preprocess_public_scraped_data import split_to_sentences, split_train_val, \
-    TokenizedSentencesDataset, DatasetWrapper
-from local_constants import OUTPUT_DIR, DATA_DIR, CONFIG_DIR
+from data_utils.preprocess_public_scraped_data import DatasetWrapper, TokenizedSentencesDataset, \
+    split_to_sentences, split_train_val
+from local_constants import OUTPUT_DIR, CONFIG_DIR
 from utils.helpers import validate_model, TimeCode
 from utils.input_args import create_parser
 
@@ -34,16 +38,55 @@ output_dir = os.path.join(OUTPUT_DIR, output_name)
 with open(os.path.join(CONFIG_DIR, output_name), 'w', encoding='utf-8') as f:
     json.dump(args.__dict__, f, indent=2)
 
-print("Save checkpoints to:", output_dir)
+train_data = load_dataset('json', data_files='data/train.json', split='train')
 
-# get data
-sentences = split_to_sentences(data_path=os.path.join(DATA_DIR, args.data_file))
+val_data = load_dataset('json', data_files='data/validation.json')
 
-train_sentences, val_sentences = split_train_val(sentences=sentences)
+column_names = train_data.column_names
 
 # Load foundation model, tokenizer and collator
+# args.model_name = 'NbAiLab/nb-bert-base'
+
 model = AutoModelForMaskedLM.from_pretrained(args.model_name)
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+
+
+def tokenize_function(examples):
+    # Remove empty lines
+    examples['text'] = [
+        line for line in examples['text'] if len(line) > 0 and not line.isspace()
+    ]
+    return tokenizer(
+        examples['text'],
+        padding='max_length',
+        truncation=True,
+        max_length=args.max_length,
+        # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
+        # receives the `special_tokens_mask`.
+        return_special_tokens_mask=True,
+    )
+
+
+train_dataset = train_data.map(
+    tokenize_function,
+    batched=True,
+    num_proc=1,
+    remove_columns=['text'],
+    load_from_cache_file=False,
+    desc="Running tokenizer on dataset line_by_line",
+)
+
+val_dataset = val_data.map(
+    tokenize_function,
+    batched=True,
+    num_proc=1,
+    # remove_columns=['text'],
+    # load_from_cache_file=not data_args.overwrite_cache,
+    desc="Running tokenizer on dataset line_by_line",
+)
+
+print("Save checkpoints to:", output_dir)
+
 # data_collator = DataCollatorForTokenClassification(tokenizer)
 if args.whole_word_mask:
     data_collator = DataCollatorForWholeWordMask(tokenizer=tokenizer, mlm=True,
@@ -52,8 +95,11 @@ else:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                     mlm_probability=args.mlm_prob)
 
-# create train dataset
-train_dataset = TokenizedSentencesDataset(train_sentences, tokenizer, args.max_length)
+# consider using TokenizedSentencesDataset class
+# sentences = split_to_sentences(data_path='data/da_DK_subset.json')
+# train, val = split_train_val(sentences=sentences)
+
+# train_dataset = TokenizedSentencesDataset(train, tokenizer, args.max_length)
 train_dataset_wrapped = DatasetWrapper(train_dataset)
 train_data_loader = DataLoader(dataset=train_dataset_wrapped, batch_size=args.lot_size,
                                collate_fn=data_collator)
@@ -61,8 +107,8 @@ train_data_loader = DataLoader(dataset=train_dataset_wrapped, batch_size=args.lo
 # for index, x in enumerate(train_data_loader.dataset):
 #     train_data_loader.dataset[index] = x.data
 # create val dataset
-val_dataset = TokenizedSentencesDataset(val_sentences, tokenizer, args.max_length,
-                                        cache_tokenization=True) if len(val_sentences) > 0 else None
+# val_dataset = TokenizedSentencesDataset(val_sentences, tokenizer, args.max_length,
+#                                         cache_tokenization=True) if len(val_sentences) > 0 else None
 val_dataset_wrapped = DatasetWrapper(val_dataset)
 val_data_loader = DataLoader(dataset=val_dataset_wrapped, batch_size=args.lot_size,
                              collate_fn=data_collator)
@@ -72,6 +118,7 @@ model = model.train()
 
 # validate if model works with opacus
 validate_model(model)
+
 
 training_args = TrainingArguments(
     output_dir=output_dir,
@@ -94,27 +141,33 @@ privacy_engine = PrivacyEngine()
 for p in model.electra.embeddings.parameters():
     p.requires_grad = False
 
-model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
+# for p in model.electra.encoder.parameters():
+#     p.requires_grad = False
+#
+# for p in model.electra.embeddings_project.parameters():
+#     p.requires_grad = False
+
+
+dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
     module=model,
     optimizer=trainer.create_optimizer(),
     data_loader=train_data_loader,
     epochs=args.epochs,
     target_epsilon=args.epsilon,
     target_delta=args.delta,
-    max_grad_norm=args.max_grad_norm,
+    max_grad_norm=args.max_grad_norm
 )
 
 trainer = None
 
-print(f"Using sigma={optimizer.noise_multiplier} and C={args.max_grad_norm}")
+print(f"Using sigma={dp_optimizer.noise_multiplier} and C={args.max_grad_norm}")
 
 
-def train(model, train_loader, optimizer, epoch, device):
+def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataLoader ,
+          optimizer: DPOptimizer, epoch: int, device: str = 'cuda:0'):
     model.train()
     model = model.to(device)
-
-    losses = []
-
+    train_losses = []
     with BatchMemoryManager(
         data_loader=train_loader,
         max_physical_batch_size=args.batch_size,
@@ -122,43 +175,54 @@ def train(model, train_loader, optimizer, epoch, device):
     ) as memory_safe_data_loader:
 
         try:
-
+            batch_dims = []
             for i, batch in enumerate(memory_safe_data_loader):
 
                 try:
                     optimizer.zero_grad()
-                    print(batch)
+
                     # compute output
                     output = model(input_ids=batch["input_ids"].to(device),
                                    attention_mask=batch["attention_mask"].to(device),
                                    labels=batch["labels"].to(device))
+                    batch_dims.append(output.logits.size()[0])
+                    if i == 10:
+                        print(batch_dims)
 
                     loss = output[0]
                     loss.backward()
-                    losses.append(loss.item())
+                    train_losses.append(loss.item())
                     optimizer.step()
 
-                    # if i > 0 and (i + 1) % args.evaluate_steps == 0:
-                    #     epsilon = privacy_engine.get_epsilon(args.delta)
-                    #     print(
-                    #         f"\tTrain Epoch: {epoch} \t"
-                    #         f"Loss: {np.mean(losses):.6f} "
-                    #         f"(ε = {epsilon:.2f}, δ = {args.delta})"
-                    #     )
-                    #     eval_loss, eval_accuracy = evaluate(model, val_data_loader)
-                    #     print(
-                    #         f"eval loss: {eval_loss} \t"
-                    #         f"eval acc: {eval_accuracy}"
-                    #     )
+                    if i > 0 and (i + 1) % args.evaluate_steps == 0:
+                        epsilon = privacy_engine.get_epsilon(args.delta)
+                        print(
+                            f"\tTrain Epoch: {epoch} \t"
+                            f"Loss: {np.mean(losses):.6f} "
+                            f"(ε = {epsilon:.2f}, δ = {args.delta})"
+                        )
+                        model.eval()
+                        val_losses = []
+                        val_logits_arr = []
+                        for batch in val_loader:
+                            val_output = model(input_ids=batch["input_ids"].to('cuda'),
+                                           attention_mask=batch["attention_mask"].to('cuda'),
+                                           labels=batch["labels"].to('cuda'))
 
-                    # print(f"i = {i} finished")
+                            val_loss, val_logits = val_output[:2]
+                            print(f'eval loss: {val_loss} \t')
+                            val_losses.append(val_loss.item())
+                        model.train()
+                        val_logits_arr.append(val_logits)
+                        np.mean(val_losses)
+
+                        # print(f"i = {i} finished")
                 except Exception as e:
-                    trace = traceback
                     traceback.print_exc()
                     print(e)
 
         except Exception as e:
-            trace = traceback.print_exc()
+            traceback.print_exc()
             print(e)
     return model  # , eval_loss, eval_accuracy
 
@@ -168,8 +232,8 @@ accuracies = []
 code_timer = TimeCode()
 
 for epoch in tqdm(range(args.epochs), desc="Epoch", unit="epoch"):
-    model = train(model, train_loader=train_loader, optimizer=optimizer, epoch=epoch + 1,
-                  device="cuda")
+    dp_model = train(model=dp_model, train_loader=dp_train_loader,val_loader=val_data_loader,  optimizer=dp_optimizer,
+                     epoch=epoch + 1)
     # losses.append({epoch: eval_loss})
     # accuracies.append({epoch: eval_accuracy})
 

@@ -1,4 +1,5 @@
 import json
+import os.path
 import random
 import re
 # from random import random
@@ -103,17 +104,7 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
                 if len(new_sentence) > 10:
                     all_sentences.append(new_sentence.strip())
 
-    # train, val = split_train_val(all_sentences)
 
-    with open('../data/all_data.json', 'w', encoding='utf-8') as outfile:
-        for entry in all_sentences:
-            json.dump({'text': entry}, outfile)
-            outfile.write('\n')
-
-    # with open('../data/validation.json', 'w', encoding='utf-8') as outfile:
-    #     for entry in val:
-    #         json.dump({'text': entry}, outfile)
-    #         outfile.write('\n')
 
 
     return all_sentences
@@ -126,10 +117,25 @@ def split_train_val(sentences: List[str]):
 
     return train, val
 
+def save_datasets(data_dir: str = '../data', train: List[str] = None, val: List[str] = None ):
+
+    with open(os.path.join(data_dir, 'train.json'), 'w', encoding='utf-8') as outfile:
+        for entry in train:
+            json.dump({'text': entry}, outfile)
+            outfile.write('\n')
+
+    with open(os.path.join(data_dir, 'validation.json'), 'w', encoding='utf-8') as outfile:
+        for entry in val:
+            json.dump({'text': entry}, outfile)
+            outfile.write('\n')
+
 
 if __name__ == '__main__':
     # preprocess_public_sborg()
 
     sentences = split_to_sentences()
-    #
-    # train, dev = split_train_dev(sentences=sentences)
+
+    train, val = split_train_val(sentences=sentences)
+
+    save_datasets(train=train, val=val)
+
