@@ -3,7 +3,10 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from typing import Dict
+
 from opacus.grad_sample import register_grad_sampler
+from modelling_utils.grad_sampler_mlm_head import replace_bert_head
 
 import numpy as np
 import torch
@@ -12,15 +15,18 @@ from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, Trainer, \
     TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, BertForMaskedLM, AutoModelForPreTraining
+    DataCollatorForLanguageModeling, BertForMaskedLM, AutoModelForPreTraining, BertConfig
+# from transformers.models.bert.modeling_bert import
 
 from data_utils.preprocess_public_scraped_data import DatasetWrapper, TokenizedSentencesDataset, \
     split_to_sentences, split_train_val
 from local_constants import OUTPUT_DIR, CONFIG_DIR
+# from modelling_utils.custom_modeling_bert import BertLMPredictionHead, BertOnlyMLMHead
 from utils.helpers import validate_model, TimeCode
 from utils.input_args import create_parser
 from utils.helpers import fix_and_validate
@@ -49,14 +55,8 @@ column_names = train_data.column_names
 # Load foundation model, tokenizer and collator
 # args.model_name = 'NbAiLab/nb-bert-base'
 
-model = AutoModelForMaskedLM.from_pretrained(args.model_name)
-tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-
-model = model.train()
-
-
 # @register_grad_sampler(BertLMPredictionHead)
-# def compute_bert_lm_head_grads(
+# def compute_bert_lm_head_grad_sample(
 #     layer: BertLMPredictionHead, activations: torch.Tensor, backprops: torch.Tensor
 # ) -> Dict[nn.Parameter, torch.Tensor]:
 #     """
@@ -66,9 +66,20 @@ model = model.train()
 #         activations: Activations
 #         backprops: Backpropagations
 #     """
+#     print(activations)
+#     print(backprops)
 #     gs = torch.einsum("n...i,n...j->nij", backprops, activations)
-#     ret = {layer.decoder: gs}
+#     ret = {layer.weight: gs}
 #     if layer.bias is not None:
+#         ret[layer.bias] = torch.einsum("n...k->nk", backprops)
+#
+#     return ret
+
+
+# model = BertForMaskedLM.from_pretrained(args.model_name)
+model = replace_bert_head()
+
+tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
 
 def tokenize_function(examples):
@@ -137,7 +148,7 @@ val_data_loader = DataLoader(dataset=val_dataset_wrapped, batch_size=args.lot_si
 model = model.train()
 
 # validate if model works with opacus
-# validate_model(model)
+validate_model(model)
 # fix_and_validate(model)
 
 training_args = TrainingArguments(
@@ -167,16 +178,8 @@ privacy_engine = PrivacyEngine()
 # for p in model.electra.embeddings_project.parameters():
 #     p.requires_grad = False
 
-batch = None
-for b in train_data_loader:
-    batch = b
-    break
 
-device = 'cpu'
-model = model.to(device)
-model(input_ids=batch["input_ids"].to(device),
-      attention_mask=batch["attention_mask"].to(device),
-      labels=batch["labels"].to(device))
+
 
 dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
     module=model,
@@ -217,7 +220,7 @@ def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataL
                 # if i == 10:
                 #     print(batch_dims)
 
-                loss = output[0]
+                loss = output.loss
                 # loss.backward(create_graph=False, retain_graph=False, inputs=batch['input_ids'])
 
                 loss.backward()
@@ -268,3 +271,11 @@ for epoch in tqdm(range(args.epochs), desc="Epoch", unit="epoch"):
     # accuracies.append({epoch: eval_accuracy})
 
 print()
+
+
+[NotImplementedError("Model contains a trainable layer that Opacus doesn't currently "
+                     "support(cls.predictions:BertLMPredictionHeadCustom(\n  (transform): BertPredictionHeadTransform(\n    "
+                     "(dense): Linear(in_features=768, out_features=768, bias=True)\n    (transform_act_fn): GELUActivation()\n    "
+                     "(LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n  )\n "
+                     " (decoder): Linear(in_features=768, out_features=119547, bias=True)\n)). "
+                     "Please implement and register grad sampler for this layer. (See opacus.grad_sample.utils.register_grad_sampler)")]
