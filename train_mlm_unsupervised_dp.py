@@ -24,6 +24,7 @@ from local_constants import OUTPUT_DIR, CONFIG_DIR
 from utils.helpers import validate_model, TimeCode
 from utils.input_args import create_parser
 from utils.helpers import fix_and_validate
+
 os.environ["WANDB_DISABLED"] = "true"
 
 if not torch.cuda.is_available():
@@ -68,7 +69,6 @@ model = model.train()
 #     gs = torch.einsum("n...i,n...j->nij", backprops, activations)
 #     ret = {layer.decoder: gs}
 #     if layer.bias is not None:
-
 
 
 def tokenize_function(examples):
@@ -137,7 +137,7 @@ val_data_loader = DataLoader(dataset=val_dataset_wrapped, batch_size=args.lot_si
 model = model.train()
 
 # validate if model works with opacus
-validate_model(model)
+# validate_model(model)
 # fix_and_validate(model)
 
 training_args = TrainingArguments(
@@ -158,8 +158,8 @@ trainer = Trainer(
 
 privacy_engine = PrivacyEngine()
 
-for p in model.electra.embeddings.parameters():
-    p.requires_grad = False
+# for p in model.electra.embeddings.parameters():
+#    p.requires_grad = False
 
 # for p in model.electra.encoder.parameters():
 #     p.requires_grad = False
@@ -167,6 +167,16 @@ for p in model.electra.embeddings.parameters():
 # for p in model.electra.embeddings_project.parameters():
 #     p.requires_grad = False
 
+batch = None
+for b in train_data_loader:
+    batch = b
+    break
+
+device = 'cpu'
+model = model.to(device)
+model(input_ids=batch["input_ids"].to(device),
+      attention_mask=batch["attention_mask"].to(device),
+      labels=batch["labels"].to(device))
 
 dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
     module=model,
@@ -183,7 +193,7 @@ trainer = None
 print(f"Using sigma={dp_optimizer.noise_multiplier} and C={args.max_grad_norm}")
 
 
-def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataLoader ,
+def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataLoader,
           optimizer: DPOptimizer, epoch: int, device: str = 'cuda:0'):
     model.train()
     model = model.to(device)
@@ -252,7 +262,7 @@ accuracies = []
 code_timer = TimeCode()
 
 for epoch in tqdm(range(args.epochs), desc="Epoch", unit="epoch"):
-    dp_model = train(model=dp_model, train_loader=dp_train_loader,val_loader=val_data_loader,  optimizer=dp_optimizer,
+    dp_model = train(model=dp_model, train_loader=dp_train_loader, val_loader=val_data_loader, optimizer=dp_optimizer,
                      epoch=epoch + 1)
     # losses.append({epoch: eval_loss})
     # accuracies.append({epoch: eval_accuracy})

@@ -23,7 +23,7 @@ def create_parser():
                         help="evaluate model accuracy after number of steps")
     parser.add_argument("--logging_steps", type=int, default=100,
                         help="Log model accuracy after number of steps")
-    parser.add_argument("--model_name", type=str, default='jonfd/electra-small-nordic',
+    parser.add_argument("--model_name", type=str, default='NbAiLab/nb-bert-base',
                         help="foundation model from huggingface")
     parser.add_argument("--save_steps", type=int, default=1000,
                         help="save checkpoint after number of steps")
