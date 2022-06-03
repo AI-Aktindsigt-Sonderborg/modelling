@@ -697,7 +697,7 @@ class BertLMPredictionHeadCustom(nn.Module):
         return hidden_states
 
 
-class BertOnlyMLMHead(nn.Module):
+class BertOnlyMLMHeadCustom(nn.Module):
     def __init__(self, config):
         super().__init__()
         self.predictions = BertLMPredictionHeadCustom(config)

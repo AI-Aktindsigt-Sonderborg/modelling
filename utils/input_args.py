@@ -1,4 +1,40 @@
 import argparse
+
+parser = argparse.ArgumentParser()
+
+training_params = parser.add_argument_group('training')
+eval_params = parser.add_argument_group('evaluation')
+
+data_params = parser.add_argument_group('data')
+model_params = parser.add_argument_group('modelling')
+common_params = parser.add_argument_group('common')
+
+data_params.add_argument("--max_length", type=int, default=128,help="Max length for a text input")
+
+
+
+parser.add_argument('--local-arg',
+                    action="store_true",
+                    default=False)
+
+print(parser.parse_args())
+
+
+class MLMArgParser:
+    def __init__(self):
+        self.parser = argparse.ArgumentParser()
+
+    def add_common_params(self):
+        pass
+    def add_data_params(self):
+        pass
+    def add_model_params(self):
+        pass
+    def add_training_params(self):
+        pass
+    def add_eval_params(self):
+        pass
+
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--epsilon", type=float, default=1, help="privacy parameter epsilon")

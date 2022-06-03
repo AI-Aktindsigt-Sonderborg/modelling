@@ -39,6 +39,8 @@ if not torch.cuda.is_available():
 
 parser = create_parser()
 args = parser.parse_args()
+args.model_name = 'Geotrend/distilbert-base-da-cased'
+
 
 output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 output_dir = os.path.join(OUTPUT_DIR, output_name)
@@ -53,31 +55,9 @@ val_data = load_dataset('json', data_files='data/validation.json')
 column_names = train_data.column_names
 
 # Load foundation model, tokenizer and collator
-# args.model_name = 'NbAiLab/nb-bert-base'
-
-# @register_grad_sampler(BertLMPredictionHead)
-# def compute_bert_lm_head_grad_sample(
-#     layer: BertLMPredictionHead, activations: torch.Tensor, backprops: torch.Tensor
-# ) -> Dict[nn.Parameter, torch.Tensor]:
-#     """
-#     Computes per sample gradients for ``nn.Linear`` layer
-#     Args:
-#         layer: Layer
-#         activations: Activations
-#         backprops: Backpropagations
-#     """
-#     print(activations)
-#     print(backprops)
-#     gs = torch.einsum("n...i,n...j->nij", backprops, activations)
-#     ret = {layer.weight: gs}
-#     if layer.bias is not None:
-#         ret[layer.bias] = torch.einsum("n...k->nk", backprops)
-#
-#     return ret
-
 
 # model = BertForMaskedLM.from_pretrained(args.model_name)
-model = replace_bert_head()
+model = replace_bert_head(model_tag=args.model_name)
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
@@ -101,7 +81,7 @@ def tokenize_function(examples):
 train_dataset = train_data.map(
     tokenize_function,
     batched=True,
-    num_proc=2,
+    num_proc=1,
     remove_columns=['text'],
     load_from_cache_file=False,
     desc="Running tokenizer on dataset line_by_line",
@@ -110,7 +90,7 @@ train_dataset = train_data.map(
 val_dataset = val_data.map(
     tokenize_function,
     batched=True,
-    num_proc=2,
+    num_proc=1,
     # remove_columns=['text'],
     # load_from_cache_file=not data_args.overwrite_cache,
     desc="Running tokenizer on dataset line_by_line",
@@ -169,17 +149,8 @@ trainer = Trainer(
 
 privacy_engine = PrivacyEngine()
 
-# for p in model.electra.embeddings.parameters():
-#    p.requires_grad = False
-
-# for p in model.electra.encoder.parameters():
-#     p.requires_grad = False
-#
-# for p in model.electra.embeddings_project.parameters():
-#     p.requires_grad = False
-
-
-
+for p in model.bert.embeddings.parameters():
+   p.requires_grad = False
 
 dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
     module=model,
@@ -265,17 +236,10 @@ accuracies = []
 code_timer = TimeCode()
 
 for epoch in tqdm(range(args.epochs), desc="Epoch", unit="epoch"):
+    print(epoch)
     dp_model = train(model=dp_model, train_loader=dp_train_loader, val_loader=val_data_loader, optimizer=dp_optimizer,
                      epoch=epoch + 1)
     # losses.append({epoch: eval_loss})
     # accuracies.append({epoch: eval_accuracy})
 
 print()
-
-
-[NotImplementedError("Model contains a trainable layer that Opacus doesn't currently "
-                     "support(cls.predictions:BertLMPredictionHeadCustom(\n  (transform): BertPredictionHeadTransform(\n    "
-                     "(dense): Linear(in_features=768, out_features=768, bias=True)\n    (transform_act_fn): GELUActivation()\n    "
-                     "(LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n  )\n "
-                     " (decoder): Linear(in_features=768, out_features=119547, bias=True)\n)). "
-                     "Please implement and register grad sampler for this layer. (See opacus.grad_sample.utils.register_grad_sampler)")]

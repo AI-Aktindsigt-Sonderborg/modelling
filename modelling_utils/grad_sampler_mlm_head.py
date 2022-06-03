@@ -7,7 +7,7 @@ from opacus.grad_sample import register_grad_sampler
 from torch import nn
 from torch.nn import CrossEntropyLoss
 from transformers import BertConfig, BertForMaskedLM
-from custom_modeling_bert import BertOnlyMLMHead, BertPredictionHeadTransform, BertLMPredictionHeadCustom
+from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom, BertPredictionHeadTransform, BertLMPredictionHeadCustom
 # from transformers.models.bert.modeling_bert import
 from modelling_utils.custom_modeling_bert import BertLMPredictionHeadCustom
 
@@ -41,71 +41,93 @@ def compute_loss(prediction_scores, labels, config):
 
     return masked_lm_loss
 
-def replace_bert_head(model_tag: str = "NbAiLab/nb-bert-base"):
+def replace_bert_head(model_tag: str = "NbAiLab/nb-bert-base", device: str = 'cuda'):
 
     # model_tag = "NbAiLab/nb-bert-base"
     model = BertForMaskedLM.from_pretrained(model_tag)
 
     config = BertConfig.from_pretrained(model_tag)
-    lm_head = BertLMPredictionHeadCustom(config)
+    lm_head = BertOnlyMLMHeadCustom(config)
     lm_head = lm_head.to(device)
 
-    old_bias = model.cls.predictions.bias
-
-    old_decoder_weights = model.cls.predictions.decoder.weight
-    old_dense_weights = model.cls.predictions.transform.dense.weight
-    old_layer_norm_weights = model.cls.predictions.transform.LayerNorm.weight
-
-    old_decoder_bias = model.cls.predictions.decoder.bias
-    old_dense_bias = model.cls.predictions.transform.dense.bias
-    old_layer_norm_bias = model.cls.predictions.transform.LayerNorm.bias
-
-
-    model.cls.predictions = lm_head
-
-    model.cls.predictions.bias = old_bias
-
-    model.cls.predictions.decoder.weight = old_decoder_weights
-    model.cls.predictions.transform.dense.weight = old_dense_weights
-    model.cls.predictions.transform.LayerNorm.weight = old_layer_norm_weights
-
-    model.cls.predictions.decoder.bias = old_decoder_bias
-    model.cls.predictions.transform.dense.bias = old_dense_bias
-    model.cls.predictions.transform.LayerNorm.bias = old_layer_norm_bias
-
-    return model, lm_head
-
-if __name__ == '__main__':
-
-    # device = 'cuda'
-    #
-    # model, lm_head = replace_bert_head()
-    #
     # print(f"Before wrapping: {lm_head}")
-    # lm_new_head = GradSampleModule(lm_head)
-    # print(f"After wrapping : {lm_new_head}")
+    # gs_lin_mod = GradSampleModule(lm_head)
+    # print(f"After wrapping : {gs_lin_mod}")
     #
     # sequence_output = np.load("sequence_output.npy")[0:2, :, :]
     # labels = np.load("labels.npy")[0:2, :]
     # labels = torch.Tensor(labels).to(torch.int64).to(device)
     # sequence_tensor = torch.Tensor(sequence_output).to(device)
-    # prediction_scores = lm_new_head.forward(sequence_tensor)
-    # loss = compute_loss(prediction_scores, labels)
+    # prediction_scores = gs_lin_mod.forward(sequence_tensor)
+    # loss = compute_loss(prediction_scores, labels, config)
     #
     # loss.backward()
+
+
+    # old_bias = model.cls.predictions.bias
     #
-    # # model = AutoModelForMaskedLM.from_pretrained(model_tag)
+    # old_decoder_weights = model.cls.predictions.decoder.weight
+    # old_dense_weights = model.cls.predictions.transform.dense.weight
+    # old_layer_norm_weights = model.cls.predictions.transform.LayerNorm.weight
+    #
+    # old_decoder_bias = model.cls.predictions.decoder.bias
+    # old_dense_bias = model.cls.predictions.transform.dense.bias
+    # old_layer_norm_bias = model.cls.predictions.transform.LayerNorm.bias
+
+
+    model.cls = lm_head
+    # model.cls.predictions = lm_head
+
+    # model.cls.predictions.bias = old_bias
+    #
+    # model.cls.predictions.decoder.weight = old_decoder_weights
+    # model.cls.predictions.transform.dense.weight = old_dense_weights
+    # model.cls.predictions.transform.LayerNorm.weight = old_layer_norm_weights
+    #
+    # model.cls.predictions.decoder.bias = old_decoder_bias
+    # model.cls.predictions.transform.dense.bias = old_dense_bias
+    # model.cls.predictions.transform.LayerNorm.bias = old_layer_norm_bias
+
+
+    return model
+
+if __name__ == '__main__':
+    model_tag = "NbAiLab/nb-bert-base"
+    config = BertConfig.from_pretrained(model_tag)
+    device = 'cuda'
+    #
+    model = replace_bert_head()
+
+    model = model.train()
+
+    # model = GradSampleModule(model)
+
+    sequence_output = np.load("sequence_output.npy")[0:2, :, :]
+    labels = np.load("labels.npy")[0:2, :]
+    labels = torch.Tensor(labels).to(torch.int64).to(device)
+    sequence_tensor = torch.Tensor(sequence_output).to(device)
+    prediction_scores = model.cls.forward(sequence_tensor)
+    loss = compute_loss(prediction_scores, labels, config)
+
+    loss.backward()
+    #
     #
     #
     # validate_model(model)
-    device = "cuda"
+    # device = "cuda"
+
+
+
     model_tag = "NbAiLab/nb-bert-base"
     config = BertConfig.from_pretrained(model_tag)
-    lm_head = BertOnlyMLMHead(config)
+    lm_head = BertOnlyMLMHeadCustom(config)
     lm_head = lm_head.to(device)
 
-    print(f"Before wrapping: {lm_head}")
 
+
+
+
+    print(f"Before wrapping: {lm_head}")
     gs_lin_mod = GradSampleModule(lm_head)
     print(f"After wrapping : {gs_lin_mod}")
 
@@ -113,7 +135,14 @@ if __name__ == '__main__':
     labels = np.load("labels.npy")[0:2, :]
     labels = torch.Tensor(labels).to(torch.int64).to(device)
     sequence_tensor = torch.Tensor(sequence_output).to(device)
-    prediction_scores = lm_head.forward(sequence_tensor)
+    prediction_scores = gs_lin_mod.forward(sequence_tensor)
     loss = compute_loss(prediction_scores, labels, config)
 
     loss.backward()
+
+    NotImplementedError: [NotImplementedError(
+        "Model contains a trainable layer that Opacus doesn't currently support(cls.predictions:BertLMPredictionHeadCustom(\n  "
+        "(transform): BertPredictionHeadTransform(\n    (dense): Linear(in_features=768, out_features=768, bias=True)\n    "
+        "(transform_act_fn): GELUActivation()\n    (LayerNorm): LayerNorm((768,), eps=1e-12, elementwise_affine=True)\n  )\n "
+        " (decoder): Linear(in_features=768, out_features=119547, bias=True)\n)). "
+        "Please implement and register grad sampler for this layer. (See opacus.grad_sample.utils.register_grad_sampler)")]
