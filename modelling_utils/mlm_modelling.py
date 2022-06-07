@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime
 
+import numpy as np
 from datasets import load_dataset
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
@@ -35,6 +36,7 @@ class DatasetWrapper(Dataset):
 
 class MLMUnsupervisedModelling:
     def __init__(self, args: argparse.Namespace):
+        self.privacy_engine = None
         self.trainer = None
         self.args = args
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
@@ -48,7 +50,7 @@ class MLMUnsupervisedModelling:
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
         self.data_collator = self.get_data_collator()
 
-    def train_model(self):
+    def preprocess_and_train_model(self):
         self.load_data()
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
@@ -64,17 +66,18 @@ class MLMUnsupervisedModelling:
         code_timer = TimeCode()
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = self.create_data_loader(wrapped_dataset=eval_data_wrapped,
-                                                  data_collator=self.data_collator,
+            eval_loader = DataLoader(dataset=eval_data_wrapped,
+                                                  collate_fn=self.data_collator,
                                                   batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 print(epoch)
-                dp_model = self.train(model=dp_model, train_loader=dp_train_loader,
-                                      optimizer=dp_optimizer)
-                # losses.append({epoch: eval_loss})
-                # accuracies.append({epoch: eval_accuracy})
+                dp_model, eval_loss, eval_accuracy = self.train(model=dp_model, train_loader=dp_train_loader,
+                                      optimizer=dp_optimizer, val_loader=eval_loader,
+                                      epoch=epoch + 1)
+                losses.append({epoch: eval_loss})
+                accuracies.append({epoch: eval_accuracy})
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -88,24 +91,15 @@ class MLMUnsupervisedModelling:
         if self.args.save_model_at_end:
             self.save_model(model=dp_model)
 
-
-    def save_model(self, model):
-        trainer_test = Trainer(
-            model=model,
-            args=TrainingArguments(output_dir=self.output_dir),
-            data_collator=self.data_collator,
-            tokenizer=self.tokenizer
-        )
-        trainer_test.save_model(output_dir=self.output_dir)
-        # trainer_test.save_metrics()
-
-        model._module.save_pretrained(save_directory=self.output_dir)
-
     def train(self, model: GradSampleModule, train_loader: DPDataLoader,
               optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None):
         model.train()
         model = model.to(self.args.device)
+
         train_losses = []
+        eval_losses = []
+        eval_accuracies = []
+
         with BatchMemoryManager(
             data_loader=train_loader,
             max_physical_batch_size=self.args.train_batch_size,
@@ -127,36 +121,51 @@ class MLMUnsupervisedModelling:
 
                 train_losses.append(loss.item())
                 optimizer.step()
-                if val_loader:
-                    pass
-                    # if i > 0 and (i + 1) % args.evaluate_steps == 0:
-                    #     epsilon = privacy_engine.get_epsilon(args.delta)
-                    #     print(
-                    #         f"\tTrain Epoch: {epoch} \t"
-                    #         f"Loss: {np.mean(losses):.6f} "
-                    #         f"(ε = {epsilon:.2f}, δ = {args.delta})"
-                    #     )
-                    #     model.eval()
-                    #     val_losses = []
-                    #     val_logits_arr = []
-                    #     for batch in val_loader:
-                    #         val_output = model(input_ids=batch["input_ids"].to('cuda'),
-                    #                        attention_mask=batch["attention_mask"].to('cuda'),
-                    #                        labels=batch["labels"].to('cuda'))
-                    #
-                    #         val_loss, val_logits = val_output[:2]
-                    #         print(f'eval loss: {val_loss} \t')
-                    #         val_losses.append(val_loss.item())
-                    #     model.train()
-                    #     val_logits_arr.append(val_logits)
-                    #     np.mean(val_losses)
-        return model  # , eval_loss, eval_accuracy
+                if val_loader and (i > 0 and ((i + 1) % self.args.evaluate_steps == 0)):
+                    epsilon = self.privacy_engine.get_epsilon(self.args.delta)
+                    print(
+                        f"\tTrain Epoch: {epoch} \t"
+                        f"Loss: {np.mean(train_losses):.6f} "
+                        f"(ε = {epsilon:.2f}, δ = {self.args.delta})"
+                    )
+                    eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+                    print(
+                        f"eval loss: {eval_loss} \t"
+                        f"eval acc: {eval_accuracy}"
+                    )
+                    eval_losses.append(eval_loss)
+                    eval_accuracies.append(eval_accuracy)
+                    model.train()
 
-    def evaluate_model(self):
-        pass
+        return model, eval_loss, eval_accuracy
+
+    def evaluate(self, model, val_loader: DataLoader):
+        model.eval()
+
+        loss_arr = []
+        accuracy_arr = []
+
+        for batch in val_loader:
+            # compute output
+            output = model(input_ids=batch["input_ids"].to('cuda'),
+                           attention_mask=batch["attention_mask"].to('cuda'),
+                           labels=batch["labels"].to('cuda'))
+
+            loss = output.loss
+
+            preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
+            labels = batch["labels"].cpu().numpy()
+
+            labels_flat = labels.flatten()
+            preds_flat = preds.flatten()
+            loss_arr.append(output.loss.item())
+            accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
+
+        return np.mean(loss_arr), np.mean(accuracy_arr)
+
 
     def set_up_privacy(self, train_loader: DataLoader):
-        privacy_engine = PrivacyEngine()
+        self.privacy_engine = PrivacyEngine()
 
         for p in self.model.bert.embeddings.parameters():
             p.requires_grad = False
@@ -166,7 +175,7 @@ class MLMUnsupervisedModelling:
         # validate if model works with opacus
         self.validate_model(self.model)
 
-        dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
+        dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=self.model,
             optimizer=self.trainer.create_optimizer(),
             data_loader=train_loader,
@@ -208,7 +217,8 @@ class MLMUnsupervisedModelling:
                                            split='train')
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
-                                          data_files=os.path.join(DATA_DIR, self.args.eval_data))
+                                          data_files=os.path.join(DATA_DIR, self.args.eval_data),
+                                          split='train')
 
     def get_data_collator(self):
         if self.args.whole_word_mask:
@@ -259,6 +269,18 @@ class MLMUnsupervisedModelling:
         wrapped = DatasetWrapper(tokenized)
         return wrapped
 
+    def save_model(self, model):
+        trainer_test = Trainer(
+            model=model,
+            args=TrainingArguments(output_dir=self.output_dir),
+            data_collator=self.data_collator,
+            tokenizer=self.tokenizer
+        )
+        trainer_test.save_model(output_dir=self.output_dir)
+        # trainer_test.save_metrics()
+
+        model._module.save_pretrained(save_directory=self.output_dir)
+
     @staticmethod
     def validate_model(model):
         errors = ModuleValidator.validate(model, strict=False)
@@ -268,3 +290,7 @@ class MLMUnsupervisedModelling:
             sys.exit(0)
         else:
             print("Model is compatible for DP with opacus.")
+
+    @staticmethod
+    def accuracy(preds, labels):
+        return (preds == labels).mean()

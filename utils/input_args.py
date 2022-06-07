@@ -55,7 +55,7 @@ class MLMArgParser:
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=10,
+        eval_params.add_argument("--evaluate_steps", type=int, default=50,
                                  help="evaluate model accuracy after number of steps")
         eval_params.add_argument("--logging_steps", type=int, default=100,
                                  help="Log model accuracy after number of steps")
