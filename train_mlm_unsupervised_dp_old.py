@@ -3,33 +3,24 @@ import os
 import sys
 import traceback
 from datetime import datetime
-from typing import Dict
 
-from opacus.grad_sample import register_grad_sampler
-from modelling_utils.grad_sampler_mlm_head import replace_bert_head
-
-import numpy as np
 import torch
 from datasets import load_dataset
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
-from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, Trainer, \
-    TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, BertForMaskedLM, AutoModelForPreTraining, BertConfig
-# from transformers.models.bert.modeling_bert import
+    TrainingArguments, DataCollatorForWholeWordMask, \
+    DataCollatorForLanguageModeling
 
-from data_utils.preprocess_public_scraped_data import DatasetWrapper, TokenizedSentencesDataset, \
-    split_to_sentences, split_train_val
-from local_constants import OUTPUT_DIR, CONFIG_DIR
-# from modelling_utils.custom_modeling_bert import BertLMPredictionHead, BertOnlyMLMHead
+from data_utils.preprocess_public_scraped_data import DatasetWrapper, TokenizedSentencesDataset
+from local_constants import OUTPUT_DIR, CONFIG_DIR, DATA_DIR
+from modelling_utils.grad_sampler_mlm_head import replace_bert_head
 from utils.helpers import validate_model, TimeCode
-from utils.input_args import create_parser
-from utils.helpers import fix_and_validate
+from utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
 
@@ -37,10 +28,10 @@ if not torch.cuda.is_available():
     print("Cuda not found. Exiting..")
     sys.exit(0)
 
-parser = create_parser()
-args = parser.parse_args()
-args.model_name = 'Geotrend/distilbert-base-da-cased'
+mlm_parser = MLMArgParser()
+args = mlm_parser.parser.parse_args()
 
+args.model_name = 'Geotrend/distilbert-base-da-cased'
 
 output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 output_dir = os.path.join(OUTPUT_DIR, output_name)
@@ -48,11 +39,11 @@ output_dir = os.path.join(OUTPUT_DIR, output_name)
 with open(os.path.join(CONFIG_DIR, output_name), 'w', encoding='utf-8') as f:
     json.dump(args.__dict__, f, indent=2)
 
-train_data = load_dataset('json', data_files='data/train.json', split='train')
+train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, args.train_data), split='train')
 
-val_data = load_dataset('json', data_files='data/validation.json')
+val_data = load_dataset('json', data_files=os.path.join(DATA_DIR, args.eval_data))
 
-column_names = train_data.column_names
+# column_names = train_data.column_names
 
 # Load foundation model, tokenizer and collator
 
@@ -76,6 +67,8 @@ def tokenize_function(examples):
         # receives the `special_tokens_mask`.
         return_special_tokens_mask=True,
     )
+
+# train_dataset = TokenizedSentencesDataset(train_data, tokenizer, args.max_length)
 
 
 train_dataset = train_data.map(
@@ -125,10 +118,6 @@ val_data_loader = DataLoader(dataset=val_dataset_wrapped, batch_size=args.lot_si
                              collate_fn=data_collator)
 
 # set model to train mode
-model = model.train()
-
-# validate if model works with opacus
-validate_model(model)
 # fix_and_validate(model)
 
 training_args = TrainingArguments(
@@ -142,12 +131,19 @@ trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset_wrapped,
-    eval_dataset=["train"],
     data_collator=data_collator,
     tokenizer=tokenizer
 )
 
 privacy_engine = PrivacyEngine()
+
+for p in model.bert.embeddings.parameters():
+   p.requires_grad = False
+
+model = model.train()
+
+# validate if model works with opacus
+validate_model(model)
 
 
 dp_model, dp_optimizer, dp_train_loader = privacy_engine.make_private_with_epsilon(
@@ -172,7 +168,7 @@ def train(model: GradSampleModule, train_loader: DPDataLoader, val_loader: DataL
     train_losses = []
     with BatchMemoryManager(
         data_loader=train_loader,
-        max_physical_batch_size=args.batch_size,
+        max_physical_batch_size=args.train_batch_size,
         optimizer=optimizer
     ) as memory_safe_data_loader:
         batch_dims = []
@@ -234,9 +230,11 @@ accuracies = []
 code_timer = TimeCode()
 
 for epoch in tqdm(range(args.epochs), desc="Epoch", unit="epoch"):
+    print(epoch)
     dp_model = train(model=dp_model, train_loader=dp_train_loader, val_loader=val_data_loader, optimizer=dp_optimizer,
                      epoch=epoch + 1)
     # losses.append({epoch: eval_loss})
     # accuracies.append({epoch: eval_accuracy})
 
+code_timer.how_long_since_start()
 print()

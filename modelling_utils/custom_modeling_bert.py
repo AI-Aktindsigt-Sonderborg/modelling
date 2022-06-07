@@ -1303,7 +1303,7 @@ class BertForMaskedLM(BertPreTrainedModel):
             )
 
         self.bert = BertModel(config, add_pooling_layer=False)
-        self.cls = BertOnlyMLMHead(config)
+        self.cls = BertOnlyMLMHeadCustom(config)
 
         # Initialize weights and apply final processing
         self.post_init()
