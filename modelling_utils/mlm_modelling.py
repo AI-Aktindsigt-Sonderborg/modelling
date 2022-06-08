@@ -93,7 +93,7 @@ class MLMUnsupervisedModelling:
                 print('epoch: ' + str(epoch))
                 print()
                 try:
-                    dp_model = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
+                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
                                       optimizer=dp_optimizer)
                 except Exception as e:
                     traceback.print_exc()
@@ -134,6 +134,9 @@ class MLMUnsupervisedModelling:
 
                 train_losses.append(loss.item())
                 optimizer.step()
+
+                eval_loss = None
+                eval_accuracy = None
                 if val_loader and (i > 0 and ((i + 1) % self.args.evaluate_steps == 0)):
                     epsilon = self.privacy_engine.get_epsilon(self.args.delta)
                     print(
