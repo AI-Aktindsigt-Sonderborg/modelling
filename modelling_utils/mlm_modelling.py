@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import sys
+import traceback
 from datetime import datetime
 
 import numpy as np
@@ -50,7 +51,7 @@ class MLMUnsupervisedModelling:
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
         self.data_collator = self.get_data_collator()
 
-    def preprocess_and_train_model(self):
+    def train_model(self):
         self.load_data()
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
@@ -59,7 +60,7 @@ class MLMUnsupervisedModelling:
         self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
 
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator, shuffle=True)
+                                  collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
 
@@ -72,26 +73,38 @@ class MLMUnsupervisedModelling:
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                print(epoch)
-                dp_model, eval_loss, eval_accuracy = self.train(model=dp_model, train_loader=dp_train_loader,
+                print()
+                print('epoch: ' + str(epoch))
+                print()
+                try:
+                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
                                       optimizer=dp_optimizer, val_loader=eval_loader,
                                       epoch=epoch + 1)
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 print()
-                print('epoch:' + str(epoch))
+                print('epoch: ' + str(epoch))
                 print()
-                dp_model = self.train(model=dp_model, train_loader=dp_train_loader,
+                try:
+                    dp_model = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
                                       optimizer=dp_optimizer)
+                except Exception as e:
+                    traceback.print_exc()
+                    print(e)
+
 
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(model=dp_model)
 
-    def train(self, model: GradSampleModule, train_loader: DPDataLoader,
+    def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
               optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None):
         model.train()
         model = model.to(self.args.device)

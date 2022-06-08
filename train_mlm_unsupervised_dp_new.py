@@ -11,4 +11,7 @@ args.model_name = 'Geotrend/distilbert-base-da-cased'
 mlm_modelling = MLMUnsupervisedModelling(args=args)
 
 
-mlm_modelling.preprocess_and_train_model()
+mlm_modelling.train_model()
+
+
+print()
