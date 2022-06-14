@@ -12,6 +12,7 @@ from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from opacus.validators import ModuleValidator
+from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer
@@ -68,24 +69,35 @@ class MLMUnsupervisedModelling:
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
             eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                                  collate_fn=self.data_collator,
-                                                  batch_size=self.args.eval_batch_size)
+                                     collate_fn=self.data_collator,
+                                     batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 print()
                 print('epoch: ' + str(epoch))
                 print()
-                try:
-                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
-                                      optimizer=dp_optimizer, val_loader=eval_loader,
-                                      epoch=epoch + 1)
-                except Exception as e:
-                    traceback.print_exc()
-                    print(e)
+
+                dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
+                                                                      train_loader=dp_train_loader,
+                                                                      optimizer=dp_optimizer,
+                                                                      val_loader=eval_loader,
+                                                                      epoch=epoch + 1)
 
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
+
+            with open(os.path.join(self.output_dir, 'eval_losses.json'), 'w',
+                      encoding='utf-8') as outfile:
+                for entry in losses:
+                    json.dump({'text': entry}, outfile)
+                    outfile.write('\n')
+
+            with open(os.path.join(self.output_dir, 'accuracies.json'), 'w',
+                      encoding='utf-8') as outfile:
+                for entry in accuracies:
+                    json.dump({'text': entry}, outfile)
+                    outfile.write('\n')
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -93,8 +105,9 @@ class MLMUnsupervisedModelling:
                 print('epoch: ' + str(epoch))
                 print()
                 try:
-                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model, train_loader=dp_train_loader,
-                                      optimizer=dp_optimizer)
+                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
+                                                                          train_loader=dp_train_loader,
+                                                                          optimizer=dp_optimizer)
                 except Exception as e:
                     traceback.print_exc()
                     print(e)
@@ -105,7 +118,8 @@ class MLMUnsupervisedModelling:
             self.save_model(model=dp_model)
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-              optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None):
+                    optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None):
+
         model.train()
         model = model.to(self.args.device)
 
@@ -150,8 +164,9 @@ class MLMUnsupervisedModelling:
                         f"eval acc: {eval_accuracy}"
                     )
                     eval_losses.append(eval_loss)
+                    # eval_losses.append({epoch: eval_loss})
                     eval_accuracies.append(eval_accuracy)
-                    model.train()
+                    # model.train()
 
         return model, eval_loss, eval_accuracy
 
@@ -167,18 +182,24 @@ class MLMUnsupervisedModelling:
                            attention_mask=batch["attention_mask"].to('cuda'),
                            labels=batch["labels"].to('cuda'))
 
-            loss = output.loss
+            # loss = output.loss
 
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
 
             labels_flat = labels.flatten()
             preds_flat = preds.flatten()
+
+            filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
+
+            labels_filtered = np.array([x[0] for x in filtered])
+            preds_filtered = np.array([x[1] for x in filtered])
+
             loss_arr.append(output.loss.item())
             accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
 
+        model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
-
 
     def set_up_privacy(self, train_loader: DataLoader):
         self.privacy_engine = PrivacyEngine()
@@ -283,6 +304,7 @@ class MLMUnsupervisedModelling:
         )
 
         wrapped = DatasetWrapper(tokenized)
+
         return wrapped
 
     def save_model(self, model):

@@ -4,6 +4,9 @@ import random
 import re
 # from random import random
 from typing import List
+
+import numpy as np
+from ftfy import fix_encoding
 from torch.utils.data import Dataset
 
 
@@ -42,7 +45,7 @@ class TokenizedSentencesDataset:
         return len(self.sentences)
 
 
-def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
+def preprocess_public_sborg(data_path: str = '../data/scrape_result.jsonl',
                             save_data: bool = True, languages: List[str] = ['da_DK']):
 
     data = []
@@ -53,12 +56,13 @@ def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
             data_dict['id'] = index
             title = data_dict['title'].split(' | ')[0]
             data_dict['new_title'] = title
+            data_dict['body'] = fix_encoding(data_dict['largest_text_body'])
 
-            body = re.split(r'Opdateret \d\d.\d\d.\d\d\d\d', data_dict['text'])
-            if len(body) == 2:
-                data_dict['body'] = body[1]
-            else:
-                data_dict['body'] = ''
+            # body = re.split(r'Opdateret \d\d.\d\d.\d\d\d\d', data_dict['text'])
+            # if len(body) == 2:
+            #     data_dict['body'] = body[1]
+            # else:
+            #     data_dict['body'] = ''
             data.append(data_dict)
 
     for lang in languages:
@@ -72,16 +76,18 @@ def preprocess_public_sborg(data_path: str = '../data/kommunal_data_test.json',
             # ( '//en.' in x['url'] or '/en/' in x['url'] or
             #  '//de.' in x['url'] or '/de/' in x['url']))]
 
-            all_danish = [x for x in data if x['og_locale'] == lang or (len(x['og_locale']) == 0 and not
-            ( '//en.' in x['url'] or '/en/' in x['url'] or
-             '//de.' in x['url'] or '/de/' in x['url']))]
+            # all_danish = [x for x in data if x['og_locale'] == lang or (len(x['og_locale']) == 0 and not
+            # ( '//en.' in x['url'] or '/en/' in x['url'] or
+            #  '//de.' in x['url'] or '/de/' in x['url']))]
 
-            subset = [x for x in all_danish if len(x['body']) > 0]
+            danish = [x for x in data if '__label__da' in x['lang_largest_text_body']]
+
+            subset = [x for x in danish if len(x['body']) > 0]
             if save_data:
 
                 # return subset
 
-                with open(f'../data/{lang}_subset.json', "w", encoding='utf-8') as outfile:
+                with open(f'../data/scrap_0.2_{lang}_subset.json', "w", encoding='utf-8') as outfile:
                     outfile.write(json.dumps(subset))
 
 
@@ -105,7 +111,7 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
                     all_sentences.append(new_sentence.strip())
 
 
-
+    unique_sentences = list(set(all_sentences))
 
     return all_sentences
 
@@ -131,11 +137,11 @@ def save_datasets(data_dir: str = '../data', train: List[str] = None, val: List[
 
 
 if __name__ == '__main__':
-    # preprocess_public_sborg()
+    preprocess_public_sborg()
 
     sentences = split_to_sentences()
-
+    #
     train, val = split_train_val(sentences=sentences)
-
+    #
     save_datasets(train=train, val=val)
 
