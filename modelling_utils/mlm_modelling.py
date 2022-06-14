@@ -90,13 +90,13 @@ class MLMUnsupervisedModelling:
             with open(os.path.join(self.output_dir, 'eval_losses.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in losses:
-                    json.dump({'text': entry}, outfile)
+                    json.dump(entry, outfile)
                     outfile.write('\n')
 
             with open(os.path.join(self.output_dir, 'accuracies.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in accuracies:
-                    json.dump({'text': entry}, outfile)
+                    json.dump(entry, outfile)
                     outfile.write('\n')
 
         else:
@@ -104,13 +104,10 @@ class MLMUnsupervisedModelling:
                 print()
                 print('epoch: ' + str(epoch))
                 print()
-                try:
-                    dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
-                                                                          train_loader=dp_train_loader,
-                                                                          optimizer=dp_optimizer)
-                except Exception as e:
-                    traceback.print_exc()
-                    print(e)
+
+                dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
+                                                                      train_loader=dp_train_loader,
+                                                                      optimizer=dp_optimizer)
 
 
         code_timer.how_long_since_start()
