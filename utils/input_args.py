@@ -51,11 +51,16 @@ class MLMArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
+        training_params.add_argument("--warmup", type=bool, default=True,
+                                     help="whethere to freeze all bert layers until warmup_steps is reached")
+        training_params.add_argument("--warmup_steps", type=int, default=500,
+                                     help="number of steps to train head only")
+
 
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=20,
+        eval_params.add_argument("--evaluate_steps", type=int, default=150,
                                  help="evaluate model accuracy after number of steps")
         eval_params.add_argument("--logging_steps", type=int, default=100,
                                  help="Log model accuracy after number of steps")

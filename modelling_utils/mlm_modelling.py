@@ -101,13 +101,11 @@ class MLMUnsupervisedModelling:
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                print()
-                print('epoch: ' + str(epoch))
-                print()
 
-                dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
+                dp_model, eval_loss, eval_accuracy, step = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
-                                                                      optimizer=dp_optimizer)
+                                                                      optimizer=dp_optimizer,
+                                                                            step=step)
 
 
         code_timer.how_long_since_start()
@@ -117,6 +115,7 @@ class MLMUnsupervisedModelling:
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0):
+
 
         model.train()
         model = model.to(self.args.device)
@@ -132,6 +131,18 @@ class MLMUnsupervisedModelling:
         ) as memory_safe_data_loader:
             batch_dims = []
             for i, batch in enumerate(memory_safe_data_loader):
+
+                if self.args.warmup and step == 0:
+                    for name, param in model.named_parameters():
+                        if name.startswith("_module.bert.encoder"):
+                            param.requires_grad = False
+                    model.train()
+
+                if self.args.warmup and step == self.args.warmup_steps:
+                    for name, param in model.named_parameters():
+                        if name.startswith("_module.bert.encoder"):
+                            param.requires_grad = True
+                    model.train()
 
                 optimizer.zero_grad()
 
