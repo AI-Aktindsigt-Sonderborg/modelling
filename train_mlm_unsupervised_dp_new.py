@@ -6,7 +6,8 @@ args = mlm_parser.parser.parse_args()
 
 # args.model_name = 'Geotrend/distilbert-base-da-cased'
 # args.model_name = 'vesteinn/ScandiBERT'
-args.evaluate_during_training = True
+# args.evaluate_during_training = True
+# args.train_data = 'train_200.json'
 # args.epochs = 5
 # args.save_config = False
 # args.max_length = 128

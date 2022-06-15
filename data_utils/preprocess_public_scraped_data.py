@@ -123,12 +123,18 @@ def split_train_val(sentences: List[str]):
 
     return train, val
 
-def save_datasets(data_dir: str = '../data', train: List[str] = None, val: List[str] = None ):
-
-    with open(os.path.join(data_dir, 'train.json'), 'w', encoding='utf-8') as outfile:
-        for entry in train:
+def save_datasets(data_dir: str = '../data', train: List[str] = None, val: List[str] = None,
+                  train_subset: int = None):
+    if train_subset:
+        train_file_name = f'train_{train_subset}.json'
+    else:
+        train_file_name = 'train.json'
+    with open(os.path.join(data_dir, train_file_name), 'w', encoding='utf-8') as outfile:
+        for i, entry in enumerate(train):
             json.dump({'text': entry}, outfile)
             outfile.write('\n')
+            if train_subset and i == train_subset:
+                break
 
     with open(os.path.join(data_dir, 'validation.json'), 'w', encoding='utf-8') as outfile:
         for entry in val:
@@ -143,5 +149,5 @@ if __name__ == '__main__':
     #
     train, val = split_train_val(sentences=sentences)
     #
-    save_datasets(train=train, val=val)
+    save_datasets(train=train, val=val, train_subset=200)
 

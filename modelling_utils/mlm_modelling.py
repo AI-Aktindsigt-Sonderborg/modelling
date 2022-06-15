@@ -165,7 +165,7 @@ class MLMUnsupervisedModelling:
                     eval_accuracies.append(eval_accuracy)
                     # model.train()
 
-        return model, eval_loss, eval_accuracy
+        return model, eval_losses, eval_accuracies
 
     def evaluate(self, model, val_loader: DataLoader):
         model.eval()
@@ -228,7 +228,8 @@ class MLMUnsupervisedModelling:
         training_args = TrainingArguments(
             output_dir=self.output_dir,
             learning_rate=self.args.lr,
-            weight_decay=self.args.weight_decay
+            weight_decay=self.args.weight_decay,
+            fp16=self.args.use_fp16
         )
 
         # Dummy training for optimizer
@@ -249,6 +250,7 @@ class MLMUnsupervisedModelling:
             self.train_data = load_dataset('json',
                                            data_files=os.path.join(DATA_DIR, self.args.train_data),
                                            split='train')
+
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
                                           data_files=os.path.join(DATA_DIR, self.args.eval_data),
