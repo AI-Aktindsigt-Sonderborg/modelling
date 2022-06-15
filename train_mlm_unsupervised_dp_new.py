@@ -16,6 +16,3 @@ mlm_modelling = MLMUnsupervisedModelling(args=args)
 # args.save_steps = 20
 
 mlm_modelling.train_model()
-
-
-print()
