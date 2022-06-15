@@ -149,13 +149,13 @@ class MLMUnsupervisedModelling:
 
                 eval_loss = None
                 eval_accuracy = None
-                print(f'step = {step}, i = {i}')
+
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                     epsilon = self.privacy_engine.get_epsilon(self.args.delta)
                     print(
                         f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step}"
+                        f"Step: {step} \t"
                         f"Loss: {np.mean(train_losses):.6f} "
                         f"(ε = {epsilon:.2f}, δ = {self.args.delta})"
                     )
