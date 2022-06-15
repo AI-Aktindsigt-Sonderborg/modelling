@@ -74,13 +74,15 @@ class MLMUnsupervisedModelling:
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
+            step = 0
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
 
-                dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
+                dp_model, eval_loss, eval_accuracy, step = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
                                                                       optimizer=dp_optimizer,
                                                                       val_loader=eval_loader,
-                                                                      epoch=epoch + 1)
+                                                                      epoch=epoch + 1,
+                                                                      step=step)
 
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
@@ -113,7 +115,8 @@ class MLMUnsupervisedModelling:
             self.save_model(model=dp_model)
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-                    optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None):
+                    optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
+                    step: int = 0):
 
         model.train()
         model = model.to(self.args.device)
@@ -146,10 +149,13 @@ class MLMUnsupervisedModelling:
 
                 eval_loss = None
                 eval_accuracy = None
-                if val_loader and (i > 0 and ((i + 1) % self.args.evaluate_steps == 0)):
+                print(f'step = {step}, i = {i}')
+
+                if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                     epsilon = self.privacy_engine.get_epsilon(self.args.delta)
                     print(
                         f"\tTrain Epoch: {epoch} \t"
+                        f"Step: {step}"
                         f"Loss: {np.mean(train_losses):.6f} "
                         f"(ε = {epsilon:.2f}, δ = {self.args.delta})"
                     )
@@ -158,14 +164,13 @@ class MLMUnsupervisedModelling:
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )
-                    eval_losses.append(eval_loss)
-                    # eval_losses.append({epoch: eval_loss})
-                    eval_accuracies.append(eval_accuracy)
+                    eval_losses.append({step: eval_loss})
+                    eval_accuracies.append({step: eval_accuracy})
                     # model.train()
-                    if self.args.save_steps is not None and (i > 0 and ((i + 1) % self.args.save_steps == 0)):
-                        self.save_model(model, step=f'/epoch-{epoch}_step-{i}')
-
-        return model, eval_losses, eval_accuracies
+                    if self.args.save_steps is not None and (step > 0 and (step % self.args.save_steps == 0)):
+                        self.save_model(model, step=f'/epoch-{epoch}_step-{step}')
+                step += 1
+        return model, eval_losses, eval_accuracies, step
 
     def evaluate(self, model, val_loader: DataLoader):
         model.eval()
