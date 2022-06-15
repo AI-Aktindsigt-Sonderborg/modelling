@@ -4,7 +4,7 @@ from utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-args.model_name = 'Geotrend/distilbert-base-da-cased'
+# args.model_name = 'Geotrend/distilbert-base-da-cased'
 # args.model_name = 'vesteinn/ScandiBERT'
 # args.evaluate_during_training = True
 # args.train_data = 'train_200.json'
