@@ -4,6 +4,7 @@ import os
 import sys
 import traceback
 from datetime import datetime
+from typing import List
 
 import numpy as np
 from datasets import load_dataset
@@ -74,9 +75,6 @@ class MLMUnsupervisedModelling:
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                print()
-                print('epoch: ' + str(epoch))
-                print()
 
                 dp_model, eval_loss, eval_accuracy = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
@@ -134,7 +132,7 @@ class MLMUnsupervisedModelling:
 
                 optimizer.zero_grad()
 
-                # compute output
+                # compute models
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
                                attention_mask=batch["attention_mask"].to(self.args.device),
                                labels=batch["labels"].to(self.args.device))
@@ -164,6 +162,8 @@ class MLMUnsupervisedModelling:
                     # eval_losses.append({epoch: eval_loss})
                     eval_accuracies.append(eval_accuracy)
                     # model.train()
+                    if self.args.save_steps is not None and (i > 0 and ((i + 1) % self.args.save_steps == 0)):
+                        self.save_model(model, step=f'/epoch-{epoch}_step-{i}')
 
         return model, eval_losses, eval_accuracies
 
@@ -174,12 +174,12 @@ class MLMUnsupervisedModelling:
         accuracy_arr = []
 
         for batch in val_loader:
-            # compute output
+            # compute models
             output = model(input_ids=batch["input_ids"].to('cuda'),
                            attention_mask=batch["attention_mask"].to('cuda'),
                            labels=batch["labels"].to('cuda'))
 
-            # loss = output.loss
+            # loss = models.loss
 
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
@@ -306,17 +306,18 @@ class MLMUnsupervisedModelling:
 
         return wrapped
 
-    def save_model(self, model):
+    def save_model(self, model, step: str = ""):
+        output_dir = self.output_dir + step
         trainer_test = Trainer(
             model=model,
-            args=TrainingArguments(output_dir=self.output_dir),
+            args=TrainingArguments(output_dir=output_dir),
             data_collator=self.data_collator,
             tokenizer=self.tokenizer
         )
-        trainer_test.save_model(output_dir=self.output_dir)
+        trainer_test.save_model(output_dir=output_dir)
         # trainer_test.save_metrics()
 
-        model._module.save_pretrained(save_directory=self.output_dir)
+        model._module.save_pretrained(save_directory=output_dir)
 
     @staticmethod
     def validate_model(model):

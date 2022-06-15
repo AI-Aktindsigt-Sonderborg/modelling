@@ -113,7 +113,7 @@ def split_to_sentences(data_path: str = "../data/da_DK_subset.json"):
 
     unique_sentences = list(set(all_sentences))
 
-    return all_sentences
+    return unique_sentences
 
 def split_train_val(sentences: List[str]):
     random.shuffle(sentences)
@@ -149,5 +149,5 @@ if __name__ == '__main__':
     #
     train, val = split_train_val(sentences=sentences)
     #
-    save_datasets(train=train, val=val, train_subset=200)
+    save_datasets(train=train, val=val)
 

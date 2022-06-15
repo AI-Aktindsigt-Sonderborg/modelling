@@ -59,7 +59,7 @@ class MLMArgParser:
                                  help="evaluate model accuracy after number of steps")
         eval_params.add_argument("--logging_steps", type=int, default=100,
                                  help="Log model accuracy after number of steps")
-        eval_params.add_argument("--save_steps", type=int, default=1000,
+        eval_params.add_argument("--save_steps", type=int, default=None,
                                  help="save checkpoint after number of steps")
         eval_params.add_argument("--eval_batch_size", type=int, default=8,
                                  help="Batch size for evaluation")
