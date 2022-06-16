@@ -14,6 +14,7 @@ from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from opacus.validators import ModuleValidator
 from torch import nn
+from torch.optim.lr_scheduler import MultiStepLR, ExponentialLR, LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer
@@ -52,6 +53,7 @@ class MLMUnsupervisedModelling:
         self.model = None
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
         self.data_collator = self.get_data_collator()
+        self.scheduler = None
 
     def train_model(self):
         self.load_data()
@@ -83,7 +85,8 @@ class MLMUnsupervisedModelling:
                                                                       val_loader=eval_loader,
                                                                       epoch=epoch + 1,
                                                                       step=step)
-
+                if epoch in [0,1,2]:
+                    self.scheduler.step()
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
 
@@ -100,13 +103,17 @@ class MLMUnsupervisedModelling:
                     outfile.write('\n')
 
         else:
+            step = 0
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
 
                 dp_model, eval_loss, eval_accuracy, step = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
                                                                       optimizer=dp_optimizer,
                                                                             step=step)
-
+                # if epoch in [0,1,2,3,4,5]:
+                print(f"lr before step: {self.get_lr(dp_optimizer)}")
+                self.scheduler.step()
+                print(f"lr after step: {self.get_lr(dp_optimizer)}")
 
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -132,13 +139,13 @@ class MLMUnsupervisedModelling:
             batch_dims = []
             for i, batch in enumerate(memory_safe_data_loader):
 
-                if self.args.warmup and step == 0:
+                if self.args.layer_warmup and step == 0:
                     for name, param in model.named_parameters():
                         if name.startswith("_module.bert.encoder"):
                             param.requires_grad = False
                     model.train()
 
-                if self.args.warmup and step == self.args.warmup_steps:
+                if self.args.layer_warmup and step == self.args.layer_warmup_steps:
                     for name, param in model.named_parameters():
                         if name.startswith("_module.bert.encoder"):
                             param.requires_grad = True
@@ -156,7 +163,9 @@ class MLMUnsupervisedModelling:
                 loss.backward()
 
                 train_losses.append(loss.item())
+
                 optimizer.step()
+
 
                 eval_loss = None
                 eval_accuracy = None
@@ -225,9 +234,12 @@ class MLMUnsupervisedModelling:
         # validate if model works with opacus
         self.validate_model(self.model)
 
+        self.trainer.create_optimizer()
+
+
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=self.model,
-            optimizer=self.trainer.create_optimizer(),
+            optimizer=self.trainer.optimizer,
             data_loader=train_loader,
             epochs=self.args.epochs,
             target_epsilon=self.args.epsilon,
@@ -236,7 +248,7 @@ class MLMUnsupervisedModelling:
         )
 
         self.trainer = None
-
+        self.scheduler = LinearLR(dp_optimizer, start_factor=0.5, total_iters=3)
         return dp_model, dp_optimizer, dp_train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
@@ -245,7 +257,10 @@ class MLMUnsupervisedModelling:
             output_dir=self.output_dir,
             learning_rate=self.args.lr,
             weight_decay=self.args.weight_decay,
-            fp16=self.args.use_fp16
+            fp16=self.args.use_fp16,
+            # do_train=True
+            warmup_steps=self.args.lr_warmup_steps,
+            # lr_scheduler_type='polynomial' # bert use linear scheduling
         )
 
         # Dummy training for optimizer
@@ -256,6 +271,7 @@ class MLMUnsupervisedModelling:
             data_collator=self.data_collator,
             tokenizer=self.tokenizer
         )
+
 
     def save_config(self):
         with open(os.path.join(CONFIG_DIR, self.output_name), 'w', encoding='utf-8') as f:
@@ -348,3 +364,8 @@ class MLMUnsupervisedModelling:
     @staticmethod
     def accuracy(preds, labels):
         return (preds == labels).mean()
+
+    @staticmethod
+    def get_lr(optimizer):
+        for param_group in optimizer.param_groups:
+            print(param_group['lr'])

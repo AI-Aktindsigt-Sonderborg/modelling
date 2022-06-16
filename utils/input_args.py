@@ -51,10 +51,12 @@ class MLMArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
-        training_params.add_argument("--warmup", type=bool, default=True,
+        training_params.add_argument("--layer_warmup", type=bool, default=True,
                                      help="whethere to freeze all bert layers until warmup_steps is reached")
-        training_params.add_argument("--warmup_steps", type=int, default=500,
+        training_params.add_argument("--layer_warmup_steps", type=int, default=500,
                                      help="number of steps to train head only")
+        training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
+                                     help="warmup learning rate ")
 
 
     def add_eval_params(self):
