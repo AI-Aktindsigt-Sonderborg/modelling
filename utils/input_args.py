@@ -57,6 +57,9 @@ class MLMArgParser:
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
                                      help="warmup learning rate ")
+        training_params.add_argument("--lr_start_decay", type=int, default=3000,
+                                     help="after which step to start decaying learning rate ")
+
 
 
     def add_eval_params(self):

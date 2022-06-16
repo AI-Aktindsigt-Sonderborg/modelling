@@ -76,19 +76,27 @@ class MLMUnsupervisedModelling:
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
+            all_lrs = []
             step = 0
+            self.scheduler = LinearLR(dp_optimizer, start_factor=0.0000001, end_factor=1,
+                                      total_iters=self.args.lr_warmup_steps)
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
 
-                dp_model, eval_loss, eval_accuracy, step = self.train_epoch(model=dp_model,
+                dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
                                                                       optimizer=dp_optimizer,
                                                                       val_loader=eval_loader,
                                                                       epoch=epoch + 1,
                                                                       step=step)
-                if epoch in [0,1,2]:
-                    self.scheduler.step()
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
+                all_lrs.append({epoch: lrs})
+
+            with open(os.path.join(self.output_dir, 'learning_rates.json'), 'w',
+                      encoding='utf-8') as outfile:
+                for entry in all_lrs:
+                    json.dump(entry, outfile)
+                    outfile.write('\n')
 
             with open(os.path.join(self.output_dir, 'eval_losses.json'), 'w',
                       encoding='utf-8') as outfile:
@@ -104,17 +112,17 @@ class MLMUnsupervisedModelling:
 
         else:
             step = 0
+            all_lrs = []
+
+            self.scheduler = LinearLR(dp_optimizer, start_factor=0.0000001, end_factor=1, total_iters=self.args.lr_warmup_steps)
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
 
-                dp_model, eval_loss, eval_accuracy, step = self.train_epoch(model=dp_model,
+                dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
                                                                       train_loader=dp_train_loader,
                                                                       optimizer=dp_optimizer,
                                                                             step=step)
                 # if epoch in [0,1,2,3,4,5]:
-                print(f"lr before step: {self.get_lr(dp_optimizer)}")
-                self.scheduler.step()
-                print(f"lr after step: {self.get_lr(dp_optimizer)}")
-
+                all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(model=dp_model)
@@ -130,7 +138,7 @@ class MLMUnsupervisedModelling:
         train_losses = []
         eval_losses = []
         eval_accuracies = []
-
+        lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,
             max_physical_batch_size=self.args.train_batch_size,
@@ -138,6 +146,13 @@ class MLMUnsupervisedModelling:
         ) as memory_safe_data_loader:
             batch_dims = []
             for i, batch in enumerate(memory_safe_data_loader):
+                if step == self.args.lr_start_decay:
+                    self.scheduler = LinearLR(optimizer, start_factor=1,
+                                              end_factor=0.000001,
+                                              total_iters=self.total_steps - step)
+
+                self.scheduler.step()
+                lrs.append(self.get_lr(optimizer)[0])
 
                 if self.args.layer_warmup and step == 0:
                     for name, param in model.named_parameters():
@@ -190,7 +205,7 @@ class MLMUnsupervisedModelling:
                     if self.args.save_steps is not None and (step > 0 and (step % self.args.save_steps == 0)):
                         self.save_model(model, step=f'/epoch-{epoch}_step-{step}')
                 step += 1
-        return model, eval_losses, eval_accuracies, step
+        return model, eval_losses, eval_accuracies, step, lrs
 
     def evaluate(self, model, val_loader: DataLoader):
         model.eval()
@@ -248,7 +263,7 @@ class MLMUnsupervisedModelling:
         )
 
         self.trainer = None
-        self.scheduler = LinearLR(dp_optimizer, start_factor=0.5, total_iters=3)
+
         return dp_model, dp_optimizer, dp_train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
@@ -259,7 +274,7 @@ class MLMUnsupervisedModelling:
             weight_decay=self.args.weight_decay,
             fp16=self.args.use_fp16,
             # do_train=True
-            warmup_steps=self.args.lr_warmup_steps,
+            # warmup_steps=self.args.lr_warmup_steps,
             # lr_scheduler_type='polynomial' # bert use linear scheduling
         )
 
@@ -282,6 +297,7 @@ class MLMUnsupervisedModelling:
             self.train_data = load_dataset('json',
                                            data_files=os.path.join(DATA_DIR, self.args.train_data),
                                            split='train')
+            self.total_steps = int(len(self.train_data)/self.args.train_batch_size*self.args.epochs)
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
@@ -367,5 +383,8 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def get_lr(optimizer):
+        lrs = []
         for param_group in optimizer.param_groups:
             print(param_group['lr'])
+            lrs.append(param_group['lr'])
+        return lrs
