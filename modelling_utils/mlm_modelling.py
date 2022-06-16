@@ -385,6 +385,6 @@ class MLMUnsupervisedModelling:
     def get_lr(optimizer):
         lrs = []
         for param_group in optimizer.param_groups:
-            print(param_group['lr'])
+            # print(param_group['lr'])
             lrs.append(param_group['lr'])
         return lrs
