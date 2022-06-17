@@ -92,23 +92,9 @@ class MLMUnsupervisedModelling:
                 accuracies.append({epoch: eval_accuracy})
                 all_lrs.append({epoch: lrs})
 
-            with open(os.path.join(self.output_dir, 'learning_rates.json'), 'w',
-                      encoding='utf-8') as outfile:
-                for entry in all_lrs:
-                    json.dump(entry, outfile)
-                    outfile.write('\n')
-
-            with open(os.path.join(self.output_dir, 'eval_losses.json'), 'w',
-                      encoding='utf-8') as outfile:
-                for entry in losses:
-                    json.dump(entry, outfile)
-                    outfile.write('\n')
-
-            with open(os.path.join(self.output_dir, 'accuracies.json'), 'w',
-                      encoding='utf-8') as outfile:
-                for entry in accuracies:
-                    json.dump(entry, outfile)
-                    outfile.write('\n')
+            self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
+            self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
+            self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
         else:
             step = 0
@@ -151,7 +137,9 @@ class MLMUnsupervisedModelling:
                                               end_factor=0.000001,
                                               total_iters=self.total_steps - step)
 
-                self.scheduler.step()
+
+
+
                 lrs.append(self.get_lr(optimizer)[0])
 
                 if self.args.layer_warmup and step == 0:
@@ -180,7 +168,7 @@ class MLMUnsupervisedModelling:
                 train_losses.append(loss.item())
 
                 optimizer.step()
-
+                self.scheduler.step()
 
                 eval_loss = None
                 eval_accuracy = None
@@ -389,4 +377,10 @@ class MLMUnsupervisedModelling:
             lrs.append(param_group['lr'])
         return lrs
 
-
+    @staticmethod
+    def save_json(output_dir: str, data: List[dict], filename: str):
+        with open(os.path.join(output_dir, filename + '.json'), 'w',
+                  encoding='utf-8') as outfile:
+            for entry in data:
+                json.dump(entry, outfile)
+                outfile.write('\n')

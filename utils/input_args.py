@@ -24,8 +24,7 @@ class MLMArgParser:
         model_params.add_argument("--save_config", type=bool, default=True,
                                   help="Whether to save input args to file")
         model_params.add_argument("--save_model_at_end", type=bool, default=True,
-                                  help="Whether to save model after training.")
-
+                                  help="Whether to save final model after training.")
 
     def add_training_params(self):
         training_params = self.parser.add_argument_group('training')
@@ -59,8 +58,6 @@ class MLMArgParser:
                                      help="warmup learning rate ")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
                                      help="after which step to start decaying learning rate ")
-
-
 
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')
