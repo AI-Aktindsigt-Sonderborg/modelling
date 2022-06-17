@@ -32,39 +32,3 @@ class TimeCode:
         if prefix:
             print_string = prefix + print_string
         print(print_string)
-
-def accuracy(preds, labels):
-    return (preds == labels).mean()
-
-def evaluate(model, val_dataloader):
-    model.eval()
-
-    loss_arr = []
-    accuracy_arr = []
-
-    for batch in val_dataloader:
-        # compute output
-        output = model(input_ids=batch["input_ids"].to('cuda'),
-                       attention_mask=batch["attention_mask"].to('cuda'),
-                       labels=batch["labels"].to('cuda'))
-
-
-        # batch = tuple(t.to('cuda') for t in batch)
-
-        loss, logits = output[:2]
-
-        preds = np.argmax(logits.detach().cpu().numpy(), axis=-1)
-        labels = batch["labels"].cpu().numpy()
-
-        labels_flat = labels.flatten()
-        preds_flat = preds.flatten()
-        filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
-
-        labels_filtered = np.array([x[0] for x in filtered])
-        preds_filtered = np.array([x[1] for x in filtered])
-        loss_arr.append(loss.item())
-        # accuracy_arr.append(accuracy(preds_filtered, labels_filtered))
-
-    model.train()
-    return np.mean(loss_arr), np.mean(accuracy_arr)
-
