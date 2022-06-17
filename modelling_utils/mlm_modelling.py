@@ -190,7 +190,7 @@ class MLMUnsupervisedModelling:
                     epsilon = self.privacy_engine.get_epsilon(self.args.delta)
                     print(
                         f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t"
+                        f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                         f"Loss: {np.mean(train_losses):.6f} "
                         f"(ε = {epsilon:.2f}, δ = {self.args.delta})"
                     )
@@ -388,3 +388,5 @@ class MLMUnsupervisedModelling:
             # print(param_group['lr'])
             lrs.append(param_group['lr'])
         return lrs
+
+

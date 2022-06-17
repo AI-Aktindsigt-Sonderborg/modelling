@@ -3,7 +3,6 @@ from utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
-# args.model_name = 'vesteinn/ScandiBERT'
 
 # args.max_length = 128
 # args.lot_size = 8
