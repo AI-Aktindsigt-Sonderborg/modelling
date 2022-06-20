@@ -136,9 +136,6 @@ class MLMUnsupervisedModelling:
                                               end_factor=0.000001,
                                               total_iters=self.total_steps - step)
 
-
-
-
                 lrs.append(self.get_lr(optimizer)[0])
 
                 if self.args.layer_warmup and step == 0:
@@ -171,7 +168,6 @@ class MLMUnsupervisedModelling:
 
                 eval_loss = None
                 eval_accuracy = None
-
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                     epsilon = self.privacy_engine.get_epsilon(self.args.delta)
@@ -220,7 +216,8 @@ class MLMUnsupervisedModelling:
             preds_filtered = np.array([x[1] for x in filtered])
 
             loss_arr.append(output.loss.item())
-            accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
+            # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
+            accuracy_arr.append(self.accuracy(preds_filtered, labels_filtered))
 
         model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
