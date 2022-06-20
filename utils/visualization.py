@@ -1,6 +1,6 @@
 import json
 import os
-from local_constants import OUTPUT_DIR
+from local_constants import MODEL_DIR
 from matplotlib import pyplot as plt
 from typing import List
 
@@ -28,9 +28,11 @@ def plot_performance(x: List[int], y: List[float], measure: str):
 
 if __name__ == '__main__':
 
-    lr_file = 'NbAiLab_nb-bert-base-2022-06-17_13-06-55/learning_rates'
-    acc_file = 'NbAiLab_nb-bert-base-2022-06-17_13-06-55/accuracies'
-    loss_file = 'NbAiLab_nb-bert-base-2022-06-17_13-06-55/eval_losses'
+    model_name = 'NbAiLab_nb-bert-base-2022-06-17_14-19-28'
+
+    lr_file = model_name + '/learning_rates'
+    acc_file = model_name + '/accuracies'
+    loss_file = model_name + '/eval_losses'
 
     lrs = []
     with open(os.path.join('../' + OUTPUT_DIR, lr_file + '.json'), "rb") as file:

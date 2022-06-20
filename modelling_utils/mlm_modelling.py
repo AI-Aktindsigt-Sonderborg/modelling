@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import sys
-import traceback
 from datetime import datetime
 from typing import List
 
@@ -13,13 +12,12 @@ from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from opacus.validators import ModuleValidator
-from torch import nn
-from torch.optim.lr_scheduler import MultiStepLR, ExponentialLR, LinearLR
+from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer
 
-from local_constants import CONFIG_DIR, DATA_DIR, OUTPUT_DIR
+from local_constants import CONFIG_DIR, DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import TimeCode
@@ -45,7 +43,8 @@ class MLMUnsupervisedModelling:
         self.args = args
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        self.output_dir = os.path.join(OUTPUT_DIR, self.output_name)
+        self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+
         if self.args.save_config:
             self.save_config()
         self.train_data = None
@@ -277,7 +276,10 @@ class MLMUnsupervisedModelling:
 
 
     def save_config(self):
-        with open(os.path.join(CONFIG_DIR, self.output_name), 'w', encoding='utf-8') as f:
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+
+        with open(os.path.join(self.output_dir, 'training_run_config.json'), 'w', encoding='utf-8') as f:
             json.dump(self.args.__dict__, f, indent=2)
 
     def load_data(self, train: bool = True):
