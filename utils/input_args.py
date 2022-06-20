@@ -32,8 +32,7 @@ class MLMArgParser:
                                      help="Max length for a text input")
         training_params.add_argument("--epochs", type=int, default=20,
                                      help="Number of epochs to train model")
-        training_params.add_argument("--lr", type=float, default=0.00002,
-                                     help="Learning rate")
+
         training_params.add_argument("--weight_decay", type=float, default=0.01,
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=bool, default=False,
@@ -58,6 +57,12 @@ class MLMArgParser:
                                      help="warmup learning rate ")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
                                      help="after which step to start decaying learning rate ")
+        training_params.add_argument("--start_lr", type=float, default=0.00001,
+                                     help="Learning rate")
+        training_params.add_argument("--lr", type=float, default=0.002,
+                                     help="Learning rate")
+        training_params.add_argument("--end_lr", type=float, default=0.00001,
+                                     help="Learning rate")
 
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')

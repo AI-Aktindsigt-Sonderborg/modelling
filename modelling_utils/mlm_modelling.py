@@ -99,7 +99,7 @@ class MLMUnsupervisedModelling:
             step = 0
             all_lrs = []
 
-            self.scheduler = LinearLR(dp_optimizer, start_factor=0.0000001, end_factor=1, total_iters=self.args.lr_warmup_steps)
+            self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.start_lr, end_factor=1, total_iters=self.args.lr_warmup_steps)
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
 
                 dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
@@ -133,7 +133,7 @@ class MLMUnsupervisedModelling:
             for i, batch in enumerate(memory_safe_data_loader):
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
-                                              end_factor=0.00001,
+                                              end_factor=self.args.end_lr,
                                               total_iters=self.total_steps - step)
 
                 lrs.append(self.get_lr(optimizer)[0])
