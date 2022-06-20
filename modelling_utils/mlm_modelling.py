@@ -133,7 +133,7 @@ class MLMUnsupervisedModelling:
             for i, batch in enumerate(memory_safe_data_loader):
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
-                                              end_factor=0.000001,
+                                              end_factor=0.00001,
                                               total_iters=self.total_steps - step)
 
                 lrs.append(self.get_lr(optimizer)[0])

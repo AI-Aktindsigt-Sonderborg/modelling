@@ -28,24 +28,24 @@ def plot_performance(x: List[int], y: List[float], measure: str):
 
 if __name__ == '__main__':
 
-    model_name = 'NbAiLab_nb-bert-base-2022-06-17_14-19-28'
+    model_name = 'NbAiLab_nb-bert-base-2022-06-20_09-36-24'
 
     lr_file = model_name + '/learning_rates'
     acc_file = model_name + '/accuracies'
     loss_file = model_name + '/eval_losses'
 
     lrs = []
-    with open(os.path.join('../' + OUTPUT_DIR, lr_file + '.json'), "rb") as file:
+    with open(os.path.join('../' + MODEL_DIR, lr_file + '.json'), "rb") as file:
         for entry in file:
             lrs.append(json.loads(entry))
 
     accs = []
-    with open(os.path.join('../' + OUTPUT_DIR, acc_file + '.json'), "rb") as file:
+    with open(os.path.join('../' + MODEL_DIR, acc_file + '.json'), "rb") as file:
         for entry in file:
             accs.append(json.loads(entry))
 
     loss_init = []
-    with open(os.path.join('../' + OUTPUT_DIR, loss_file + '.json'), "rb") as file:
+    with open(os.path.join('../' + MODEL_DIR, loss_file + '.json'), "rb") as file:
         for entry in file:
             loss_init.append(json.loads(entry))
 
