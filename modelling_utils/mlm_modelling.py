@@ -44,9 +44,6 @@ class MLMUnsupervisedModelling:
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
-
-        if self.args.save_config:
-            self.save_config()
         self.train_data = None
         self.eval_data = None
         self.model = None
@@ -54,20 +51,25 @@ class MLMUnsupervisedModelling:
         self.data_collator = self.get_data_collator()
         self.scheduler = None
 
+        if self.args.save_config:
+            self.save_config(output_dir=self.output_dir, args=self.args)
+
     def train_model(self):
-        self.load_data()
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-
-        self.load_model_and_replace_bert_head()
-
-        self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
-
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator)
-
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
+        """
+        load data, set up private training and train with privacy
+        """
+        dp_model, dp_optimizer, dp_train_loader = self.set_up_private_training()
 
         code_timer = TimeCode()
+        all_lrs = []
+        step = 0
+        self.save_model(
+            model=dp_model,
+            output_dir=self.output_dir,
+            data_collator=self.data_collator,
+            tokenizer=self.tokenizer
+            )
+
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
             eval_loader = DataLoader(dataset=eval_data_wrapped,
@@ -75,18 +77,13 @@ class MLMUnsupervisedModelling:
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
-            all_lrs = []
-            step = 0
-            self.scheduler = LinearLR(dp_optimizer, start_factor=0.0000001, end_factor=1,
-                                      total_iters=self.args.lr_warmup_steps)
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-
                 dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
-                                                                      train_loader=dp_train_loader,
-                                                                      optimizer=dp_optimizer,
-                                                                      val_loader=eval_loader,
-                                                                      epoch=epoch + 1,
-                                                                      step=step)
+                                                                                 train_loader=dp_train_loader,
+                                                                                 optimizer=dp_optimizer,
+                                                                                 val_loader=eval_loader,
+                                                                                 epoch=epoch + 1,
+                                                                                 step=step)
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
                 all_lrs.append({epoch: lrs})
@@ -96,26 +93,34 @@ class MLMUnsupervisedModelling:
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
         else:
-            step = 0
-            all_lrs = []
-
-            self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.start_lr, end_factor=1, total_iters=self.args.lr_warmup_steps)
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-
                 dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
-                                                                      train_loader=dp_train_loader,
-                                                                      optimizer=dp_optimizer,
-                                                                            step=step)
-                # if epoch in [0,1,2,3,4,5]:
+                                                                                 train_loader=dp_train_loader,
+                                                                                 optimizer=dp_optimizer,
+                                                                                 step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
-            self.save_model(model=dp_model)
+            self.save_model(
+                model=dp_model,
+                output_dir=self.output_dir,
+                data_collator=self.data_collator,
+                tokenizer=self.tokenizer
+            )
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0):
-
+        """
+        Train one epoch
+        :param model:
+        :param train_loader:
+        :param optimizer:
+        :param epoch:
+        :param val_loader:
+        :param step:
+        :return:
+        """
 
         model.train()
         model = model.to(self.args.device)
@@ -170,12 +175,12 @@ class MLMUnsupervisedModelling:
                 eval_accuracy = None
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
-                    epsilon = self.privacy_engine.get_epsilon(self.args.delta)
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                         f"Loss: {np.mean(train_losses):.6f} "
-                        f"(ε = {epsilon:.2f}, δ = {self.args.delta})"
+                        f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
+                        f"δ = {self.args.delta})"
                     )
                     eval_loss, eval_accuracy = self.evaluate(model, val_loader)
                     print(
@@ -185,7 +190,8 @@ class MLMUnsupervisedModelling:
                     eval_losses.append({step: eval_loss})
                     eval_accuracies.append({step: eval_accuracy})
                     # model.train()
-                    if self.args.save_steps is not None and (step > 0 and (step % self.args.save_steps == 0)):
+                    if self.args.save_steps is not None and (
+                        step > 0 and (step % self.args.save_steps == 0)):
                         self.save_model(model, step=f'/epoch-{epoch}_step-{step}')
                 step += 1
         return model, eval_losses, eval_accuracies, step, lrs
@@ -222,6 +228,23 @@ class MLMUnsupervisedModelling:
         model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
 
+    def set_up_private_training(self):
+        self.load_data()
+        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+
+        self.load_model_and_replace_bert_head()
+
+        self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
+
+        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
+                                  collate_fn=self.data_collator)
+
+        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
+
+        self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.start_lr, end_factor=1,
+                                  total_iters=self.args.lr_warmup_steps)
+        return dp_model, dp_optimizer, dp_train_loader
+
     def set_up_privacy(self, train_loader: DataLoader):
         self.privacy_engine = PrivacyEngine()
 
@@ -234,7 +257,6 @@ class MLMUnsupervisedModelling:
         self.validate_model(self.model)
 
         self.trainer.create_optimizer()
-
 
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=self.model,
@@ -271,20 +293,13 @@ class MLMUnsupervisedModelling:
             tokenizer=self.tokenizer
         )
 
-
-    def save_config(self):
-        if not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-
-        with open(os.path.join(self.output_dir, 'training_run_config.json'), 'w', encoding='utf-8') as f:
-            json.dump(self.args.__dict__, f, indent=2)
-
     def load_data(self, train: bool = True):
         if train:
             self.train_data = load_dataset('json',
                                            data_files=os.path.join(DATA_DIR, self.args.train_data),
                                            split='train')
-            self.total_steps = int(len(self.train_data)/self.args.train_batch_size*self.args.epochs)
+            self.total_steps = int(
+                len(self.train_data) / self.args.train_batch_size * self.args.epochs)
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
@@ -340,19 +355,28 @@ class MLMUnsupervisedModelling:
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
-
-    def save_model(self, model, step: str = ""):
-        output_dir = self.output_dir + step
+    @staticmethod
+    def save_model(model: GradSampleModule, output_dir: str, data_collator, tokenizer, step: str = ""):
+        output_dir = output_dir + step
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
-            data_collator=self.data_collator,
-            tokenizer=self.tokenizer
+            data_collator=data_collator,
+            tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
         # trainer_test.save_metrics()
 
         model._module.save_pretrained(save_directory=output_dir)
+
+    @staticmethod
+    def save_config(output_dir: str, args: argparse.Namespace):
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        with open(os.path.join(output_dir, 'training_run_config.json'), 'w',
+                  encoding='utf-8') as outfile:
+            json.dump(args.__dict__, outfile, indent=2)
 
     @staticmethod
     def validate_model(model):

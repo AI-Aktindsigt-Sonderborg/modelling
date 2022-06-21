@@ -28,7 +28,7 @@ def plot_performance(x: List[int], y: List[float], measure: str):
 
 if __name__ == '__main__':
 
-    model_name = 'NbAiLab_nb-bert-base-2022-06-20_09-36-24'
+    model_name = 'NbAiLab_nb-bert-base-2022-06-20_12-38-10'
 
     lr_file = model_name + '/learning_rates'
     acc_file = model_name + '/accuracies'
