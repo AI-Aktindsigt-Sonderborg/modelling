@@ -1,81 +1,26 @@
-import json
-import os
-from datetime import datetime
+from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
+from utils.input_args import MLMArgParser
 
-import torch
-from transformers import AutoTokenizer, Trainer, \
-    TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling
+mlm_parser = MLMArgParser()
+args = mlm_parser.parser.parse_args()
 
-from data_utils.preprocess_public_scraped_data import split_to_sentences, split_train_val, \
-    TokenizedSentencesDataset
-from local_constants import OUTPUT_DIR, DATA_DIR, CONFIG_DIR
-from utils.input_args import create_parser
-os.environ["WANDB_DISABLED"] = "true"
+# args.max_length = 128
+# args.lot_size = 8
 
-print(torch.cuda.is_available())
+# args.warmup = True
+# args.epochs = 5
+# args.evaluate_during_training = False
+# args.model_name = 'Geotrend/distilbert-base-da-cased'
+# args.train_data = 'train_200.json'
+# args.save_steps = 20
+# args.evaluate_steps = 20
+# args.save_config = False
+# args.layer_warmup_steps = 100
+# args.lr_warmup_steps = 200
+# args.lr_start_decay = 300
+# args.lr = 0.01
 
 
-parser = create_parser()
-args = parser.parse_args()
+mlm_modelling = MLMUnsupervisedModelling(args=args)
 
-# get data
-sentences = split_to_sentences(data_path=os.path.join(DATA_DIR, args.data_file))
-
-train_sentences, dev_sentences = split_train_val(sentences=sentences)
-
-# Load the model
-model = AutoModelForMaskedLM.from_pretrained(args.model_name)
-tokenizer = AutoTokenizer.from_pretrained(args.model_name)
-
-output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-output_dir = os.path.join(OUTPUT_DIR, output_name)
-
-with open(os.path.join(CONFIG_DIR, output_name), 'w', encoding='utf-8') as f:
-    json.dump(args.__dict__, f, indent=2)
-
-print("Save checkpoints to:", output_dir)
-
-train_dataset = TokenizedSentencesDataset(train_sentences, tokenizer, args.max_length)
-dev_dataset = TokenizedSentencesDataset(dev_sentences, tokenizer, args.max_length,
-                                        cache_tokenization=True) if len(dev_sentences) > 0 else None
-
-if args.whole_word_mask:
-    data_collator = DataCollatorForWholeWordMask(tokenizer=tokenizer, mlm=True,
-                                                 mlm_probability=args.mlm_prob)
-else:
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
-                                                    mlm_probability=args.mlm_prob)
-
-training_args = TrainingArguments(
-    output_dir=os.path.join(OUTPUT_DIR, output_name),
-    overwrite_output_dir=True,
-    num_train_epochs=args.epochs,
-    evaluation_strategy='steps',
-    per_device_train_batch_size=args.batch_size,
-    eval_steps=args.evaluate_steps,
-    save_steps=args.save_steps,
-    logging_steps=args.logging_steps,
-    save_total_limit=1,
-    prediction_loss_only=True,
-    fp16=args.use_fp16,
-    push_to_hub=False
-)
-
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    data_collator=data_collator,
-    train_dataset=train_dataset,
-    eval_dataset=dev_dataset
-)
-
-print("Save tokenizer to:", output_dir)
-tokenizer.save_pretrained(output_dir)
-
-trainer.train()
-
-print("Save model to:", output_dir)
-model.save_pretrained(output_dir)
-
-print("Training done")
+mlm_modelling.train_model()

@@ -1,4 +1,4 @@
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
+from modelling_utils.mlm_modelling import MLMUnsupervisedModelling, MLMUnsupervisedModellingDP
 from utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()
@@ -13,15 +13,13 @@ args = mlm_parser.parser.parse_args()
 args.model_name = 'Geotrend/distilbert-base-da-cased'
 args.train_data = 'train_200.json'
 # args.save_steps = 20
-# args.evaluate_steps = 20
+args.evaluate_steps = 20
 # args.save_config = False
 # args.layer_warmup_steps = 100
 # args.lr_warmup_steps = 200
 # args.lr_start_decay = 300
 # args.lr = 0.01
 
+mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
 
-mlm_modelling = MLMUnsupervisedModelling(args=args)
-
-
-mlm_modelling.train_model()
+mlm_modelling_dp.train_model()
