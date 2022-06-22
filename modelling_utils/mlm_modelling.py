@@ -131,17 +131,17 @@ class MLMUnsupervisedModelling:
 
             lrs.append(self.get_lr(optimizer)[0])
 
-            # if self.args.layer_warmup and step == 0:
-            #     for name, param in model.named_parameters():
-            #         if name.startswith("bert.encoder"):
-            #             param.requires_grad = False
-            #     model.train()
-            #
-            # if self.args.layer_warmup and step == self.args.layer_warmup_steps:
-            #     for name, param in model.named_parameters():
-            #         if name.startswith("bert.encoder"):
-            #             param.requires_grad = True
-            #     model.train()
+            if self.args.layer_warmup and step == 0:
+                for name, param in model.named_parameters():
+                    if name.startswith("bert.encoder"):
+                        param.requires_grad = False
+                model.train()
+
+            if self.args.layer_warmup and step == self.args.layer_warmup_steps:
+                for name, param in model.named_parameters():
+                    if name.startswith("bert.encoder"):
+                        param.requires_grad = True
+                model.train()
 
             optimizer.zero_grad()
 
