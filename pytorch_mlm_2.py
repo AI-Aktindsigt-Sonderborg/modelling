@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import torch
 import torch.optim as optim
 from datasets import load_dataset
 from torch import nn
@@ -38,7 +39,7 @@ def tokenize_and_wrap_data(data: Dataset, tokenizer):
             examples['text'],
             padding='max_length',
             truncation=True,
-            max_length=32,
+            max_length=8,
             # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
             # receives the `special_tokens_mask`.
             return_special_tokens_mask=True,
@@ -68,45 +69,58 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                    mlm_probability=0.15)
 
 # Get training data from huggingface
-train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train.json'), split='train')
+train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train_4.json'), split='train')
 
 training_dataset = tokenize_and_wrap_data(train_data, tokenizer)
 training_dataset_wrapped = DatasetWrapper(training_dataset)
-train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=8, collate_fn=data_collator)
+train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=4, collate_fn=data_collator)
 
 # get model
 model = BertForMaskedLM.from_pretrained(MODEL_NAME)
 
+loss_fct = nn.CrossEntropyLoss()
 
-criterion = nn.CrossEntropyLoss()
 optimizer = optim.AdamW(model.parameters(), lr=0.002)
-losses = []
+model_losses = []
+CE_losses = []
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+
 for epoch in range(40):
 
     running_loss = 0.0
-    for i, batch in enumerate(train_loader, 0):
+    for i, batch in enumerate(train_loader):
 
         # inputs, labels = data
-
+        model.to(device)
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = model(input_ids=batch["input_ids"],
-                       attention_mask=batch["attention_mask"],
-                       labels=batch["labels"])
+        outputs = model(input_ids=batch["input_ids"].to(device),
+                       attention_mask=batch["attention_mask"].to(device),
+                       labels=batch["labels"].to(device))
 
+        np.save('data/logits_manual', outputs.logits.cpu().detach().numpy())
+        np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
+
+       # -100 index = padding token
+        loss = loss_fct(outputs.logits.cpu().view(-1, 119547), batch['labels'].cpu().view(-1)).item()
+        CE_losses.append(loss)
         # print(outputs.loss.item())
         # loss = criterion(outputs, batch['labels'])
+        model_losses.append(outputs.loss.item())
         outputs.loss.backward()
         optimizer.step()
 
+
         # print statistics
         running_loss += outputs.loss.item()
-        if i % 200 == 199:    # print every 2000 mini-batches
-            losses.append(outputs.loss.item())
+        if i % 50 == 49:    # print every 2000 mini-batches
+            print(f'CE loss: {loss}')
+            print(f'model loss: {outputs.loss.item()}')
             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
             running_loss = 0.0
 
-print(losses)
-
+print(CE_losses)
+print(model_losses)

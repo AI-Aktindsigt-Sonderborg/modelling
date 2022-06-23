@@ -30,12 +30,13 @@ from datasets import load_metric
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 # args.model_name = 'Geotrend/distilbert-base-da-cased'
-# args.train_data = 'train_200.json'
-# args.logging_steps = 20
-# args.evaluate_steps = 20
-# args.save_steps = 20
-# args.train_batch_size = 2
-# args.eval_batch_size = 2
+args.train_data = 'train_4.json'
+args.logging_steps = 20
+args.evaluate_steps = 5
+args.save_steps = 20
+args.train_batch_size = 4
+args.eval_batch_size = 2
+args.max_length = 8
 
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
@@ -65,6 +66,23 @@ else:
 
 metric = load_metric('accuracy')
 
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+
+        labels = inputs.get("labels")
+        # forward pass
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+        # print(logits.cpu().detach().numpy())
+        # print(labels.cpu().detach().numpy())
+
+        loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
+        loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
+        print(loss.item())
+        np.save('data/logits_hf', outputs.logits.cpu().detach().numpy())
+        np.save('data/labels_hf', labels.cpu().detach().numpy())
+
+        return (loss, outputs) if return_outputs else loss
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
@@ -100,23 +118,11 @@ training_args = TrainingArguments(
     save_steps=args.save_steps,
     logging_steps=args.logging_steps,
     save_total_limit=1,
-    warmup_steps=args.lr_warmup_steps,
+    # warmup_steps=args.lr_warmup_steps,
     # prediction_loss_only=True,
     fp16=args.use_fp16,
     push_to_hub=False,
 )
-
-class CustomTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.get("labels")
-        # forward pass
-        outputs = model(**inputs)
-        logits = outputs.get("logits")
-        # compute custom loss (suppose one has 3 labels with different weights)
-        loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
-        loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
-        return (loss, outputs) if return_outputs else loss
-
 
 trainer = CustomTrainer(
     model=model,

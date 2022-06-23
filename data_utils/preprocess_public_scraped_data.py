@@ -148,6 +148,7 @@ if __name__ == '__main__':
     sentences = split_to_sentences()
     #
     train, val = split_train_val(sentences=sentences)
+    # train = train[:4]
     #
     save_datasets(train=train, val=val)
 

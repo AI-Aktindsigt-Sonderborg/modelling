@@ -35,7 +35,7 @@ def tokenize_and_wrap_data(data: Dataset, tokenizer):
             examples['text'],
             padding='max_length',
             truncation=True,
-            max_length=32,
+            max_length=8,
             # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
             # receives the `special_tokens_mask`.
             return_special_tokens_mask=True,
@@ -98,7 +98,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                    mlm_probability=0.15)
 
 # Get training data from huggingface
-train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train.json'), split='train')
+train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train_4.json'), split='train')
 
 training_dataset = tokenize_and_wrap_data(train_data, tokenizer)
 training_dataset_wrapped = DatasetWrapper(training_dataset)
@@ -164,9 +164,13 @@ def train(model, train_loader, optimizer, epoch, device, val_loader):
                        attention_mask=batch["attention_mask"].to(device),
                        labels=batch["labels"].to(device))
 
+        np.save('data/logits_manual', output.logits.cpu().detach().numpy())
+        np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
+
         loss = output[0]
         loss.backward()
         losses.append(loss.item())
+
         optimizer.step()
 
         if i > 0 and (i + 1) % 600 == 0:
