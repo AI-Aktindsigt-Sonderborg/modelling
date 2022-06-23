@@ -72,7 +72,7 @@ train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train.json'
 
 training_dataset = tokenize_and_wrap_data(train_data, tokenizer)
 training_dataset_wrapped = DatasetWrapper(training_dataset)
-train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=2, collate_fn=data_collator)
+train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=8, collate_fn=data_collator)
 
 # get model
 model = BertForMaskedLM.from_pretrained(MODEL_NAME)
@@ -81,7 +81,7 @@ model = BertForMaskedLM.from_pretrained(MODEL_NAME)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.AdamW(model.parameters(), lr=0.002)
 losses = []
-for epoch in range(20):
+for epoch in range(40):
 
     running_loss = 0.0
     for i, batch in enumerate(train_loader, 0):
