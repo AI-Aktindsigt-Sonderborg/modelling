@@ -31,11 +31,11 @@ mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 # args.model_name = 'Geotrend/distilbert-base-da-cased'
 # args.train_data = 'train_200.json'
-args.logging_steps = 20
-args.evaluate_steps = 20
-args.save_steps = 20
-args.train_batch_size = 2
-args.eval_batch_size = 2
+# args.logging_steps = 20
+# args.evaluate_steps = 20
+# args.save_steps = 20
+# args.train_batch_size = 2
+# args.eval_batch_size = 2
 
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
@@ -114,11 +114,8 @@ class CustomTrainer(Trainer):
         logits = outputs.get("logits")
         # compute custom loss (suppose one has 3 labels with different weights)
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
-        loss = loss_fct(logits.view(-1, self.config.vocab_size),
-                                  labels.view(-1))
+        loss = loss_fct(logits.view(-1, self.config.vocab_size), labels.view(-1))
         return (loss, outputs) if return_outputs else loss
-
-
 
 
 trainer = CustomTrainer(
