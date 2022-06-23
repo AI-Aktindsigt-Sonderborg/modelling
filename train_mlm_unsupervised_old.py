@@ -75,6 +75,7 @@ training_args = TrainingArguments(
     evaluation_strategy='steps',
     do_eval=True,
     per_device_train_batch_size=args.train_batch_size,
+    per_device_eval_batch_size=args.eval_batch_size,
     eval_steps=args.evaluate_steps,
     save_steps=args.save_steps,
     logging_steps=args.logging_steps,
