@@ -66,17 +66,22 @@ metric = load_metric('accuracy')
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
-    print(logits)
-    print(labels)
+    # print(logits)
+    # print(labels)
 
     labels = labels.flatten()
     predictions = np.argmax(logits, axis=-1)
     predictions = predictions.flatten()
 
+
     filtered = [[xv, yv] for xv, yv in zip(labels, predictions) if xv != -100]
 
     labels_filtered = np.array([x[0] for x in filtered])
     preds_filtered = np.array([x[1] for x in filtered])
+
+    print(labels_filtered[:20])
+    print(preds_filtered[:20])
+
 
     return metric.compute(predictions=preds_filtered, references=labels_filtered)
 
