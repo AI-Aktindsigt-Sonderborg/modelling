@@ -114,7 +114,7 @@ class CustomTrainer(Trainer):
         logits = outputs.get("logits")
         # compute custom loss (suppose one has 3 labels with different weights)
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
-        loss = loss_fct(logits.view(-1, self.config.vocab_size), labels.view(-1))
+        loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
         return (loss, outputs) if return_outputs else loss
 
 
