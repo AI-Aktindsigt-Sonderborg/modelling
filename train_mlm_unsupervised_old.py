@@ -69,7 +69,12 @@ def compute_metrics(eval_pred):
     predictions = np.argmax(logits, axis=-1)
     predictions = predictions.flatten()
 
-    return metric.compute(predictions=predictions, references=labels)
+    filtered = [[xv, yv] for xv, yv in zip(labels, predictions) if xv != -100]
+
+    labels_filtered = np.array([x[0] for x in filtered])
+    preds_filtered = np.array([x[1] for x in filtered])
+
+    return metric.compute(predictions=preds_filtered, references=labels_filtered)
 
 
 training_args = TrainingArguments(
