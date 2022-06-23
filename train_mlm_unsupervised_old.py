@@ -64,7 +64,11 @@ metric = load_metric('accuracy')
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
+
+    labels = labels.flatten()
     predictions = np.argmax(logits, axis=-1)
+    predictions = predictions.flatten()
+
     return metric.compute(predictions=predictions, references=labels)
 
 
