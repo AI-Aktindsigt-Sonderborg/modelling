@@ -32,6 +32,8 @@ args = mlm_parser.parser.parse_args()
 # args.logging_steps = 20
 # args.evaluate_steps = 20
 # args.save_steps = 20
+# args.train_batch_size = 2
+# args.eval_batch_size = 2
 
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
@@ -64,6 +66,8 @@ metric = load_metric('accuracy')
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
+    print(logits)
+    print(labels)
 
     labels = labels.flatten()
     predictions = np.argmax(logits, axis=-1)
