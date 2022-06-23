@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 
 import numpy as np
+from torch import nn
 
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from transformers import AutoTokenizer, Trainer, \
@@ -79,8 +80,8 @@ def compute_metrics(eval_pred):
     labels_filtered = np.array([x[0] for x in filtered])
     preds_filtered = np.array([x[1] for x in filtered])
 
-    print(labels_filtered[:20])
-    print(preds_filtered[:20])
+    # print(labels_filtered[:20])
+    # print(preds_filtered[:20])
 
 
     return metric.compute(predictions=preds_filtered, references=labels_filtered)
@@ -103,6 +104,21 @@ training_args = TrainingArguments(
     fp16=args.use_fp16,
     push_to_hub=False,
 )
+
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.get("labels")
+        # forward pass
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+        # compute custom loss (suppose one has 3 labels with different weights)
+        loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
+        masked_lm_loss = loss_fct(prediction_scores.view(-1, self.config.vocab_size),
+                                  labels.view(-1))
+        return (loss, outputs) if return_outputs else loss
+
+
+
 
 trainer = Trainer(
     model=model,
