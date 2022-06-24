@@ -87,12 +87,12 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 for epoch in range(40):
+    model.train()
+    model = model.to(device)
 
     running_loss = 0.0
     for i, batch in enumerate(train_loader):
 
-        # inputs, labels = data
-        model.to(device)
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -116,7 +116,7 @@ for epoch in range(40):
 
         # print statistics
         running_loss += outputs.loss.item()
-        if i % 600 == 599:    # print every 2000 mini-batches
+        if i % 600 == 599:    # print every 600 mini-batches
             print(f'CE loss: {loss}')
             print(f'model loss: {outputs.loss.item()}')
             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')

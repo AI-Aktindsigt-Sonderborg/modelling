@@ -64,11 +64,11 @@ else:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                     mlm_probability=args.mlm_prob)
 
-tmp_train_loader = DataLoader(
-            train_data_wrapped,
-            batch_size=4,
-            collate_fn=data_collator
-            )
+# tmp_train_loader = DataLoader(
+#             train_data_wrapped,
+#             batch_size=4,
+#             collate_fn=data_collator
+#             )
 
 metric = load_metric('accuracy')
 
