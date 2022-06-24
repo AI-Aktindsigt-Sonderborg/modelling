@@ -105,7 +105,8 @@ for epoch in range(40):
         # np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
 
        # -100 index = padding token
-        loss = loss_fct(outputs.logits.cpu().view(-1, 119547), batch['labels'].cpu().view(-1))
+       #  loss = loss_fct(outputs.logits.cpu().view(-1, 119547), batch['labels'].cpu().view(-1))
+        loss = loss_fct(outputs.logits.view(-1, 119547), batch["labels"].to(device).view(-1))
         CE_losses.append(loss.item())
         # print(outputs.loss.item())
         # loss = criterion(outputs, batch['labels'])
