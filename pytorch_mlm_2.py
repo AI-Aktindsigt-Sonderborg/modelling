@@ -1,3 +1,4 @@
+import math
 import os
 
 import numpy as np
@@ -89,8 +90,9 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 for epoch in range(40):
     model.train()
     model = model.to(device)
-
-    running_loss = 0.0
+    loss_len = 0
+    running_loss_1 = 0.0
+    running_loss_2 = 0.0
     for i, batch in enumerate(train_loader):
 
         # zero the parameter gradients
@@ -116,12 +118,20 @@ for epoch in range(40):
 
 
         # print statistics
-        running_loss += outputs.loss.item()
+        if not math.isnan(loss):
+            loss_len += 1
+            running_loss_1 += outputs.loss.item()
+            running_loss_2 += loss.item()
+        else:
+            print("loss is nan")
         if i % 600 == 599:    # print every 600 mini-batches
             print(f'CE loss: {loss}')
             print(f'model loss: {outputs.loss.item()}')
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
-            running_loss = 0.0
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss_1 / loss_len :.3f}')
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss_2 / loss_len :.3f}')
+            running_loss_1 = 0.0
+            running_loss_2 = 0.0
+            loss_len = 0
 
 print(CE_losses)
 print(model_losses)
