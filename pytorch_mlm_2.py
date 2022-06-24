@@ -69,7 +69,7 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                    mlm_probability=0.15)
 
 # Get training data from huggingface
-train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train_4.json'), split='train')
+train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train.json'), split='train')
 
 training_dataset = tokenize_and_wrap_data(train_data, tokenizer)
 training_dataset_wrapped = DatasetWrapper(training_dataset)
@@ -116,7 +116,7 @@ for epoch in range(40):
 
         # print statistics
         running_loss += outputs.loss.item()
-        if i % 50 == 49:    # print every 2000 mini-batches
+        if i % 600 == 599:    # print every 2000 mini-batches
             print(f'CE loss: {loss}')
             print(f'model loss: {outputs.loss.item()}')
             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 200:.3f}')
