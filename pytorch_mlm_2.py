@@ -19,6 +19,17 @@ mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
 
+def get_lr(optimizer):
+    """
+    Get current learning rate from optimizer
+    :param optimizer:
+    :return: list of learning rates in all groups
+    """
+    lrs = []
+    for param_group in optimizer.param_groups:
+        lrs.append(param_group['lr'])
+    return lrs
+
 class DatasetWrapper(Dataset):
 
     def __init__(self, dataset):
@@ -90,15 +101,15 @@ model_losses = []
 CE_losses = []
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-
+model = model.to(device)
 for epoch in range(args.epochs):
     model.train()
-    model = model.to(device)
+
     loss_len = 0
     running_loss_1 = 0.0
     running_loss_2 = 0.0
     for i, batch in enumerate(train_loader):
-
+        print(get_lr(optimizer))
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -113,11 +124,11 @@ for epoch in range(args.epochs):
        # -100 index = padding token
        #  loss = loss_fct(outputs.logits.cpu().view(-1, 119547), batch['labels'].cpu().view(-1))
         loss = loss_fct(outputs.logits.view(-1, 119547), batch["labels"].to(device).view(-1))
-        CE_losses.append(loss.item())
+        # CE_losses.append(loss.item())
         # print(outputs.loss.item())
         # loss = criterion(outputs, batch['labels'])
         model_loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
-        model_losses.append(model_loss)
+        # model_losses.append(model_loss)
         loss.backward()
         optimizer.step()
 
@@ -138,5 +149,3 @@ for epoch in range(args.epochs):
             running_loss_2 = 0.0
             loss_len = 0
 
-print(CE_losses)
-print(model_losses)
