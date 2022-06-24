@@ -8,7 +8,10 @@ from transformers import AutoTokenizer, Trainer, TrainingArguments, DataCollator
     BertForMaskedLM
 
 from local_constants import DATA_DIR
+from utils.input_args import MLMArgParser
 
+mlm_parser = MLMArgParser()
+args = mlm_parser.parser.parse_args()
 
 class DatasetWrapper(Dataset):
 
@@ -35,7 +38,7 @@ def tokenize_and_wrap_data(data: Dataset, tokenizer):
             examples['text'],
             padding='max_length',
             truncation=True,
-            max_length=8,
+            max_length=args.max_length,
             # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
             # receives the `special_tokens_mask`.
             return_special_tokens_mask=True,
@@ -98,11 +101,11 @@ data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                    mlm_probability=0.15)
 
 # Get training data from huggingface
-train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train_4.json'), split='train')
+train_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'train.json'), split='train')
 
 training_dataset = tokenize_and_wrap_data(train_data, tokenizer)
 training_dataset_wrapped = DatasetWrapper(training_dataset)
-train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=4, collate_fn=data_collator)
+train_loader = DataLoader(dataset=training_dataset_wrapped, batch_size=args.train_batch_size, collate_fn=data_collator)
 
 val_data = load_dataset('json', data_files=os.path.join(DATA_DIR, 'validation.json'), split='train')
 val_dataset = tokenize_and_wrap_data(val_data, tokenizer)
@@ -118,8 +121,7 @@ model = model.train()
 
 training_args = TrainingArguments(
     output_dir="./results",
-    learning_rate=0.002,
-    weight_decay=0.01
+    learning_rate=args.lr,
 )
 
 # Dummy training for optimizer
@@ -164,8 +166,6 @@ def train(model, train_loader, optimizer, epoch, device, val_loader):
                        attention_mask=batch["attention_mask"].to(device),
                        labels=batch["labels"].to(device))
 
-        np.save('data/logits_manual', output.logits.cpu().detach().numpy())
-        np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
 
         loss = output[0]
         loss.backward()

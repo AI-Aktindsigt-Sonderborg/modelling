@@ -131,17 +131,17 @@ class MLMUnsupervisedModelling:
 
             lrs.append(self.get_lr(optimizer)[0])
 
-            if self.args.layer_warmup and step == 0:
-                for name, param in model.named_parameters():
-                    if name.startswith("bert.encoder"):
-                        param.requires_grad = False
-                model.train()
-
-            if self.args.layer_warmup and step == self.args.layer_warmup_steps:
-                for name, param in model.named_parameters():
-                    if name.startswith("bert.encoder"):
-                        param.requires_grad = True
-                model.train()
+            # if self.args.layer_warmup and step == 0:
+            #     for name, param in model.named_parameters():
+            #         if name.startswith("bert.encoder"):
+            #             param.requires_grad = False
+            #     model.train()
+            #
+            # if self.args.layer_warmup and step == self.args.layer_warmup_steps:
+            #     for name, param in model.named_parameters():
+            #         if name.startswith("bert.encoder"):
+            #             param.requires_grad = True
+            #     model.train()
 
             optimizer.zero_grad()
 
@@ -206,10 +206,13 @@ class MLMUnsupervisedModelling:
 
             labels_filtered = np.array([x[0] for x in filtered])
             preds_filtered = np.array([x[1] for x in filtered])
-
-            loss_arr.append(output.loss.item())
+            eval_acc = self.accuracy(preds_filtered, labels_filtered)
+            eval_loss = output.loss.item()
+            if not np.isnan(eval_loss):
+                loss_arr.append(eval_loss)
             # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
-            accuracy_arr.append(self.accuracy(preds_filtered, labels_filtered))
+            if not np.isnan(eval_acc):
+                accuracy_arr.append(eval_acc)
 
         model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)

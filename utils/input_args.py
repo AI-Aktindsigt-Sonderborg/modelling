@@ -59,7 +59,7 @@ class MLMArgParser:
                                      help="after which step to start decaying learning rate ")
         training_params.add_argument("--start_lr", type=float, default=0.00001,
                                      help="Learning rate")
-        training_params.add_argument("--lr", type=float, default=0.002,
+        training_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
         training_params.add_argument("--end_lr", type=float, default=0.00001,
                                      help="Learning rate")
