@@ -142,6 +142,7 @@ training_args = TrainingArguments(
     evaluation_strategy='steps',
     do_eval=True,
     do_train=True,
+    learning_rate=0.002,
     gradient_accumulation_steps=5000,
     per_device_train_batch_size=args.train_batch_size,
     per_device_eval_batch_size=args.eval_batch_size,
