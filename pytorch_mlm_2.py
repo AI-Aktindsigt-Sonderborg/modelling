@@ -112,7 +112,8 @@ for epoch in range(40):
         CE_losses.append(loss.item())
         # print(outputs.loss.item())
         # loss = criterion(outputs, batch['labels'])
-        model_losses.append(outputs.loss.item())
+        model_loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+        model_losses.append(model_loss)
         loss.backward()
         optimizer.step()
 
