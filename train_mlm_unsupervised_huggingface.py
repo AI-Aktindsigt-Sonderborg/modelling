@@ -4,6 +4,7 @@ from sklearn.metrics import accuracy_score
 
 import numpy as np
 from torch import nn
+from torch.utils.data import DataLoader
 
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from transformers import AutoTokenizer, Trainer, \
@@ -30,14 +31,13 @@ from datasets import load_metric
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 # args.model_name = 'Geotrend/distilbert-base-da-cased'
-args.train_data = 'train_4.json'
-args.logging_steps = 20
-args.evaluate_steps = 5
-args.save_steps = 20
-args.train_batch_size = 4
-args.eval_batch_size = 2
-args.max_length = 8
-
+# args.train_data = 'train_4.json'
+# args.logging_steps = 20
+# args.evaluate_steps = 5
+# args.save_steps = 20
+# args.train_batch_size = 4
+# args.eval_batch_size = 2
+# args.max_length = 8
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
 
@@ -64,6 +64,12 @@ else:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                     mlm_probability=args.mlm_prob)
 
+tmp_train_loader = DataLoader(
+            train_data_wrapped,
+            batch_size=4,
+            collate_fn=data_collator
+            )
+
 metric = load_metric('accuracy')
 
 class CustomTrainer(Trainer):
@@ -78,11 +84,34 @@ class CustomTrainer(Trainer):
 
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
         loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
-        print(loss.item())
-        np.save('data/logits_hf', outputs.logits.cpu().detach().numpy())
-        np.save('data/labels_hf', labels.cpu().detach().numpy())
+        # print(loss.item())
+        # np.save('data/logits_hf', outputs.logits.cpu().detach().numpy())
+        # np.save('data/labels_hf', labels.cpu().detach().numpy())
 
         return (loss, outputs) if return_outputs else loss
+
+    def get_train_dataloader(self) -> DataLoader:
+        """
+        Returns the training [`~torch.utils.data.DataLoader`].
+
+        Will use no sampler if `train_dataset` does not implement `__len__`, a random sampler (adapted to distributed
+        training if necessary) otherwise.
+
+        Subclass and override this method if you want to inject some custom behavior.
+        """
+        if self.train_dataset is None:
+            raise ValueError("Trainer: training requires a train_dataset.")
+        # tmp_train_loader = DataLoader(
+        #     self.train_dataset,
+        #     batch_size=self.args.per_device_train_batch_size,
+        #     collate_fn=self.data_collator
+        #     )
+
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.args.per_device_train_batch_size,
+            collate_fn=self.data_collator
+            )
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
