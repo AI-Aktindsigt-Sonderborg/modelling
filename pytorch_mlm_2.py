@@ -109,7 +109,6 @@ for epoch in range(args.epochs):
     running_loss_1 = 0.0
     running_loss_2 = 0.0
     for i, batch in enumerate(train_loader):
-        print(get_lr(optimizer))
         # zero the parameter gradients
         optimizer.zero_grad()
 
@@ -141,6 +140,7 @@ for epoch in range(args.epochs):
         else:
             print("loss is nan")
         if i % 600 == 599:    # print every 600 mini-batches
+            print(f'learning rate: {get_lr(optimizer)}')
             print(f'CE loss: {loss}')
             print(f'model loss: {outputs.loss.item()}')
             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss_1 / loss_len :.3f}')
