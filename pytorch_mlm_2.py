@@ -101,8 +101,8 @@ for epoch in range(40):
                        attention_mask=batch["attention_mask"].to(device),
                        labels=batch["labels"].to(device))
 
-        np.save('data/logits_manual', outputs.logits.cpu().detach().numpy())
-        np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
+        # np.save('data/logits_manual', outputs.logits.cpu().detach().numpy())
+        # np.save('data/labels_manual', batch['labels'].cpu().detach().numpy())
 
        # -100 index = padding token
         loss = loss_fct(outputs.logits.cpu().view(-1, 119547), batch['labels'].cpu().view(-1)).item()
@@ -110,7 +110,7 @@ for epoch in range(40):
         # print(outputs.loss.item())
         # loss = criterion(outputs, batch['labels'])
         model_losses.append(outputs.loss.item())
-        outputs.loss.backward()
+        loss.backward()
         optimizer.step()
 
 
