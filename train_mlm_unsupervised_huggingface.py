@@ -140,8 +140,7 @@ training_args = TrainingArguments(
     overwrite_output_dir=True,
     num_train_epochs=args.epochs,
     evaluation_strategy='steps',
-    do_eval=True,
-    # do_train=True,
+    lr_scheduler_type='constant',
     learning_rate=args.lr,
     gradient_accumulation_steps=args.grad_accum_steps,
     per_device_train_batch_size=args.train_batch_size,
@@ -165,8 +164,8 @@ trainer = CustomTrainer(
     compute_metrics=compute_metrics,
 )
 
-print("Save tokenizer to:", output_dir)
-tokenizer.save_pretrained(output_dir)
+# print("Save tokenizer to:", output_dir)
+# tokenizer.save_pretrained(output_dir)
 
 trainer.train()
 

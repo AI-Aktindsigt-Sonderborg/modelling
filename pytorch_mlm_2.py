@@ -13,6 +13,10 @@ from transformers import AutoTokenizer, DataCollatorForLanguageModeling, \
     BertForMaskedLM
 
 from local_constants import DATA_DIR
+from utils.input_args import MLMArgParser
+
+mlm_parser = MLMArgParser()
+args = mlm_parser.parser.parse_args()
 
 
 class DatasetWrapper(Dataset):
@@ -40,7 +44,7 @@ def tokenize_and_wrap_data(data: Dataset, tokenizer):
             examples['text'],
             padding='max_length',
             truncation=True,
-            max_length=8,
+            max_length=args.max_length,
             # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
             # receives the `special_tokens_mask`.
             return_special_tokens_mask=True,
@@ -81,13 +85,13 @@ model = BertForMaskedLM.from_pretrained(MODEL_NAME)
 
 loss_fct = nn.CrossEntropyLoss()
 
-optimizer = optim.AdamW(model.parameters(), lr=0.002)
+optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 model_losses = []
 CE_losses = []
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
-for epoch in range(40):
+for epoch in range(args.epochs):
     model.train()
     model = model.to(device)
     loss_len = 0
