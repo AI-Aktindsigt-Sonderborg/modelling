@@ -63,6 +63,9 @@ class MLMArgParser:
                                      help="Learning rate")
         training_params.add_argument("--end_lr", type=float, default=0.00001,
                                      help="Learning rate")
+        training_params.add_argument("--grad_accum_steps", type=int, default=1,
+                                     help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
+
 
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')
