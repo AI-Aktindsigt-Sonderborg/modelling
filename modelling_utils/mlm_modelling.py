@@ -510,7 +510,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for i, batch in enumerate(memory_safe_data_loader):
+            # for i, batch in enumerate(memory_safe_data_loader):
+            for i, batch in tqdm(enumerate(memory_safe_data_loader), desc='Step', unit='step',
+                                 total=int(self.total_steps/self.args.epochs)):
+                print(step)
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
                                               end_factor=self.args.lr / (self.total_steps - step),

@@ -16,6 +16,9 @@ if args.local_testing:
     args.layer_warmup_steps = 100
     args.lr_warmup_steps = 200
     args.lr_start_decay = 300
+    args.epochs = 5
+    args.train_batch_size = 16
+    args.max_length = 8
 
 
 mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
