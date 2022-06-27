@@ -28,6 +28,8 @@ class MLMArgParser:
 
     def add_training_params(self):
         training_params = self.parser.add_argument_group('training')
+        training_params.add_argument("--local_testing", type=bool, default=False,
+                                     help="Whether to test on local machine with small subset")
         training_params.add_argument("--max_length", type=int, default=128,
                                      help="Max length for a text input")
         training_params.add_argument("--epochs", type=int, default=20,
@@ -51,7 +53,11 @@ class MLMArgParser:
                                      help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument("--layer_warmup", type=bool, default=True,
                                      help="whethere to freeze all bert layers until warmup_steps is reached")
-        training_params.add_argument("--layer_warmup_steps", type=int, default=500,
+        training_params.add_argument("--layer_warmup_steps", type=int, default=3000,
+                                     help="number of steps to train head only")
+        training_params.add_argument("--layer_warmup_lr", type=float, default=0.0005,
+                                     help="number of steps to train head only")
+        training_params.add_argument("--freezed_lr_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
                                      help="warmup learning rate - set to 1 if no warmup")

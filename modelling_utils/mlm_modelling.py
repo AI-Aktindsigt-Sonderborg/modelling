@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer
 
-from local_constants import CONFIG_DIR, DATA_DIR, MODEL_DIR
+from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import TimeCode
@@ -71,15 +71,14 @@ class MLMUnsupervisedModelling:
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
-                                                                                 train_loader=train_loader,
-                                                                                 optimizer=optimizer,
-                                                                                 val_loader=eval_loader,
-                                                                                 epoch=epoch + 1,
-                                                                                 step=step)
+                                                                              train_loader=train_loader,
+                                                                              optimizer=optimizer,
+                                                                              val_loader=eval_loader,
+                                                                              epoch=epoch + 1,
+                                                                              step=step)
                 losses.append({epoch: eval_loss})
                 accuracies.append({epoch: eval_accuracy})
                 all_lrs.append({epoch: lrs})
-
 
             self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
@@ -93,9 +92,9 @@ class MLMUnsupervisedModelling:
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
-                                                                                 train_loader=train_loader,
-                                                                                 optimizer=optimizer,
-                                                                                 step=step)
+                                                                              train_loader=train_loader,
+                                                                              optimizer=optimizer,
+                                                                              step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -214,6 +213,7 @@ class MLMUnsupervisedModelling:
             preds_filtered = np.array([x[1] for x in filtered])
             eval_acc = self.accuracy(preds_filtered, labels_filtered)
             eval_loss = output.loss.item()
+
             if not np.isnan(eval_loss):
                 loss_arr.append(eval_loss)
             # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
@@ -238,15 +238,21 @@ class MLMUnsupervisedModelling:
                                   collate_fn=self.data_collator)
 
         optimizer = self.trainer.create_optimizer()
-        self.scheduler = LinearLR(optimizer, start_factor=self.args.lr/self.args.lr_warmup_steps, end_factor=1,
+        self.scheduler = LinearLR(optimizer, start_factor=self.args.lr / self.args.lr_warmup_steps,
+                                  end_factor=1,
                                   total_iters=self.args.lr_warmup_steps)
         return optimizer, train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
 
+        if self.args.layer_warmup:
+            lr: float = self.args.layer_warmup_lr
+        else:
+            lr: float = self.args.lr
+
         training_args = TrainingArguments(
             output_dir=self.output_dir,
-            learning_rate=self.args.lr,
+            learning_rate=lr,
             weight_decay=self.args.weight_decay,
             fp16=self.args.use_fp16,
             # do_train=True
@@ -403,7 +409,7 @@ class MLMUnsupervisedModelling:
                 outfile.write('\n')
 
     @staticmethod
-    def accuracy(preds: List[int], labels: List[int]):
+    def accuracy(preds: np.array, labels: np.array):
         """
         Compute accuracy on predictions and labels
         :param preds: Predicted token
@@ -503,26 +509,24 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             max_physical_batch_size=self.args.train_batch_size,
             optimizer=optimizer
         ) as memory_safe_data_loader:
-            batch_dims = []
+
             for i, batch in enumerate(memory_safe_data_loader):
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
-                                              end_factor=self.args.lr/(self.total_steps - step),
+                                              end_factor=self.args.lr / (self.total_steps - step),
                                               total_iters=self.total_steps - step)
 
                 lrs.append(self.get_lr(optimizer)[0])
 
                 if self.args.layer_warmup and step == 0:
-                    for name, param in model.named_parameters():
-                        if name.startswith("_module.bert.encoder"):
-                            param.requires_grad = False
-                    model.train()
+                    model = self.freeze_layers(model)
 
                 if self.args.layer_warmup and step == self.args.layer_warmup_steps:
-                    for name, param in model.named_parameters():
-                        if name.startswith("_module.bert.encoder"):
-                            param.requires_grad = True
-                    model.train()
+                    model = self.unfreeze_layers(model)
+                    self.scheduler = LinearLR(optimizer,
+                                              start_factor=0.1*self.args.lr_warmup_steps / self.args.lr_warmup_steps,
+                                              end_factor=0.1,
+                                              total_iters=self.args.lr_warmup_steps)
 
                 optimizer.zero_grad()
 
@@ -530,7 +534,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
                                attention_mask=batch["attention_mask"].to(self.args.device),
                                labels=batch["labels"].to(self.args.device))
-                batch_dims.append(output.logits.size()[0])
 
                 loss = output.loss
                 loss.backward()
@@ -580,8 +583,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                            attention_mask=batch["attention_mask"].to('cuda'),
                            labels=batch["labels"].to('cuda'))
 
-            # loss = models.loss
-
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
 
@@ -593,9 +594,18 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             labels_filtered = np.array([x[0] for x in filtered])
             preds_filtered = np.array([x[1] for x in filtered])
 
-            loss_arr.append(output.loss.item())
+            # loss_arr.append(output.loss.item())
+            # # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
+            # accuracy_arr.append(self.accuracy(preds_filtered, labels_filtered))
+
+            eval_acc = self.accuracy(preds_filtered, labels_filtered)
+            eval_loss = output.loss.item()
+
+            if not np.isnan(eval_loss):
+                loss_arr.append(eval_loss)
             # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
-            accuracy_arr.append(self.accuracy(preds_filtered, labels_filtered))
+            if not np.isnan(eval_acc):
+                accuracy_arr.append(eval_acc)
 
         model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
@@ -616,8 +626,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                   collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
-
-        self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.lr / self.args.lr_warmup_steps, end_factor=1,
+        # ToDo: finish head warmup lr
+        self.scheduler = LinearLR(dp_optimizer,
+                                  start_factor=self.args.layer_warmup_lr / self.args.freezed_lr_warmup_steps,
+                                  end_factor=1,
                                   total_iters=self.args.lr_warmup_steps)
         return dp_model, dp_optimizer, dp_train_loader
 
@@ -657,6 +669,21 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         model.cls = lm_head
         self.model = model
 
+    @staticmethod
+    def freeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = False
+        model.train()
+        return model
+
+    @staticmethod
+    def unfreeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = True
+        model.train()
+        return model
 
     @staticmethod
     def validate_model(model: BertForMaskedLM, strict: bool = False):
