@@ -80,10 +80,16 @@ class MLMUnsupervisedModelling:
                 accuracies.append({epoch: eval_accuracy})
                 all_lrs.append({epoch: lrs})
 
+
             self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
+            if self.args.make_plots:
+                from utils.visualization import plot_running_results
+                plot_running_results(output_path=os.path.join(self.output_dir, 'results'),
+                                     lrs=all_lrs, accs=accuracies,
+                                     loss=losses)
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
@@ -447,6 +453,12 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
+
+            if self.args.make_plots:
+                from utils.visualization import plot_running_results
+                plot_running_results(output_path=os.path.join(self.output_dir, 'results'),
+                                     lrs=all_lrs, accs=accuracies,
+                                     loss=losses)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):

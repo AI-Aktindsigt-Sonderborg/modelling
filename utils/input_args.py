@@ -54,7 +54,7 @@ class MLMArgParser:
         training_params.add_argument("--layer_warmup_steps", type=int, default=500,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
-                                     help="warmup learning rate ")
+                                     help="warmup learning rate - set to 1 if no warmup")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
                                      help="after which step to start decaying learning rate ")
         training_params.add_argument("--start_lr", type=float, default=0.00001,
@@ -80,6 +80,9 @@ class MLMArgParser:
                                  help="Batch size for evaluation")
         eval_params.add_argument("--evaluate_during_training", type=bool, default=True,
                                  help="Whether to evaluate model during training")
+        eval_params.add_argument("--make_plots", type=bool, default=True,
+                                 help="Whether to plot running learning rate, loss and accuracies")
+
 
     def add_dp_params(self):
         dp_params = self.parser.add_argument_group('dp')
