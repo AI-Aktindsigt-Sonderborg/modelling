@@ -132,7 +132,7 @@ class MLMUnsupervisedModelling:
         for i, batch in enumerate(train_loader):
             if step == self.args.lr_start_decay:
                 self.scheduler = LinearLR(optimizer, start_factor=1,
-                                          end_factor=self.args.end_lr,
+                                          end_factor=self.args.lr / (self.total_steps - step),
                                           total_iters=self.total_steps - step)
 
             lrs.append(self.get_lr(optimizer)[0])
@@ -238,7 +238,7 @@ class MLMUnsupervisedModelling:
                                   collate_fn=self.data_collator)
 
         optimizer = self.trainer.create_optimizer()
-        self.scheduler = LinearLR(optimizer, start_factor=self.args.start_lr, end_factor=1,
+        self.scheduler = LinearLR(optimizer, start_factor=self.args.lr/self.args.lr_warmup_steps, end_factor=1,
                                   total_iters=self.args.lr_warmup_steps)
         return optimizer, train_loader
 
@@ -507,7 +507,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             for i, batch in enumerate(memory_safe_data_loader):
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
-                                              end_factor=self.args.end_lr,
+                                              end_factor=self.args.lr/(self.total_steps - step),
                                               total_iters=self.total_steps - step)
 
                 lrs.append(self.get_lr(optimizer)[0])
@@ -617,7 +617,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
 
-        self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.start_lr, end_factor=1,
+        self.scheduler = LinearLR(dp_optimizer, start_factor=self.args.lr / self.args.lr_warmup_steps, end_factor=1,
                                   total_iters=self.args.lr_warmup_steps)
         return dp_model, dp_optimizer, dp_train_loader
 

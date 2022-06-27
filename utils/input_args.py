@@ -57,14 +57,14 @@ class MLMArgParser:
                                      help="warmup learning rate - set to 1 if no warmup")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
                                      help="after which step to start decaying learning rate ")
-        training_params.add_argument("--start_lr", type=float, default=0.00001,
-                                     help="Learning rate")
         training_params.add_argument("--lr", type=float, default=0.00005,
-                                     help="Learning rate")
-        training_params.add_argument("--end_lr", type=float, default=0.00001,
                                      help="Learning rate")
         training_params.add_argument("--grad_accum_steps", type=int, default=1,
                                      help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
+        # training_params.add_argument("--start_lr", type=float, default=0.00001,
+        #                              help="Learning rate")
+        # training_params.add_argument("--end_lr", type=float, default=0.00001,
+        #                              help="Learning rate")
 
 
     def add_eval_params(self):
