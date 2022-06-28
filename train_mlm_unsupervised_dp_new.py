@@ -11,16 +11,18 @@ args = mlm_parser.parser.parse_args()
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
     args.train_data = 'train_200.json'
-    args.evaluate_steps = 20
+    args.evaluate_steps = 200
     args.save_config = False
 
-    args.freezed_lr_warmup_steps = 10
-    args.layer_warmup_steps = 20
+
+    args.freeze_layers_n_steps = 20
+    args.lr_freezed_warmup_steps = 10
+    args.lr_freezed = 0.1
 
     args.lr_warmup_steps = 10
-    args.lr_start_decay = 50
-    args.layer_warmup_lr = 0.1
+    args.lr_start_decay = 100
     args.lr = 0.01
+
     args.epochs = 5
     args.train_batch_size = 2
     args.max_length = 8

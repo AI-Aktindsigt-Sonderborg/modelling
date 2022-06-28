@@ -10,10 +10,13 @@ from local_constants import MODEL_DIR
 def plot_running_results(output_path: str, lrs, accs, loss):
     plt.ioff()
     learning_rates = []
+    learning_rates_steps = []
     for entry in lrs:
         for key in entry.keys():
             for val in entry.get(key):
-                learning_rates.append(val)
+                for step in val.keys():
+                    learning_rates_steps.append(int(step))
+                    learning_rates.append(val.get(step))
 
     accuracies = []
     accuracies_steps = []
@@ -35,7 +38,7 @@ def plot_running_results(output_path: str, lrs, accs, loss):
 
     fig, (ax1, ax2, ax3) = plt.subplots(3)
 
-    ax1.plot(learning_rates)
+    ax1.plot(learning_rates_steps, learning_rates)
     ax1.set(ylabel='learning rate')
 
     ax2.plot(accuracies_steps, accuracies, 'orange')

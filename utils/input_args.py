@@ -48,16 +48,16 @@ class MLMArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
-        training_params.add_argument("--layer_warmup", type=bool, default=True,
+        training_params.add_argument("--freeze_layers", type=bool, default=True,
                                      help="whethere to freeze all bert layers until warmup_steps is reached")
-        training_params.add_argument("--layer_warmup_steps", type=int, default=3000,
+        training_params.add_argument("--freeze_layers_n_steps", type=int, default=3000,
                                      help="number of steps to train head only")
-        training_params.add_argument("--layer_warmup_lr", type=float, default=0.0005,
+        training_params.add_argument("--lr_freezed", type=float, default=0.0005,
+                                     help="number of steps to train head only")
+        training_params.add_argument("--lr_freezed_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
-        training_params.add_argument("--freezed_lr_warmup_steps", type=int, default=1000,
-                                     help="number of steps to train head only")
         training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
                                      help="warmup learning rate - set to 1 if no warmup")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
