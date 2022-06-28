@@ -205,7 +205,6 @@ class MLMUnsupervisedModelling:
         accuracy_arr = []
 
         for batch in val_loader:
-            # compute models
             output = model(input_ids=batch["input_ids"].to('cuda'),
                            attention_mask=batch["attention_mask"].to('cuda'),
                            labels=batch["labels"].to('cuda'))
@@ -220,6 +219,7 @@ class MLMUnsupervisedModelling:
 
             labels_filtered = np.array([x[0] for x in filtered])
             preds_filtered = np.array([x[1] for x in filtered])
+
             eval_acc = self.accuracy(preds_filtered, labels_filtered)
             eval_loss = output.loss.item()
 
@@ -254,15 +254,20 @@ class MLMUnsupervisedModelling:
         return optimizer, train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
+        """
+        Create dummy trainer, such that we get optimizer and can save model object
+        :param train_data_wrapped: Train data of type DatasetWrapper
+        :return: Add self.trainer to class
+        """
 
         if self.args.freeze_layers:
-            lr: float = self.args.lr_freezed
+            learning_rate_init: float = self.args.lr_freezed
         else:
-            lr: float = self.args.lr
+            learning_rate_init: float = self.args.lr
 
         training_args = TrainingArguments(
             output_dir=self.output_dir,
-            learning_rate=lr,
+            learning_rate=learning_rate_init,
             weight_decay=self.args.weight_decay,
             fp16=self.args.use_fp16,
             # do_train=True
@@ -446,7 +451,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     def train_model(self):
         """
-        load data, set up private training and train with privacy
+        Load data, set up private training and train with privacy
+        :return: Add final model to class
         """
         dp_model, dp_optimizer, dp_train_loader = self.set_up_training()
 
@@ -541,6 +547,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
+                    # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
                     self.scheduler = self.create_scheduler(optimizer,
                                                            start_factor=(self.args.lr
                                                                          / self.args.lr_freezed)
@@ -597,45 +604,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                         step=f'/epoch-{epoch}_step-{step}')
                 step += 1
         return model, eval_losses, eval_accuracies, step, lrs
-
-    def evaluate(self, model, val_loader: DataLoader):
-        model.eval()
-
-        loss_arr = []
-        accuracy_arr = []
-
-        for batch in val_loader:
-            # compute models
-            output = model(input_ids=batch["input_ids"].to('cuda'),
-                           attention_mask=batch["attention_mask"].to('cuda'),
-                           labels=batch["labels"].to('cuda'))
-
-            preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
-            labels = batch["labels"].cpu().numpy()
-
-            labels_flat = labels.flatten()
-            preds_flat = preds.flatten()
-
-            filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
-
-            labels_filtered = np.array([x[0] for x in filtered])
-            preds_filtered = np.array([x[1] for x in filtered])
-
-            # loss_arr.append(output.loss.item())
-            # # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
-            # accuracy_arr.append(self.accuracy(preds_filtered, labels_filtered))
-
-            eval_acc = self.accuracy(preds_filtered, labels_filtered)
-            eval_loss = output.loss.item()
-
-            if not np.isnan(eval_loss):
-                loss_arr.append(eval_loss)
-            # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
-            if not np.isnan(eval_acc):
-                accuracy_arr.append(eval_acc)
-
-        model.train()
-        return np.mean(loss_arr), np.mean(accuracy_arr)
 
     def set_up_training(self):
 

@@ -14,7 +14,6 @@ if args.local_testing:
     args.evaluate_steps = 200
     args.save_config = False
 
-
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
     args.lr_freezed = 0.1
