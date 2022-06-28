@@ -511,15 +511,15 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         ) as memory_safe_data_loader:
 
             # for i, batch in enumerate(memory_safe_data_loader):
-            for i, batch in tqdm(enumerate(memory_safe_data_loader), desc='Step', unit='step',
-                                 total=int(self.total_steps/self.args.epochs)):
-                print(step)
+            for batch in memory_safe_data_loader:
+
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
                                               end_factor=self.args.lr / (self.total_steps - step),
                                               total_iters=self.total_steps - step)
-
                 lrs.append(self.get_lr(optimizer)[0])
+                if step % 100 == 0:
+                    print(f'Step: {step}, lr: {self.get_lr(optimizer)[0]}')
 
                 if self.args.layer_warmup and step == 0:
                     model = self.freeze_layers(model)
