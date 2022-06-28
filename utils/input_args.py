@@ -39,9 +39,6 @@ class MLMArgParser:
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=bool, default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--lot_size", type=int, default=8,
-                                     help="Lot size specifies the sample size of which noise is "
-                                          "injected into. Must be larger and multiple of batch size")
         training_params.add_argument("--train_batch_size", type=int, default=2,
                                      help="Batch size specifies the sample size of which the gradients are "
                                           "computed. Depends on memory available")
@@ -57,14 +54,14 @@ class MLMArgParser:
                                      help="number of steps to train head only")
         training_params.add_argument("--layer_warmup_lr", type=float, default=0.0005,
                                      help="number of steps to train head only")
+        training_params.add_argument("--lr", type=float, default=0.00005,
+                                     help="Learning rate")
         training_params.add_argument("--freezed_lr_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_warmup_steps", type=int, default=1000,
                                      help="warmup learning rate - set to 1 if no warmup")
         training_params.add_argument("--lr_start_decay", type=int, default=3000,
                                      help="after which step to start decaying learning rate ")
-        training_params.add_argument("--lr", type=float, default=0.00005,
-                                     help="Learning rate")
         training_params.add_argument("--grad_accum_steps", type=int, default=1,
                                      help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
         # training_params.add_argument("--start_lr", type=float, default=0.00001,
@@ -97,3 +94,7 @@ class MLMArgParser:
                                help="privacy parameter delta")
         dp_params.add_argument("--max_grad_norm", type=float, default=1.2,
                                help="maximum norm to clip gradient")
+        dp_params.add_argument("--lot_size", type=int, default=8,
+                                     help="Lot size specifies the sample size of which noise is "
+                                        "injected into. Must be larger and multiple of batch size")
+

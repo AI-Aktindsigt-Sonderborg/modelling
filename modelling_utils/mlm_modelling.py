@@ -463,8 +463,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             if self.args.make_plots:
                 from utils.visualization import plot_running_results
                 plot_running_results(output_path=os.path.join(self.output_dir, 'results'),
-                                     lrs=all_lrs, accs=accuracies,
-                                     loss=losses)
+                                     lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -516,20 +515,28 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 if step == self.args.lr_start_decay:
                     self.scheduler = LinearLR(optimizer, start_factor=1,
                                               end_factor=self.args.lr / (self.total_steps - step),
-                                              total_iters=self.total_steps - step)
-                lrs.append(self.get_lr(optimizer)[0])
-                if step % 100 == 0:
-                    print(f'Step: {step}, lr: {self.get_lr(optimizer)[0]}')
-
-                if self.args.layer_warmup and step == 0:
-                    model = self.freeze_layers(model)
+                                              total_iters=self.total_steps - self.args.lr_start_decay)
 
                 if self.args.layer_warmup and step == self.args.layer_warmup_steps:
                     model = self.unfreeze_layers(model)
                     self.scheduler = LinearLR(optimizer,
-                                              start_factor=0.1*self.args.lr_warmup_steps / self.args.lr_warmup_steps,
-                                              end_factor=0.1,
+                                              start_factor=(self.args.lr / self.args.layer_warmup_lr) / self.args.lr_warmup_steps,
+                                              end_factor=self.args.lr / self.args.layer_warmup_lr,
                                               total_iters=self.args.lr_warmup_steps)
+
+
+
+
+                lrs.append(self.get_lr(optimizer)[0])
+
+                if step % 100 == 0:
+                    print(f'Step: {step}, lr: {self.get_lr(optimizer)}')
+                    # print(f'Total steps: {self.total_steps}')
+
+
+                if self.args.layer_warmup and step == 0:
+                    model = self.freeze_layers(model)
+
 
                 optimizer.zero_grad()
 
@@ -633,7 +640,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         self.scheduler = LinearLR(dp_optimizer,
                                   start_factor=self.args.layer_warmup_lr / self.args.freezed_lr_warmup_steps,
                                   end_factor=1,
-                                  total_iters=self.args.lr_warmup_steps)
+                                  total_iters=self.args.freezed_lr_warmup_steps)
         return dp_model, dp_optimizer, dp_train_loader
 
     def set_up_privacy(self, train_loader: DataLoader):

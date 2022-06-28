@@ -44,7 +44,7 @@ def plot_running_results(output_path: str, lrs, accs, loss):
     ax3.plot(losses_steps, losses, 'green')
     ax3.set(ylabel='loss', xlabel='step')
     plt.savefig(output_path)
-    plt.close(fig=fig)
+    # plt.close(fig=fig)
 
     # plt.show()
 
@@ -60,7 +60,7 @@ def plot_performance(x: List[int], y: List[float], measure: str):
 
 if __name__ == '__main__':
 
-    model_name = 'NbAiLab_nb-bert-base-2022-06-24_13-57-20'
+    model_name = 'DP-Geotrend_distilbert-base-da-cased-2022-06-28_14-27-19'
 
     lr_file = model_name + '/learning_rates'
     acc_file = model_name + '/accuracies'
@@ -81,33 +81,7 @@ if __name__ == '__main__':
         for entry in file:
             loss_init.append(json.loads(entry))
 
-    learning_rates = []
-    for entry in lrs:
-        for key in entry.keys():
-            for val in entry.get(key):
-                learning_rates.append(val)
-
-    accuracies = []
-    accuracies_steps = []
-    for entry in accs:
-        for key in entry.keys():
-            for val in entry.get(key):
-                for step in val.keys():
-                    accuracies_steps.append(int(step))
-                    accuracies.append(val.get(step))
-
-    losses = []
-    losses_steps = []
-    for entry in loss_init:
-        for key in entry.keys():
-            for val in entry.get(key):
-                for step in val.keys():
-                    losses_steps.append(int(step))
-                    losses.append(val.get(step))
-
-    plot_running_results(output_path='../plots/test.png', lr=learning_rates,
-                         acc_step=accuracies_steps, acc=accuracies,
-                         loss_step=losses_steps, loss=losses)
+    plot_running_results(output_path='../plots/test2.png', lrs=lrs, accs=accs, loss=loss_init)
 
     # plot_performance(x=losses_steps, y=losses, measure='loss')
     # plot_performance(x=accuracies_steps, y=accuracies, measure='acc')
