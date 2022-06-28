@@ -137,19 +137,15 @@ class MLMUnsupervisedModelling:
                                                        total_iters=self.total_steps - step
                                                        )
 
-                # self.scheduler = LinearLR(optimizer, start_factor=1,
-                #                           end_factor=self.args.lr / (self.total_steps - step),
-                #                           total_iters=self.total_steps - step)
-
             lrs.append(self.get_lr(optimizer)[0])
 
-            # if self.args.layer_warmup and step == 0:
+            # if self.args.freeze_layers and step == 0:
             #     for name, param in model.named_parameters():
             #         if name.startswith("bert.encoder"):
             #             param.requires_grad = False
             #     model.train()
             #
-            # if self.args.layer_warmup and step == self.args.layer_warmup_steps:
+            # if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
             #     for name, param in model.named_parameters():
             #         if name.startswith("bert.encoder"):
             #             param.requires_grad = True
@@ -197,6 +193,12 @@ class MLMUnsupervisedModelling:
         return model, eval_losses, eval_accuracies, step, lrs
 
     def evaluate(self, model, val_loader: DataLoader):
+        """
+        Evaluate model at given step
+        :param model:
+        :param val_loader:
+        :return: mean eval loss and mean accuracy
+        """
         model.eval()
 
         loss_arr = []
@@ -223,7 +225,6 @@ class MLMUnsupervisedModelling:
 
             if not np.isnan(eval_loss):
                 loss_arr.append(eval_loss)
-            # accuracy_arr.append(self.accuracy(preds_flat, labels_flat))
             if not np.isnan(eval_acc):
                 accuracy_arr.append(eval_acc)
 
@@ -250,9 +251,6 @@ class MLMUnsupervisedModelling:
                                                start_factor=self.args.lr / self.args.lr_warmup_steps,
                                                end_factor=1,
                                                total_iters=self.args.lr_warmup_steps)
-        # self.scheduler = LinearLR(optimizer, start_factor=self.args.lr / self.args.lr_warmup_steps,
-        #                           end_factor=1,
-        #                           total_iters=self.args.lr_warmup_steps)
         return optimizer, train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
@@ -530,6 +528,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             # for i, batch in enumerate(memory_safe_data_loader):
             for batch in memory_safe_data_loader:
 
+                if self.args.freeze_layers and step == 0:
+                    model = self.freeze_layers(model)
+
                 if step == self.args.lr_start_decay:
                     self.scheduler = self.create_scheduler(optimizer,
                                                            start_factor=1,
@@ -537,10 +538,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                       (self.total_steps - step),
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
-
-                    # self.scheduler = LinearLR(optimizer, start_factor=1,
-                    #                           end_factor=self.args.lr / (self.total_steps - step),
-                    #                           total_iters=self.total_steps - self.args.lr_start_decay)
 
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
@@ -552,19 +549,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                       / self.args.lr_freezed,
                                                            total_iters=self.args.lr_warmup_steps)
 
-                    # self.scheduler = LinearLR(optimizer,
-                    #                           start_factor=(self.args.lr / self.args.layer_warmup_lr) / self.args.lr_warmup_steps,
-                    #                           end_factor=self.args.lr / self.args.layer_warmup_lr,
-                    #                           total_iters=self.args.lr_warmup_steps)
-
                 lrs.append({step: self.get_lr(optimizer)[0]})
 
-                if step % 100 == 0:
-                    print(f'Step: {step}, lr: {self.get_lr(optimizer)}')
-                    # print(f'Total steps: {self.total_steps}')
-
-                if self.args.freeze_layers and step == 0:
-                    model = self.freeze_layers(model)
+                # if step % 100 == 0:
+                #     print(f'Step: {step}, lr: {self.get_lr(optimizer)[0]}')
+                #     # print(f'Total steps: {self.total_steps}')
 
                 optimizer.zero_grad()
 
