@@ -23,8 +23,8 @@ if args.local_testing:
     args.train_batch_size = 2
     args.max_length = 8
     args.save_model_at_end = False
-    args.replace_head = True
-    args.freeze_layers = True
+    args.replace_head = False
+    args.freeze_layers = False
     args.evaluate_during_training = True
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
