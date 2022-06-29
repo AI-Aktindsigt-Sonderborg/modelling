@@ -83,6 +83,7 @@ class CustomTrainer(Trainer):
         # print(labels.cpu().detach().numpy())
 
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
+        # ToDo: Fix below hardcoded token length
         loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
         # print(loss.item())
         # np.save('data/logits_hf', outputs.logits.cpu().detach().numpy())

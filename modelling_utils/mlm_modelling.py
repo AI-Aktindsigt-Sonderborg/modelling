@@ -86,9 +86,12 @@ class MLMUnsupervisedModelling:
 
             if self.args.make_plots:
                 from utils.visualization import plot_running_results
-                plot_running_results(output_path=os.path.join(self.output_dir, 'results'),
-                                     lrs=all_lrs, accs=accuracies,
-                                     loss=losses)
+                plot_running_results(
+                    output_path=os.path.join(self.output_dir,
+                                     f'results'),
+                    title=f'Epochs: {self.args.epochs}',
+                    lrs=all_lrs, accs=accuracies, loss=losses)
+
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
@@ -129,6 +132,21 @@ class MLMUnsupervisedModelling:
         lrs = []
 
         for i, batch in enumerate(train_loader):
+
+            if self.args.freeze_layers and step == 0:
+                model = self.freeze_layers(model)
+
+            if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
+                model = self.unfreeze_layers(model)
+                # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
+                self.scheduler = self.create_scheduler(optimizer,
+                                                       start_factor=(self.args.lr
+                                                                     / self.args.lr_freezed)
+                                                                    / self.args.lr_warmup_steps,
+                                                       end_factor=self.args.lr
+                                                                  / self.args.lr_freezed,
+                                                       total_iters=self.args.lr_warmup_steps)
+
             if step == self.args.lr_start_decay:
                 self.scheduler = self.create_scheduler(optimizer,
                                                        start_factor=1,
@@ -137,19 +155,8 @@ class MLMUnsupervisedModelling:
                                                        total_iters=self.total_steps - step
                                                        )
 
-            lrs.append(self.get_lr(optimizer)[0])
+            lrs.append({step: self.get_lr(optimizer)[0]})
 
-            # if self.args.freeze_layers and step == 0:
-            #     for name, param in model.named_parameters():
-            #         if name.startswith("bert.encoder"):
-            #             param.requires_grad = False
-            #     model.train()
-            #
-            # if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-            #     for name, param in model.named_parameters():
-            #         if name.startswith("bert.encoder"):
-            #             param.requires_grad = True
-            #     model.train()
 
             optimizer.zero_grad()
 
@@ -237,8 +244,10 @@ class MLMUnsupervisedModelling:
 
         self.load_data()
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-
-        self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
+        if self.args.replace_head:
+            self.load_model_and_replace_bert_head()
+        else:
+            self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
 
@@ -329,6 +338,19 @@ class MLMUnsupervisedModelling:
                                           data_files=os.path.join(DATA_DIR, self.args.eval_data),
                                           split='train')
 
+    def load_model_and_replace_bert_head(self):
+        model = BertForMaskedLM.from_pretrained(self.args.model_name)
+
+        config = BertConfig.from_pretrained(self.args.model_name)
+        lm_head = BertOnlyMLMHeadCustom(config)
+        lm_head = lm_head.to(self.args.device)
+        model.cls = lm_head
+
+        for param in model.bert.embeddings.parameters():
+            param.requires_grad = False
+
+        self.model = model
+
     def get_data_collator(self):
         """
         Based on word mask load corresponding data collator
@@ -342,6 +364,22 @@ class MLMUnsupervisedModelling:
             from transformers import DataCollatorForLanguageModeling
             return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
                                                    mlm_probability=self.args.mlm_prob)
+
+    @staticmethod
+    def freeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = False
+        model.train()
+        return model
+
+    @staticmethod
+    def unfreeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = True
+        model.train()
+        return model
 
     @staticmethod
     def save_model(model: BertForMaskedLM, output_dir: str,
@@ -381,21 +419,6 @@ class MLMUnsupervisedModelling:
         with open(os.path.join(output_dir, 'training_run_config.json'), 'w',
                   encoding='utf-8') as outfile:
             json.dump(args.__dict__, outfile, indent=2)
-
-    @staticmethod
-    def validate_model(model: BertForMaskedLM, strict: bool = False):
-        """
-        Validate whether model is compatible with opacus
-        :param model: pytorch model of type BertForMaskedLM
-        :param strict: Whether validation should be strict
-        """
-        errors = ModuleValidator.validate(model, strict=strict)
-        if errors:
-            print("Model is not compatible for DF with opacus. Please fix errors.")
-            print(errors)
-            sys.exit(0)
-        else:
-            print("Model is compatible for DP with opacus.")
 
     @staticmethod
     def get_lr(optimizer: DPOptimizer):
@@ -445,7 +468,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         super().__init__(args)
 
         self.privacy_engine = None
-        self.output_name = f'DP-{self.args.model_name.replace("/", "_")}-' \
+        self.output_name = f'DP-eps-{self.args.epsilon}-{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
 
@@ -484,8 +507,12 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
             if self.args.make_plots:
                 from utils.visualization import plot_running_results
-                plot_running_results(output_path=os.path.join(self.output_dir, 'results'),
-                                     lrs=all_lrs, accs=accuracies, loss=losses)
+                plot_running_results(
+                    output_path=os.path.join(self.output_dir,
+                                     f'results_eps-{self.args.epsilon}-delta-{self.args.delta}'),
+                    title=f'Epochs: {self.args.epochs}, Epsilon: {self.args.epsilon}, '
+                          f'Delta: {self.args.delta}',
+                    lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -537,14 +564,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 if self.args.freeze_layers and step == 0:
                     model = self.freeze_layers(model)
 
-                if step == self.args.lr_start_decay:
-                    self.scheduler = self.create_scheduler(optimizer,
-                                                           start_factor=1,
-                                                           end_factor=self.args.lr /
-                                                                      (self.total_steps - step),
-                                                           total_iters=self.total_steps -
-                                                                       self.args.lr_start_decay)
-
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
@@ -555,6 +574,16 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                            end_factor=self.args.lr
                                                                       / self.args.lr_freezed,
                                                            total_iters=self.args.lr_warmup_steps)
+
+                if step == self.args.lr_start_decay:
+                    self.scheduler = self.create_scheduler(optimizer,
+                                                           start_factor=1,
+                                                           end_factor=self.args.lr /
+                                                                      (self.total_steps - step),
+                                                           total_iters=self.total_steps -
+                                                                       self.args.lr_start_decay)
+
+
 
                 lrs.append({step: self.get_lr(optimizer)[0]})
 
@@ -621,6 +650,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                   collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
+
         # ToDo: finish head warmup lr
         self.scheduler = self.create_scheduler(dp_optimizer,
                                                start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
@@ -636,8 +666,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     def set_up_privacy(self, train_loader: DataLoader):
         self.privacy_engine = PrivacyEngine()
 
-        for param in self.model.bert.embeddings.parameters():
-            param.requires_grad = False
+        # for param in self.model.bert.embeddings.parameters():
+        #     param.requires_grad = False
 
         self.model = self.model.train()
 
@@ -660,30 +690,34 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         return dp_model, dp_optimizer, dp_train_loader
 
-    def load_model_and_replace_bert_head(self):
-        model = BertForMaskedLM.from_pretrained(self.args.model_name)
+    # def load_model_and_replace_bert_head(self):
+    #     model = BertForMaskedLM.from_pretrained(self.args.model_name)
+    #
+    #     config = BertConfig.from_pretrained(self.args.model_name)
+    #     lm_head = BertOnlyMLMHeadCustom(config)
+    #     lm_head = lm_head.to(self.args.device)
+    #     model.cls = lm_head
+    #
+    #     for param in model.bert.embeddings.parameters():
+    #         param.requires_grad = False
+    #
+    #     self.model = model
 
-        config = BertConfig.from_pretrained(self.args.model_name)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        model.cls = lm_head
-        self.model = model
-
-    @staticmethod
-    def freeze_layers(model):
-        for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
-                param.requires_grad = False
-        model.train()
-        return model
-
-    @staticmethod
-    def unfreeze_layers(model):
-        for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
-                param.requires_grad = True
-        model.train()
-        return model
+    # @staticmethod
+    # def freeze_layers(model):
+    #     for name, param in model.named_parameters():
+    #         if name.startswith("_module.bert.encoder"):
+    #             param.requires_grad = False
+    #     model.train()
+    #     return model
+    #
+    # @staticmethod
+    # def unfreeze_layers(model):
+    #     for name, param in model.named_parameters():
+    #         if name.startswith("_module.bert.encoder"):
+    #             param.requires_grad = True
+    #     model.train()
+    #     return model
 
     @staticmethod
     def validate_model(model: BertForMaskedLM, strict: bool = False):

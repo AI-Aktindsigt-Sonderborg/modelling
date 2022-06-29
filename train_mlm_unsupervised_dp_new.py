@@ -6,13 +6,12 @@ from utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-# args.local_testing = True
+args.local_testing = True
 
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
     args.train_data = 'train_200.json'
     args.evaluate_steps = 200
-    args.save_config = False
 
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
@@ -22,9 +21,10 @@ if args.local_testing:
     args.lr_start_decay = 100
     args.lr = 0.01
 
-    args.epochs = 5
+    args.epochs = 2
     args.train_batch_size = 2
     args.max_length = 8
+    args.save_model_at_end = False
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):

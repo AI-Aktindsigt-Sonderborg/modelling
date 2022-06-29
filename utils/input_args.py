@@ -23,8 +23,12 @@ class MLMArgParser:
                                   help="foundation model from huggingface")
         model_params.add_argument("--save_config", type=bool, default=True,
                                   help="Whether to save input args to file")
+        model_params.add_argument("--replace_head", type=bool, default=False,
+                                  help="Whether to replace bert head")
         model_params.add_argument("--save_model_at_end", type=bool, default=True,
                                   help="Whether to save final model after training.")
+
+
 
     def add_training_params(self):
         training_params = self.parser.add_argument_group('training')

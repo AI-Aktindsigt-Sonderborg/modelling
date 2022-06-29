@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from local_constants import MODEL_DIR
 
 
-def plot_running_results(output_path: str, lrs, accs, loss):
+def plot_running_results(output_path: str, title: str, lrs, accs, loss):
     plt.ioff()
     learning_rates = []
     learning_rates_steps = []
@@ -37,6 +37,7 @@ def plot_running_results(output_path: str, lrs, accs, loss):
                     losses.append(val.get(step))
 
     fig, (ax1, ax2, ax3) = plt.subplots(3)
+    fig.suptitle(title, fontsize=14)
 
     ax1.plot(learning_rates_steps, learning_rates)
     ax1.set(ylabel='learning rate')
