@@ -7,6 +7,10 @@ args = mlm_parser.parser.parse_args()
 
 # args.local_testing = True
 
+# hardcode these two as they are essential for DP training atm
+args.freeze_layers = True
+args.replace_head = True
+
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
     args.train_data = 'train_200.json'

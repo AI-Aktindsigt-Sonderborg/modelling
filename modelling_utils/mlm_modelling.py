@@ -634,7 +634,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         self.load_data()
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
-        self.load_model_and_replace_bert_head()
+        if self.args.replace_head:
+            print('Replacing bert head')
+            self.load_model_and_replace_bert_head()
+        else:
+            self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
 
