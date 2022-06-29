@@ -5,7 +5,7 @@ from utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-args.local_testing = True
+# args.local_testing = True
 
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
