@@ -1,6 +1,5 @@
-import sys
-
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling, MLMUnsupervisedModellingDP
+# pylint: disable=protected-access
+from modelling_utils.mlm_modelling import MLMUnsupervisedModellingDP
 from utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()

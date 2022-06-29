@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 import argparse
 import json
 import os
@@ -15,12 +16,13 @@ from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer
+from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, \
+    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
 
 from local_constants import DATA_DIR, MODEL_DIR
-from modelling_utils.custom_modeling_bert import BertForMaskedLM
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import TimeCode
+from utils.visualization import plot_running_results
 
 
 class DatasetWrapper(Dataset):
@@ -48,7 +50,7 @@ class MLMUnsupervisedModelling:
         self.eval_data = None
         self.model = None
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
-        self.data_collator = self.get_data_collator()
+        self.data_collator = self.get_data_collator
         self.scheduler = None
 
     def train_model(self):
@@ -85,19 +87,17 @@ class MLMUnsupervisedModelling:
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
             if self.args.make_plots:
-                from utils.visualization import plot_running_results
                 plot_running_results(
-                    output_path=os.path.join(self.output_dir,
-                                     f'results'),
+                    output_path=os.path.join(self.output_dir, 'results'),
                     title=f'Epochs: {self.args.epochs}',
                     lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
-                                                                              train_loader=train_loader,
-                                                                              optimizer=optimizer,
-                                                                              step=step)
+                model, step, lrs = self.train_epoch(model=model,
+                                                    train_loader=train_loader,
+                                                    optimizer=optimizer,
+                                                    step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -131,7 +131,7 @@ class MLMUnsupervisedModelling:
         eval_accuracies = []
         lrs = []
 
-        for i, batch in enumerate(train_loader):
+        for batch in train_loader:
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -157,7 +157,6 @@ class MLMUnsupervisedModelling:
 
             lrs.append({step: self.get_lr(optimizer)[0]})
 
-
             optimizer.zero_grad()
 
             # compute models
@@ -172,9 +171,6 @@ class MLMUnsupervisedModelling:
 
             optimizer.step()
             self.scheduler.step()
-
-            eval_loss = None
-            eval_accuracy = None
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                 print(
@@ -197,7 +193,9 @@ class MLMUnsupervisedModelling:
                                     tokenizer=self.tokenizer,
                                     step=f'/epoch-{epoch}_step-{step}')
             step += 1
-        return model, eval_losses, eval_accuracies, step, lrs
+        if self.eval_data:
+            return model, eval_losses, eval_accuracies, step, lrs
+        return model, step, lrs
 
     def evaluate(self, model, val_loader: DataLoader):
         """
@@ -224,10 +222,8 @@ class MLMUnsupervisedModelling:
 
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
-            labels_filtered = np.array([x[0] for x in filtered])
-            preds_filtered = np.array([x[1] for x in filtered])
-
-            eval_acc = self.accuracy(preds_filtered, labels_filtered)
+            eval_acc = self.accuracy(np.array([x[1] for x in filtered]),
+                                     np.array([x[0] for x in filtered]))
             eval_loss = output.loss.item()
 
             if not np.isnan(eval_loss):
@@ -244,7 +240,9 @@ class MLMUnsupervisedModelling:
 
         self.load_data()
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+
         if self.args.replace_head:
+            print('Replacing bert head')
             self.load_model_and_replace_bert_head()
         else:
             self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
@@ -268,7 +266,6 @@ class MLMUnsupervisedModelling:
         :param train_data_wrapped: Train data of type DatasetWrapper
         :return: Add self.trainer to class
         """
-
         if self.args.freeze_layers:
             learning_rate_init: float = self.args.lr_freezed
         else:
@@ -351,19 +348,17 @@ class MLMUnsupervisedModelling:
 
         self.model = model
 
+    @property
     def get_data_collator(self):
         """
         Based on word mask load corresponding data collator
         :return: DataCollator
         """
         if self.args.whole_word_mask:
-            from transformers import DataCollatorForWholeWordMask
             return DataCollatorForWholeWordMask(tokenizer=self.tokenizer, mlm=True,
                                                 mlm_probability=self.args.mlm_prob)
-        else:
-            from transformers import DataCollatorForLanguageModeling
-            return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
-                                                   mlm_probability=self.args.mlm_prob)
+        return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
+                                               mlm_probability=self.args.mlm_prob)
 
     @staticmethod
     def freeze_layers(model):
@@ -506,10 +501,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
             if self.args.make_plots:
-                from utils.visualization import plot_running_results
                 plot_running_results(
                     output_path=os.path.join(self.output_dir,
-                                     f'results_eps-{self.args.epsilon}-delta-{self.args.delta}'),
+                                             f'results_eps-{self.args.epsilon}-delta-{self.args.delta}'),
                     title=f'Epochs: {self.args.epochs}, Epsilon: {self.args.epsilon}, '
                           f'Delta: {self.args.delta}',
                     lrs=all_lrs, accs=accuracies, loss=losses)
@@ -582,8 +576,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                       (self.total_steps - step),
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
-
-
 
                 lrs.append({step: self.get_lr(optimizer)[0]})
 
