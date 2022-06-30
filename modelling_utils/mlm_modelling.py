@@ -363,7 +363,7 @@ class MLMUnsupervisedModelling:
     @staticmethod
     def freeze_layers(model):
         for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
+            if name.startswith("bert."):
                 param.requires_grad = False
         model.train()
         return model
@@ -371,7 +371,7 @@ class MLMUnsupervisedModelling:
     @staticmethod
     def unfreeze_layers(model):
         for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
+            if name.startswith("bert.encoder"):
                 param.requires_grad = True
         model.train()
         return model
@@ -729,6 +729,22 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             sys.exit(0)
         else:
             print("Model is compatible for DP with opacus.")
+
+    @staticmethod
+    def freeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = False
+        model.train()
+        return model
+
+    @staticmethod
+    def unfreeze_layers(model):
+        for name, param in model.named_parameters():
+            if name.startswith("_module.bert.encoder"):
+                param.requires_grad = True
+        model.train()
+        return model
 
     @staticmethod
     def save_model(model: GradSampleModule, output_dir: str, data_collator, tokenizer,
