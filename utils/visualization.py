@@ -7,7 +7,9 @@ from matplotlib import pyplot as plt
 from local_constants import MODEL_DIR
 
 
-def plot_running_results(output_path: str, title: str, lrs, accs, loss):
+def plot_running_results(output_dir: str, epochs: int, lrs, accs, loss, epsilon: str = "", delta: str = ""):
+    file_path = os.path.join(output_dir, 'results')
+    title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
     plt.ioff()
     learning_rates = []
     learning_rates_steps = []
@@ -47,7 +49,7 @@ def plot_running_results(output_path: str, title: str, lrs, accs, loss):
 
     ax3.plot(losses_steps, losses, 'green')
     ax3.set(ylabel='loss', xlabel='step')
-    plt.savefig(output_path)
+    plt.savefig(file_path)
     # plt.close(fig=fig)
 
     # plt.show()

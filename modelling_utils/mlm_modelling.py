@@ -88,8 +88,8 @@ class MLMUnsupervisedModelling:
 
             if self.args.make_plots:
                 plot_running_results(
-                    output_path=os.path.join(self.output_dir, 'results'),
-                    title=f'Epochs: {self.args.epochs}',
+                    output_dir=self.output_dir,
+                    epochs=self.args.epochs,
                     lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
@@ -463,7 +463,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         super().__init__(args)
 
         self.privacy_engine = None
-        self.output_name = f'DP-eps-{self.args.epsilon}-{self.args.model_name.replace("/", "_")}-' \
+        self.output_name = f'DP-eps-{int(self.args.epsilon)}-{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
 
@@ -502,10 +502,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
             if self.args.make_plots:
                 plot_running_results(
-                    output_path=os.path.join(self.output_dir,
-                                             f'results_eps-{self.args.epsilon}-delta-{self.args.delta}'),
-                    title=f'Epochs: {self.args.epochs}, Epsilon: {self.args.epsilon}, '
-                          f'Delta: {self.args.delta}',
+                    output_dir=self.output_dir,
+                    epsilon=str(self.args.epsilon),
+                    delta=str(self.args.delta),
+                    epochs=self.args.epochs,
                     lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
