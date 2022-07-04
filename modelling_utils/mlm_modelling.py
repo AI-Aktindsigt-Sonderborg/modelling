@@ -114,13 +114,14 @@ class MLMUnsupervisedModelling:
                     step: int = 0):
         """
         Train one epoch
-        :param model:
-        :param train_loader:
-        :param optimizer:
-        :param epoch:
-        :param val_loader:
-        :param step:
-        :return:
+        :param model: Model of type BertForMaskedLM
+        :param train_loader: Data loader of type DataLoader
+        :param optimizer: Default is AdamW optimizer
+        :param epoch: Given epoch: int
+        :param val_loader: If evaluate_during_training: DataLoader containing validation data
+        :param step: Given step
+        :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
+        else: return model, step, lrs
         """
 
         model.train()
@@ -510,10 +511,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
-                                                                                 train_loader=dp_train_loader,
-                                                                                 optimizer=dp_optimizer,
-                                                                                 step=step)
+                dp_model, step, lrs = self.train_epoch(model=dp_model,
+                                                       train_loader=dp_train_loader,
+                                                       optimizer=dp_optimizer,
+                                                       step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -529,14 +530,15 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0):
         """
-        Train one epoch
-        :param model:
-        :param train_loader:
-        :param optimizer:
-        :param epoch:
-        :param val_loader:
-        :param step:
-        :return:
+        Train one epoch with DP - modification of superclass train epoch
+        :param model: Differentially private model wrapped in GradSampleModule
+        :param train_loader: Differentially private data loader of type DPDataLoader
+        :param optimizer: Differentially private optimizer of type DPOptimizer
+        :param epoch: Given epoch: int
+        :param val_loader: If evaluate_during_training: DataLoader containing validation data
+        :param step: Given step
+        :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
+        else: return model, step, lrs
         """
 
         model.train()
@@ -598,9 +600,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 optimizer.step()
                 self.scheduler.step()
 
-                eval_loss = None
-                eval_accuracy = None
-
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                     print(
                         f"\tTrain Epoch: {epoch} \t"
@@ -624,7 +623,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                         tokenizer=self.tokenizer,
                                         step=f'/epoch-{epoch}_step-{step}')
                 step += 1
-        return model, eval_losses, eval_accuracies, step, lrs
+
+        if self.eval_data:
+            return model, eval_losses, eval_accuracies, step, lrs
+        return model, step, lrs
 
     def set_up_training(self):
 
