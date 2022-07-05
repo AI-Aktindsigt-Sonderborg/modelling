@@ -22,6 +22,7 @@ if args.local_testing:
     args.epochs = 2
     args.train_batch_size = 2
     args.max_length = 8
+
     args.save_model_at_end = False
     args.replace_head = True
     args.freeze_layers = True

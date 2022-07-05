@@ -30,14 +30,18 @@ from datasets import load_metric
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
-# args.model_name = 'Geotrend/distilbert-base-da-cased'
-# args.train_data = 'train_4.json'
-# args.logging_steps = 20
-# args.evaluate_steps = 5
-# args.save_steps = 20
-# args.train_batch_size = 4
-# args.eval_batch_size = 2
-# args.max_length = 8
+
+# args.local_testing = True
+if args.local_testing:
+    args.model_name = 'Geotrend/distilbert-base-da-cased'
+    args.train_data = 'train_4.json'
+    args.logging_steps = 20
+    args.evaluate_steps = 5
+    args.save_steps = 200
+    args.train_batch_size = 4
+    args.eval_batch_size = 2
+    args.max_length = 8
+
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
 
@@ -48,7 +52,7 @@ mlm_modelling.load_data()
 model = AutoModelForMaskedLM.from_pretrained(args.model_name)
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
-output_name = f'{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+output_name = f'HF-{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 output_dir = os.path.join(MODEL_DIR, output_name)
 mlm_modelling.save_config(output_dir=output_dir, args=args)
 
@@ -64,12 +68,6 @@ else:
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=True,
                                                     mlm_probability=args.mlm_prob)
 
-# tmp_train_loader = DataLoader(
-#             train_data_wrapped,
-#             batch_size=4,
-#             collate_fn=data_collator
-#             )
-
 metric = load_metric('accuracy')
 
 class CustomTrainer(Trainer):
@@ -79,15 +77,11 @@ class CustomTrainer(Trainer):
         # forward pass
         outputs = model(**inputs)
         logits = outputs.get("logits")
-        # print(logits.cpu().detach().numpy())
-        # print(labels.cpu().detach().numpy())
 
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
         # ToDo: Fix below hardcoded token length
         loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
-        # print(loss.item())
-        # np.save('data/logits_hf', outputs.logits.cpu().detach().numpy())
-        # np.save('data/labels_hf', labels.cpu().detach().numpy())
+
 
         return (loss, outputs) if return_outputs else loss
 
@@ -102,11 +96,6 @@ class CustomTrainer(Trainer):
         """
         if self.train_dataset is None:
             raise ValueError("Trainer: training requires a train_dataset.")
-        # tmp_train_loader = DataLoader(
-        #     self.train_dataset,
-        #     batch_size=self.args.per_device_train_batch_size,
-        #     collate_fn=self.data_collator
-        #     )
 
         return DataLoader(
             self.train_dataset,
@@ -116,8 +105,6 @@ class CustomTrainer(Trainer):
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
-    # print(logits)
-    # print(labels)
 
     labels = labels.flatten()
     predictions = np.argmax(logits, axis=-1)
@@ -128,10 +115,6 @@ def compute_metrics(eval_pred):
 
     labels_filtered = np.array([x[0] for x in filtered])
     preds_filtered = np.array([x[1] for x in filtered])
-
-    # print(labels_filtered[:20])
-    # print(preds_filtered[:20])
-
 
     return metric.compute(predictions=preds_filtered, references=labels_filtered)
 
