@@ -1,4 +1,5 @@
 # coding=utf-8
+# THIS FILE IS A MODIFICATION OF THE ORIGINAL MODELING_BERT
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.
 # Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
 #
@@ -678,6 +679,9 @@ class BertPredictionHeadTransform(nn.Module):
 
 
 class BertLMPredictionHeadCustom(nn.Module):
+    """
+    Modification of original BertLMPredictionHead
+    """
     def __init__(self, config):
         super().__init__()
         self.transform = BertPredictionHeadTransform(config)
@@ -698,6 +702,9 @@ class BertLMPredictionHeadCustom(nn.Module):
 
 
 class BertOnlyMLMHeadCustom(nn.Module):
+    """
+    Modification of original BertOnlyMLMHead
+    """
     def __init__(self, config):
         super().__init__()
         self.predictions = BertLMPredictionHeadCustom(config)
