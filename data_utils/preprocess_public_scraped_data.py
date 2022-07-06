@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os.path
 import random
@@ -56,8 +57,6 @@ class RawScrapePreprocessing:
                         confidence = float(
                             re.findall('\d+\.\d+', data_dict['detected_page_lang'])[0])
                         if confidence > 0.6:
-                            # print(data_dict['detected_page_lang'])
-                            # print(data_dict['page_filtered_text'])
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
                                 data_dict['page_filtered_text'] = fix_encoding(data_dict['page_filtered_text'])
                             data.append({'id': index, 'text': data_dict['page_filtered_text']})
@@ -71,34 +70,42 @@ class RawScrapePreprocessing:
 
     def split_to_sentences(self, input_type: str = 'from_dir'):
         all_sentences = []
-
-        if input_type == 'from_dir':
-            for filename in os.listdir(self.filtered_dir):
-                with open(os.path.join(self.filtered_dir, filename), 'rb') as file:
-                    for index, line in enumerate(file):
-                        data_dict = json.loads(line)
-                        sentences = re.split(r'(\. [A-Z])|\n', data_dict['text'])
-                        for i, sentence in enumerate(sentences):
-                            if sentence and not sentence.startswith('.'):
-                                new_sentence = sentence
-                                if i > 0 and sentences[i - 1]:
-                                    new_sentence = sentences[i - 1].split(' ')[1] + new_sentence
-                                if len(new_sentence) > 10:
-                                    all_sentences.append(new_sentence.strip())
-
-
-        unique_sentences = list(set(all_sentences))
-
-        with open(os.path.join('../data', 'concat_scrape2_unique_sentences.json'), 'w',
+        approved_sentences = []
+        dissapproved_sentences = []
+        unique_approved = []
+        seen = set()
+        with open(os.path.join('../data', 'concat_new_scrape_unique_sentences5.json'), 'w',
                   encoding='utf-8') as outfile:
-            for entry in unique_sentences:
-                json.dump({'text': entry}, outfile)
-                outfile.write('\n')
+            if input_type == 'from_dir':
+                for filename in os.listdir(self.filtered_dir):
+                    with open(os.path.join(self.filtered_dir, filename), 'rb') as file:
+                        for index, line in enumerate(file):
+                            data_dict = json.loads(line)
+                            if 'forklarer Ann E' in data_dict['text']:
+                                print()
+                            sentences = re.split(r'(\. [A-Z])|\n', data_dict['text'])
+                            for i, sentence in enumerate(sentences):
+                                if sentence and not sentence.startswith('.'):
+                                    final_sentence = sentence.strip()
+                                    if i > 0 and sentences[i - 1]:
+                                        tmp_sentence = sentences[i - 1].split(' ')[1] + ' ' + final_sentence
+                                        final_sentence = tmp_sentence.strip()
+                                    search = any(c.isalpha() for c in final_sentence)
+                                    word_count = len(final_sentence.split(' '))
+                                    if word_count >= 5 and search:
+                                        approved_sentences.append(1)
+                                        line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                        if line_hash not in seen:
+                                            seen.add(line_hash)
+                                            unique_approved.append(1)
+                                            json.dump({'text': final_sentence}, outfile)
+                                            outfile.write('\n')
+                                    else:
+                                        dissapproved_sentences.append(1)
 
-        return unique_sentences
-
-
-
+        print(f'Approved sentences: {np.sum(approved_sentences)}')
+        print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')
+        print(f'Total unique sentences: {np.sum(unique_approved)}')
 
 
 def split_train_val(sentences: List[str]):
@@ -141,7 +148,7 @@ if __name__ == '__main__':
 
     data_preprocessor = RawScrapePreprocessing()
     # data_preprocessor.extract_text_and_save_from_raw()
-    sentences = data_preprocessor.split_to_sentences()
+    data_preprocessor.split_to_sentences()
 
 
     print()
