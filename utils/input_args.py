@@ -52,17 +52,17 @@ class MLMArgParser:
                                      help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument("--freeze_layers", type=lambda x: bool(strtobool(x)), default=True,
                                      help="whether to freeze all bert layers until freeze_layers_n_steps is reached")
-        training_params.add_argument("--freeze_layers_n_steps", type=int, default=5000,
+        training_params.add_argument("--freeze_layers_n_steps", type=int, default=10000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_freezed", type=float, default=0.0005,
                                      help="number of steps to train head only")
-        training_params.add_argument("--lr_freezed_warmup_steps", type=int, default=500,
+        training_params.add_argument("--lr_freezed_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
-        training_params.add_argument("--lr_warmup_steps", type=int, default=2000,
+        training_params.add_argument("--lr_warmup_steps", type=int, default=4000,
                                      help="warmup learning rate - set to 1 if no warmup")
-        training_params.add_argument("--lr_start_decay", type=int, default=20000,
+        training_params.add_argument("--lr_start_decay", type=int, default=40000,
                                      help="after which step to start decaying learning rate ")
         # training_params.add_argument("--grad_accum_steps", type=int, default=1,
         #                              help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
