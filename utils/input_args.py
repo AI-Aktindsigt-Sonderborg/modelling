@@ -37,7 +37,6 @@ class MLMArgParser:
                                      help="Max length for a text input")
         training_params.add_argument("--epochs", type=int, default=20,
                                      help="Number of epochs to train model")
-
         training_params.add_argument("--weight_decay", type=float, default=0.01,
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
@@ -53,17 +52,17 @@ class MLMArgParser:
                                      help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument("--freeze_layers", type=lambda x: bool(strtobool(x)), default=True,
                                      help="whether to freeze all bert layers until freeze_layers_n_steps is reached")
-        training_params.add_argument("--freeze_layers_n_steps", type=int, default=10000,
+        training_params.add_argument("--freeze_layers_n_steps", type=int, default=5000,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr_freezed", type=float, default=0.0005,
                                      help="number of steps to train head only")
-        training_params.add_argument("--lr_freezed_warmup_steps", type=int, default=1000,
+        training_params.add_argument("--lr_freezed_warmup_steps", type=int, default=500,
                                      help="number of steps to train head only")
         training_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
-        training_params.add_argument("--lr_warmup_steps", type=int, default=4000,
+        training_params.add_argument("--lr_warmup_steps", type=int, default=2000,
                                      help="warmup learning rate - set to 1 if no warmup")
-        training_params.add_argument("--lr_start_decay", type=int, default=40000,
+        training_params.add_argument("--lr_start_decay", type=int, default=20000,
                                      help="after which step to start decaying learning rate ")
         # training_params.add_argument("--grad_accum_steps", type=int, default=1,
         #                              help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
@@ -82,7 +81,7 @@ class MLMArgParser:
                                  help="Log model accuracy after number of steps")
         eval_params.add_argument("--save_steps", type=int, default=None,
                                  help="save checkpoint after number of steps")
-        eval_params.add_argument("--eval_batch_size", type=int, default=8,
+        eval_params.add_argument("--eval_batch_size", type=int, default=16,
                                  help="Batch size for evaluation")
         eval_params.add_argument("--evaluate_during_training", type=bool, default=True,
                                  help="Whether to evaluate model during training")
@@ -97,7 +96,7 @@ class MLMArgParser:
                                help="privacy parameter delta. Usually a good delta is 1/len(train)")
         dp_params.add_argument("--max_grad_norm", type=float, default=1.2,
                                help="maximum norm to clip gradient")
-        dp_params.add_argument("--lot_size", type=int, default=8,
+        dp_params.add_argument("--lot_size", type=int, default=64,
                                      help="Lot size specifies the sample size of which noise is "
                                         "injected into. Must be larger and multiple of batch size")
 
