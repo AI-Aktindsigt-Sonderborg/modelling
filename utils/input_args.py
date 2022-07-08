@@ -2,7 +2,7 @@ import argparse
 from distutils.util import strtobool
 class MLMArgParser:
     def __init__(self):
-        self.parser = argparse.ArgumentParser()
+        self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         self.add_data_params()
         self.add_model_params()
         self.add_training_params()
