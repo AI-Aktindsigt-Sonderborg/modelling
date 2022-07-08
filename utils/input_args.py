@@ -35,13 +35,13 @@ class MLMArgParser:
                                      help="Whether to test on local machine with small subset")
         training_params.add_argument("--max_length", type=int, default=128,
                                      help="Max length for a text input")
-        training_params.add_argument("--epochs", type=int, default=40,
+        training_params.add_argument("--epochs", type=int, default=20,
                                      help="Number of epochs to train model")
         training_params.add_argument("--weight_decay", type=float, default=0.01,
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--train_batch_size", type=int, default=16,
+        training_params.add_argument("--train_batch_size", type=int, default=8,
                                      help="Batch size specifies the sample size of which the gradients are "
                                           "computed. Depends on memory available")
         training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)), default=False,
