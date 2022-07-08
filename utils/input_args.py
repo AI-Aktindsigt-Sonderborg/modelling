@@ -35,13 +35,13 @@ class MLMArgParser:
                                      help="Whether to test on local machine with small subset")
         training_params.add_argument("--max_length", type=int, default=128,
                                      help="Max length for a text input")
-        training_params.add_argument("--epochs", type=int, default=20,
+        training_params.add_argument("--epochs", type=int, default=40,
                                      help="Number of epochs to train model")
         training_params.add_argument("--weight_decay", type=float, default=0.01,
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--train_batch_size", type=int, default=8,
+        training_params.add_argument("--train_batch_size", type=int, default=16,
                                      help="Batch size specifies the sample size of which the gradients are "
                                           "computed. Depends on memory available")
         training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)), default=False,
@@ -75,9 +75,9 @@ class MLMArgParser:
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=600,
+        eval_params.add_argument("--evaluate_steps", type=int, default=1200,
                                  help="evaluate model accuracy after number of steps")
-        eval_params.add_argument("--logging_steps", type=int, default=600,
+        eval_params.add_argument("--logging_steps", type=int, default=1200,
                                  help="Log model accuracy after number of steps")
         eval_params.add_argument("--save_steps", type=int, default=None,
                                  help="save checkpoint after number of steps")
