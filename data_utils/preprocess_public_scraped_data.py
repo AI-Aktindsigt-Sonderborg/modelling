@@ -164,7 +164,7 @@ class RawScrapePreprocessing:
         else:
             return train, val
 
-    def save_datasets(self, train: List[str], val: List[str]):
+    def save_datasets(self, train:  List[str], val: List[str]):
         """
         Take train and validation data as input and saves to json-lines files compatible with torch
         dataset
@@ -187,21 +187,21 @@ if __name__ == '__main__':
 
     from distutils.util import strtobool
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pycharm', type=lambda x: bool(strtobool(x)),
-                        default=True, help="whether or not script is run from pycharm")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--pycharm', type=lambda x: bool(strtobool(x)),
+    #                     default=True, help="whether or not script is run from pycharm")
+    # args = parser.parse_args()
+    #
+    # if not args.pycharm:
+    #     import sys
+    #
+    #     sys.path.append("/home/kasper/Code/semantic-modelling/utils")
+    #     from helpers import TimeCode
+    # else:
+    #     from utils.helpers import TimeCode
 
-    if not args.pycharm:
-        import sys
-
-        sys.path.append("/home/kasper/Code/semantic-modelling/utils")
-        from helpers import TimeCode
-    else:
-        from utils.helpers import TimeCode
-
-    code_timer = TimeCode()
+    # code_timer = TimeCode()
     data_preprocessor = RawScrapePreprocessing(train_output='train_new_scrape2.json',
                                                 val_output='val_new_scrape2.json')
     data_preprocessor.from_raw_to_train_val()
-    code_timer.how_long_since_start()
+    # code_timer.how_long_since_start()

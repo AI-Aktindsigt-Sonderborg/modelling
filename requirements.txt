@@ -4,3 +4,4 @@ datasets==2.2.2
 sklearn==0.0
 matplotlib
 nltk
+ftfy
