@@ -5,8 +5,6 @@ from utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-# args.local_testing = True
-
 # hardcode these two as they are essential for DP training atm
 args.freeze_layers = True
 args.replace_head = True
@@ -34,8 +32,6 @@ if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
     print('exiting - try again')
     mlm_parser.parser.exit()
-
-
 
 mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
 

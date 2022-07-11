@@ -27,8 +27,6 @@ class MLMArgParser:
         model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)), default=True,
                                   help="Whether to save final model after training.")
 
-
-
     def add_training_params(self):
         training_params = self.parser.add_argument_group('training')
         training_params.add_argument("--local_testing", type=lambda x: bool(strtobool(x)), default=False,
@@ -64,13 +62,6 @@ class MLMArgParser:
                                      help="warmup learning rate - set to 1 if no warmup")
         training_params.add_argument("--lr_start_decay", type=int, default=40000,
                                      help="after which step to start decaying learning rate ")
-        # training_params.add_argument("--grad_accum_steps", type=int, default=1,
-        #                              help="Number of updates steps to accumulate the gradients for, before performing a backward/update pass.")
-        # training_params.add_argument("--start_lr", type=float, default=0.00001,
-        #                              help="Learning rate")
-        # training_params.add_argument("--end_lr", type=float, default=0.00001,
-        #                              help="Learning rate")
-
 
     def add_eval_params(self):
         eval_params = self.parser.add_argument_group('evaluation')

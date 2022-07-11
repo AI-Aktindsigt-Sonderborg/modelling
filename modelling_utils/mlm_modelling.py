@@ -664,9 +664,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     def set_up_privacy(self, train_loader: DataLoader):
         self.privacy_engine = PrivacyEngine()
 
-        # for param in self.model.bert.embeddings.parameters():
-        #     param.requires_grad = False
-
         self.model = self.model.train()
 
         # validate if model works with opacus
@@ -687,35 +684,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         self.trainer = None
 
         return dp_model, dp_optimizer, dp_train_loader
-
-    # def load_model_and_replace_bert_head(self):
-    #     model = BertForMaskedLM.from_pretrained(self.args.model_name)
-    #
-    #     config = BertConfig.from_pretrained(self.args.model_name)
-    #     lm_head = BertOnlyMLMHeadCustom(config)
-    #     lm_head = lm_head.to(self.args.device)
-    #     model.cls = lm_head
-    #
-    #     for param in model.bert.embeddings.parameters():
-    #         param.requires_grad = False
-    #
-    #     self.model = model
-
-    # @staticmethod
-    # def freeze_layers(model):
-    #     for name, param in model.named_parameters():
-    #         if name.startswith("_module.bert.encoder"):
-    #             param.requires_grad = False
-    #     model.train()
-    #     return model
-    #
-    # @staticmethod
-    # def unfreeze_layers(model):
-    #     for name, param in model.named_parameters():
-    #         if name.startswith("_module.bert.encoder"):
-    #             param.requires_grad = True
-    #     model.train()
-    #     return model
 
     @staticmethod
     def validate_model(model: BertForMaskedLM, strict: bool = False):
