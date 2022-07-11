@@ -1,8 +1,14 @@
 # semantic-modelling
+- Clone repository to relevant directory on PW GPU
 - Create python==3.8 env
 - pip install -r requirements.txt
-- run setup.py to create relevant directories
-- run train_mlm_unsupervised.py to train mlm without differential privacy:
-  - default parameters: python train_mlm_unsupervised.py --batch_size 16 --data_file da_DK_subset.json --delta 2e-05 --epochs 20 --epsilon 1, evaluate_steps=200, logging_steps=100, lot_size=16, lr=2e-05, max_grad_norm=1.2 max_length 100 --mlm_prob 0.15 --model_name jonfd/electra-small-nordic --save_steps 1000 --use_fp16 False --weight_decay 0.01 --whole_word_mask True
-  - batch_size 128 is suitable for PW GPU
-  - 
+- run setup.py to create relevant directories etc.
+- fetch data from /srv/aktio/deploy/web-data-scraper/python_api'
+  - fx from terminal: cp /srv/aktio/deploy/web-data-scraper/python_api/*scrape_output* 
+<project_dir>/data/new_scrape/
+- Go to data_utils and run: python preprocess_public_scraped_data.py 
+--train_outfile <train_file_name> --val_outfile <val_file_name>
+- run train_mlm_unsupervised.py <args> to train mlm without differential 
+privacy (see utils.input_args for available parameters): 
+  - example: python train_mlm_unsupervised.py --train_data <train_file_name> 
+--eval_data <val_file_nam>

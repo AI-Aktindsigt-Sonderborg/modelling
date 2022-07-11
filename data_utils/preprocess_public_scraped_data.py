@@ -83,6 +83,7 @@ class RawScrapePreprocessing:
                         confidence = float(
                             re.findall('\d+\.\d+', data_dict['detected_page_lang'])[0])
                         if confidence > confidence_threshold:
+                            # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
                                 data_dict['page_filtered_text'] = fix_encoding(
                                     data_dict['page_filtered_text'])
@@ -187,12 +188,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_outfile', type=str,
-                        default='train.json', help="whether or not script is run from pycharm")
-    parser.add_argument('--train_outfile', type=str,
-                        default='validation.json', help="whether or not script is run from pycharm")
+                        default='train.json', help="Name of final training data file")
+    parser.add_argument('--val_outfile', type=str,
+                        default='validation.json', help="Name of final training data file")
 
     args = parser.parse_args()
 
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
-                                                val_output=args.val_outfile)
+                                               val_output=args.val_outfile)
     data_preprocessor.from_raw_to_train_val()
