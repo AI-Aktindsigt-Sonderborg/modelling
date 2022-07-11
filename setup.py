@@ -20,3 +20,8 @@ if not os.path.exists(FILTERED_SCRAPE_DIR):
     # Create a new directory because it does not exist
     os.makedirs(FILTERED_SCRAPE_DIR)
     print("Create filtered data dir!")
+
+if not os.path.exists('data/new_scrape'):
+    # Create a new directory because it does not exist
+    os.makedirs('data/new_scrape')
+    print("Create new scrape data dir!")
