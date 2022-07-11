@@ -1,6 +1,10 @@
 import argparse
 from distutils.util import strtobool
+
 class MLMArgParser:
+    """
+    Class for
+    """
     def __init__(self):
         self.parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         self.add_data_params()

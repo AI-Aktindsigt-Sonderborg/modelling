@@ -4,9 +4,11 @@ import os.path
 import random
 import re
 from typing import List
+
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
+
 
 class RawScrapePreprocessing:
     """
@@ -81,7 +83,7 @@ class RawScrapePreprocessing:
                     data_dict = json.loads(line)
                     if "__label__da" in data_dict['detected_page_lang']:
                         confidence = float(
-                            re.findall('\d+\.\d+', data_dict['detected_page_lang'])[0])
+                            re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
                         if confidence > confidence_threshold:
                             # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
@@ -139,16 +141,13 @@ class RawScrapePreprocessing:
 
     def split_train_val(self,
                         in_file: str = 'scrape_v2_all_unique_sentences.json',
-                        save_datasets: bool = True,
                         split: float = 0.9,
                         seed: int = 42):
         """
-        Split approved sentences to train and validation set
+        Split approved sentences to train and validation set and save as json
         :param in_file: json line file
-        :param save_datasets: Call save_datasets if true
         :param split: float between 0 and 1 specifying size of train
         :param seed: seed for reproducibility
-        :return: train, val if not save_datasets
         """
         sentences = []
         with open(os.path.join(self.data_dir, in_file), 'r', encoding='utf-8') as file:
@@ -160,12 +159,11 @@ class RawScrapePreprocessing:
         train_idx = int(len(sentences) * split)
         train = sentences[:train_idx]
         val = sentences[train_idx:]
-        if save_datasets:
-            self.save_datasets(train=train, val=val)
-        else:
-            return train, val
 
-    def save_datasets(self, train:  List[str], val: List[str]):
+        self.save_datasets(train=train, val=val)
+
+
+    def save_datasets(self, train: List[str], val: List[str]):
         """
         Take train and validation data as input and saves to json-lines files compatible with torch
         dataset
