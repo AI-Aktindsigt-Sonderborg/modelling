@@ -1,5 +1,7 @@
 import os
 from local_constants import DATA_DIR, CONFIG_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR
+import nltk
+nltk.download('punkt')
 
 if not os.path.exists(CONFIG_DIR):
     # Create a new directory because it does not exist
@@ -25,3 +27,5 @@ if not os.path.exists('data/new_scrape'):
     # Create a new directory because it does not exist
     os.makedirs('data/new_scrape')
     print("Create new scrape data dir!")
+
+

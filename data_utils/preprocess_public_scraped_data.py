@@ -185,23 +185,14 @@ class RawScrapePreprocessing:
 if __name__ == '__main__':
     import argparse
 
-    from distutils.util import strtobool
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--train_outfile', type=str,
+                        default='train.json', help="whether or not script is run from pycharm")
+    parser.add_argument('--train_outfile', type=str,
+                        default='validation.json', help="whether or not script is run from pycharm")
 
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--pycharm', type=lambda x: bool(strtobool(x)),
-    #                     default=True, help="whether or not script is run from pycharm")
-    # args = parser.parse_args()
-    #
-    # if not args.pycharm:
-    #     import sys
-    #
-    #     sys.path.append("/home/kasper/Code/semantic-modelling/utils")
-    #     from helpers import TimeCode
-    # else:
-    #     from utils.helpers import TimeCode
+    args = parser.parse_args()
 
-    # code_timer = TimeCode()
-    data_preprocessor = RawScrapePreprocessing(train_output='train_new_scrape2.json',
-                                                val_output='val_new_scrape2.json')
+    data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
+                                                val_output=args.val_outfile)
     data_preprocessor.from_raw_to_train_val()
-    # code_timer.how_long_since_start()
