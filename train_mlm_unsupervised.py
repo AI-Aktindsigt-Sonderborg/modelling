@@ -10,6 +10,7 @@ if args.dp:
         print(mlm_parser.parser._option_string_actions['--lot_size'].help)
         print('exiting - try again')
         mlm_parser.parser.exit()
+
     mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
     mlm_modelling_dp.train_model()
 else:

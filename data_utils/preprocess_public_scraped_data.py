@@ -12,7 +12,7 @@ from ftfy import fix_encoding
 
 class RawScrapePreprocessing:
     """
-    Class to preprocess raw data from web scraper
+    Class to preprocess raw data to ML from web scraper
     Attributes
     ----------
     data_dir: str
@@ -161,7 +161,6 @@ class RawScrapePreprocessing:
         val = sentences[train_idx:]
 
         self.save_datasets(train=train, val=val)
-
 
     def save_datasets(self, train: List[str], val: List[str]):
         """

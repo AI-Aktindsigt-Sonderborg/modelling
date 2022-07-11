@@ -27,7 +27,7 @@ from utils.visualization import plot_running_results
 
 class DatasetWrapper(Dataset):
     """
-    Class to wrap dataset such, that we can iterate through
+    Class to wrap dataset such that we can iterate through
     """
     def __init__(self, dataset):
         self.dataset = dataset
@@ -41,6 +41,12 @@ class DatasetWrapper(Dataset):
 
 
 class MLMUnsupervisedModelling:
+    """
+    Class to train an MLM unsupervised model
+    Attributes
+    ----------
+    args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible arguments
+    """
     def __init__(self, args: argparse.Namespace):
         self.total_steps = None
         self.trainer = None
@@ -57,7 +63,7 @@ class MLMUnsupervisedModelling:
 
     def train_model(self):
         """
-        load data, set up private training and train with privacy
+        load data, set up training and train model
         """
         optimizer, train_loader = self.set_up_training()
 
@@ -238,6 +244,10 @@ class MLMUnsupervisedModelling:
         return np.mean(loss_arr), np.mean(accuracy_arr)
 
     def set_up_training(self):
+        """
+        Load data and set up for training an MLM unsupervised model
+        :return: optimizer and train_loader for training
+        """
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
@@ -325,7 +335,10 @@ class MLMUnsupervisedModelling:
         return wrapped
 
     def load_data(self, train: bool = True):
-
+        """
+        Load data using datasets.load_dataset for training and evaluation
+        :param train: Whether to train model
+        """
         if train:
             self.train_data = load_dataset('json',
                                            data_files=os.path.join(DATA_DIR, self.args.train_data),
@@ -339,6 +352,9 @@ class MLMUnsupervisedModelling:
                                           split='train')
 
     def load_model_and_replace_bert_head(self):
+        """
+        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+        """
         model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         config = BertConfig.from_pretrained(self.args.model_name)
@@ -365,6 +381,11 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def freeze_layers(model):
+        """
+        Freeze all bert layers in model, such that we can train only the head
+        :param model: Model of type BertForMaskedLM
+        :return: freezed model
+        """
         for name, param in model.named_parameters():
             if name.startswith("bert."):
                 param.requires_grad = False
@@ -373,6 +394,11 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def unfreeze_layers(model):
+        """
+        Un-freeze all bert layers in model, such that we can train full model
+        :param model: Model of type BertForMaskedLM
+        :return: un-freezed model
+        """
         for name, param in model.named_parameters():
             if name.startswith("bert.encoder"):
                 param.requires_grad = True
@@ -386,7 +412,7 @@ class MLMUnsupervisedModelling:
                    step: str = ""):
         """
         Wrap model in trainer class and save to pytorch object
-        :param model: GradSampleModule to save
+        :param model: BertForMaskedLM to save
         :param output_dir: model directory
         :param data_collator:
         :param tokenizer:
@@ -456,12 +482,24 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def create_scheduler(optimizer, start_factor: float, end_factor: float, total_iters: int):
+        """
+        Create scheduler for learning rate warmup and decay
+        :param optimizer: optimizer - for DP training of type DPOPtimizer
+        :param start_factor: learning rate factor to start with
+        :param end_factor: learning rate factor to end at
+        :param total_iters: Number of steps to iterate
+        :return: learning rate scheduler of type LinearLR
+        """
         return LinearLR(optimizer, start_factor=start_factor,
                         end_factor=end_factor,
                         total_iters=total_iters)
 
 
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
+    """
+    Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
+    differential privacy
+    """
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
 
@@ -473,7 +511,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     def train_model(self):
         """
         Load data, set up private training and train with privacy
-        :return: Add final model to class
         """
         dp_model, dp_optimizer, dp_train_loader = self.set_up_training()
 
@@ -631,7 +668,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         return model, step, lrs
 
     def set_up_training(self):
-
+        """
+        Load data and set up for training an unsupervised MLM model with differential privacy
+        :return: model, optimizer and train_loader for DP training
+        """
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
@@ -657,10 +697,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                end_factor=1,
                                                total_iters=self.args.lr_freezed_warmup_steps)
 
-        # self.scheduler = LinearLR(dp_optimizer,
-        #                           start_factor=self.args.lr_freezed_warmup / self.args.lr_freezed_warmup_steps,
-        #                           end_factor=1,
-        #                           total_iters=self.args.lr_freezed_warmup_steps)
         return dp_model, dp_optimizer, dp_train_loader
 
     def set_up_privacy(self, train_loader: DataLoader):
@@ -704,6 +740,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     @staticmethod
     def freeze_layers(model):
+        """
+        Freeze all bert layers in model, such that we can train only the head
+        :param model: Model of type GradSampleModule
+        :return: freezed model
+        """
         for name, param in model.named_parameters():
             if name.startswith("_module.bert.encoder"):
                 param.requires_grad = False
@@ -712,6 +753,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     @staticmethod
     def unfreeze_layers(model):
+        """
+        Un-freeze all bert layers in model, such that we can train full model
+        :param model: Model of type GradSampleModule
+        :return: un-freezed model
+        """
         for name, param in model.named_parameters():
             if name.startswith("_module.bert.encoder"):
                 param.requires_grad = True
