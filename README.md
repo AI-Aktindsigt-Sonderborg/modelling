@@ -10,5 +10,5 @@
 --train_outfile <train_file_name> --val_outfile <val_file_name>
 - run train_mlm_unsupervised.py <args> to train mlm without differential 
 privacy (see utils.input_args for available parameters): 
-  - example: python train_mlm_unsupervised.py --train_data <train_file_name> 
---eval_data <val_file_nam>
+  - example: `python train_mlm_unsupervised.py --train_data <train_file_name> 
+--eval_data <val_file_nam>`

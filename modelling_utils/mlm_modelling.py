@@ -26,7 +26,9 @@ from utils.visualization import plot_running_results
 
 
 class DatasetWrapper(Dataset):
-
+    """
+    Class to wrap dataset such, that we can iterate through
+    """
     def __init__(self, dataset):
         self.dataset = dataset
 
