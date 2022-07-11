@@ -190,7 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_outfile', type=str,
                         default='train.json', help="Name of final training data file")
     parser.add_argument('--val_outfile', type=str,
-                        default='validation.json', help="Name of final training data file")
+                        default='validation.json', help="Name of final validation data file")
 
     args = parser.parse_args()
 
