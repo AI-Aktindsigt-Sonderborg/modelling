@@ -45,12 +45,18 @@ class RawScrapePreprocessing:
 
     Methods
     -------
+    from_raw_to_train_val()
+            Calls:
+                extract_danish_and_save_from_raw()
+                split_to_sentences()
+                split_train_val()
     extract_danish_and_save_from_raw(confidence_threshold)
             Takes raw scrape file(s), extracts danish text and save filtered
+    split_to_sentences(out_file_name)
+
+
 
     """
-
-
     def __init__(self, data_dir: str = '../data',
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
