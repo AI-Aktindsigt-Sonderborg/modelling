@@ -59,7 +59,7 @@ class MLMArgParser:
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--train_batch_size", type=int, default=8,
+        training_params.add_argument("--train_batch_size", type=int, default=6,
                                      help="Batch size specifies the sample size of which the "
                                           "gradients are computed. Depends on memory available")
         training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)),
@@ -81,9 +81,9 @@ class MLMArgParser:
                                      help="number of steps to train head only")
         training_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
-        training_params.add_argument("--lr_warmup_steps", type=int, default=4000,
+        training_params.add_argument("--lr_warmup_steps", type=int, default=6000,
                                      help="warmup learning rate - set to 1 if no warmup")
-        training_params.add_argument("--lr_start_decay", type=int, default=40000,
+        training_params.add_argument("--lr_start_decay", type=int, default=46000,
                                      help="after which step to start decaying learning rate ")
 
     def add_eval_params(self):
@@ -92,13 +92,13 @@ class MLMArgParser:
         """
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=1200,
+        eval_params.add_argument("--evaluate_steps", type=int, default=2400,
                                  help="evaluate model accuracy after number of steps")
-        eval_params.add_argument("--logging_steps", type=int, default=1200,
+        eval_params.add_argument("--logging_steps", type=int, default=2400,
                                  help="Log model accuracy after number of steps")
         eval_params.add_argument("--save_steps", type=int, default=None,
                                  help="save checkpoint after number of steps")
-        eval_params.add_argument("--eval_batch_size", type=int, default=8,
+        eval_params.add_argument("--eval_batch_size", type=int, default=6,
                                  help="Batch size for evaluation")
         eval_params.add_argument("--evaluate_during_training", type=bool, default=True,
                                  help="Whether to evaluate model during training")
@@ -115,6 +115,6 @@ class MLMArgParser:
                                help="privacy parameter delta. Usually a good delta is 1/len(train)")
         dp_params.add_argument("--max_grad_norm", type=float, default=1.2,
                                help="maximum norm to clip gradient")
-        dp_params.add_argument("--lot_size", type=int, default=64,
+        dp_params.add_argument("--lot_size", type=int, default=36,
                                help="Lot size specifies the sample size of which noise is "
                                     "injected into. Must be larger and multiple of batch size")
