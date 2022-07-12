@@ -5,7 +5,7 @@
 - run setup.py to create relevant directories etc.
 - fetch data from /srv/aktio/deploy/web-data-scraper/python_api'
   - fx from terminal: `cp /srv/aktio/deploy/web-data-scraper
-/python_api/\*scrape_output\* <path_to_project_dir>/data/new_scrape`
+/python_api/*scrape_output* <path_to_project_dir>/data/new_scrape`
 - Go to data_utils and run: `python preprocess_public_scraped_data.py 
 --train_outfile <train_file_name> --val_outfile <val_file_name>`
 - run train_mlm_unsupervised.py <args> to train mlm without differential 

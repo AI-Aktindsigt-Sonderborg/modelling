@@ -11,32 +11,14 @@ def plot_running_results(output_dir: str, epochs: int, lrs, accs, loss, epsilon:
     file_path = os.path.join(output_dir, 'results')
     title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
     plt.ioff()
-    learning_rates = []
-    learning_rates_steps = []
-    for entry in lrs:
-        for key in entry.keys():
-            for val in entry.get(key):
-                for step in val.keys():
-                    learning_rates_steps.append(int(step))
-                    learning_rates.append(val.get(step))
+    learning_rates_steps = [int(x['step']) for x in lrs]
+    learning_rates = [x['lr'] for x in lrs]
 
-    accuracies = []
-    accuracies_steps = []
-    for entry in accs:
-        for key in entry.keys():
-            for val in entry.get(key):
-                for step in val.keys():
-                    accuracies_steps.append(int(step))
-                    accuracies.append(val.get(step))
+    accuracies_steps = [int(x['step']) for x in accs]
+    accuracies = [x['acc'] for x in accs]
 
-    losses = []
-    losses_steps = []
-    for entry in loss:
-        for key in entry.keys():
-            for val in entry.get(key):
-                for step in val.keys():
-                    losses_steps.append(int(step))
-                    losses.append(val.get(step))
+    losses_steps = [int(x['step']) for x in loss]
+    losses = [x['loss'] for x in loss]
 
     fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.suptitle(title, fontsize=14)

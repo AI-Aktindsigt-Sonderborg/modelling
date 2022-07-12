@@ -29,6 +29,7 @@ class DatasetWrapper(Dataset):
     """
     Class to wrap dataset such that we can iterate through
     """
+
     def __init__(self, dataset):
         self.dataset = dataset
 
@@ -47,12 +48,14 @@ class MLMUnsupervisedModelling:
     ----------
     args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible arguments
     """
+
     def __init__(self, args: argparse.Namespace):
         self.total_steps = None
         self.trainer = None
         self.args = args
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.train_data = None
         self.eval_data = None
@@ -60,6 +63,8 @@ class MLMUnsupervisedModelling:
         self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
         self.data_collator = self.get_data_collator
         self.scheduler = None
+        if not self.args.freeze_layers:
+            self.args.freeze_layers_n_steps = 0
 
     def train_model(self):
         """
@@ -86,13 +91,19 @@ class MLMUnsupervisedModelling:
                                                                               val_loader=eval_loader,
                                                                               epoch=epoch + 1,
                                                                               step=step)
-                losses.append({epoch: eval_loss})
-                accuracies.append({epoch: eval_accuracy})
-                all_lrs.append({epoch: lrs})
+                losses.extend(eval_loss)
+                accuracies.extend(eval_accuracy)
+                all_lrs.extend(lrs)
 
             self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
+
+            min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+                                                          self.args.freeze_layers_n_steps)
+
+            self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                                  best_acc=max_acc, best_loss=min_loss)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -164,7 +175,7 @@ class MLMUnsupervisedModelling:
                                                        total_iters=self.total_steps - step
                                                        )
 
-            lrs.append({step: self.get_lr(optimizer)[0]})
+            lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
 
@@ -192,8 +203,8 @@ class MLMUnsupervisedModelling:
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
-                eval_losses.append({step: eval_loss})
-                eval_accuracies.append({step: eval_accuracy})
+                eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
+                eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
@@ -367,6 +378,14 @@ class MLMUnsupervisedModelling:
 
         self.model = model
 
+    @staticmethod
+    def get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps):
+        min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
+                       key=lambda x: x['loss'])
+        max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
+                      key=lambda x: x['acc'])
+        return min_loss, max_acc
+
     @property
     def get_data_collator(self):
         """
@@ -437,6 +456,7 @@ class MLMUnsupervisedModelling:
         :param output_dir: model directory
         :param args: input args
         """
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
@@ -455,6 +475,40 @@ class MLMUnsupervisedModelling:
         for param_group in optimizer.param_groups:
             lrs.append(param_group['lr'])
         return lrs
+
+    @staticmethod
+    def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
+                         filename: str = 'key_metrics'):
+        """
+        Save important args and performance for benchmarking
+        :param output_dir:
+        :param args:
+        :param best_acc:
+        :param best_loss:
+        :param filename:
+        :return:
+        """
+        metrics = {'key_metrics': [{'output_name': args.output_name,
+                                    'lr': args.lr,
+                                    'epochs': args.epochs,
+                                    'train_batch_size': args.train_batch_size,
+                                    'max_length': args.max_length,
+                                    'lr_warmup_steps': args.lr_warmup_steps,
+                                    'replace_head': args.replace_head,
+                                    'freeze_layers_n_steps': args.freeze_layers_n_steps,
+                                    'lr_freezed': args.lr_freezed,
+                                    'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
+                                    'dp': args.dp,
+                                    'epsilon': args.epsilon,
+                                    'delta': args.delta,
+                                    'lot_size': args.lot_size,
+                                    'whole_word_mask': args.whole_word_mask},
+                                   {'best_acc': best_acc},
+                                   {'best_loss': best_loss}]}
+
+        with open(os.path.join(output_dir, filename + '.json'), 'w',
+                  encoding='utf-8') as outfile:
+            json.dump(metrics, outfile)
 
     @staticmethod
     def save_json(output_dir: str, data: List[dict], filename: str):
@@ -500,13 +554,17 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
     differential privacy
     """
+
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
 
         self.privacy_engine = None
         self.output_name = f'DP-eps-{int(self.args.epsilon)}-{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+        if not self.args.freeze_layers:
+            self.args.freeze_layers_n_steps = 0
 
     def train_model(self):
         """
@@ -532,13 +590,18 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                                  val_loader=eval_loader,
                                                                                  epoch=epoch + 1,
                                                                                  step=step)
-                losses.append({epoch: eval_loss})
-                accuracies.append({epoch: eval_accuracy})
-                all_lrs.append({epoch: lrs})
+                losses.extend(eval_loss)
+                accuracies.extend(eval_accuracy)
+                all_lrs.extend(lrs)
 
             self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
+
+            min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+                                                          self.args.freeze_layers_n_steps)
+            self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                                  best_acc=max_acc, best_loss=min_loss)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -618,7 +681,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
 
-                lrs.append({step: self.get_lr(optimizer)[0]})
+                lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
 
                 # if step % 100 == 0:
                 #     print(f'Step: {step}, lr: {self.get_lr(optimizer)[0]}')
@@ -652,8 +715,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )
-                    eval_losses.append({step: eval_loss})
-                    eval_accuracies.append({step: eval_accuracy})
+                    eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
+                    eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
@@ -700,6 +763,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         return dp_model, dp_optimizer, dp_train_loader
 
     def set_up_privacy(self, train_loader: DataLoader):
+        """
+        Set up privacy engine for private training
+        :param train_loader: DataLoader for training
+        :return: model, optimizer and train loader for private training
+        """
         self.privacy_engine = PrivacyEngine()
 
         self.model = self.model.train()
