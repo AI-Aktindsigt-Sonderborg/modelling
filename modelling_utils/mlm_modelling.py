@@ -598,10 +598,13 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
-            min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+            try:
+                min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
                                                           self.args.freeze_layers_n_steps)
-            self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                self.save_key_metrics(output_dir=self.output_dir, args=self.args,
                                   best_acc=max_acc, best_loss=min_loss)
+            except Exception as e:
+                print(e)
 
             if self.args.make_plots:
                 plot_running_results(
