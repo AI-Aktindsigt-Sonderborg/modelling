@@ -1,3 +1,4 @@
+# pylint: skip-file
 # coding=utf-8
 # THIS FILE IS A MODIFICATION OF THE ORIGINAL MODELING_BERT
 # Copyright 2018 The Google AI Language Team Authors and The HuggingFace Inc. team.

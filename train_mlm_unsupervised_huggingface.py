@@ -1,22 +1,10 @@
+# pylint: skip-file
 import os
 from datetime import datetime
-from sklearn.metrics import accuracy_score
 
 import numpy as np
 from torch import nn
 from torch.utils.data import DataLoader
-
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
-from transformers import AutoTokenizer, Trainer, \
-    TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling
-
-from local_constants import MODEL_DIR
-from utils.input_args import MLMArgParser
-import os
-from datetime import datetime
-
-import numpy as np
 from transformers import AutoTokenizer, Trainer, \
     TrainingArguments, AutoModelForMaskedLM, DataCollatorForWholeWordMask, \
     DataCollatorForLanguageModeling
@@ -41,7 +29,6 @@ if args.local_testing:
     args.train_batch_size = 4
     args.eval_batch_size = 2
     args.max_length = 8
-
 
 mlm_modelling = MLMUnsupervisedModelling(args=args)
 
@@ -70,9 +57,9 @@ else:
 
 metric = load_metric('accuracy')
 
+
 class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
-
         labels = inputs.get("labels")
         # forward pass
         outputs = model(**inputs)
@@ -81,7 +68,6 @@ class CustomTrainer(Trainer):
         loss_fct = nn.CrossEntropyLoss()  # -100 index = padding token
         # ToDo: Fix below hardcoded token length
         loss = loss_fct(logits.view(-1, 119547), labels.view(-1))
-
 
         return (loss, outputs) if return_outputs else loss
 
@@ -101,7 +87,8 @@ class CustomTrainer(Trainer):
             self.train_dataset,
             batch_size=self.args.per_device_train_batch_size,
             collate_fn=self.data_collator
-            )
+        )
+
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
@@ -109,7 +96,6 @@ def compute_metrics(eval_pred):
     labels = labels.flatten()
     predictions = np.argmax(logits, axis=-1)
     predictions = predictions.flatten()
-
 
     filtered = [[xv, yv] for xv, yv in zip(labels, predictions) if xv != -100]
 

@@ -2,8 +2,8 @@ import sys
 import time
 from typing import Optional
 
-import numpy as np
 from opacus.validators import ModuleValidator
+
 
 def validate_model(model):
     errors = ModuleValidator.validate(model, strict=False)
@@ -14,10 +14,10 @@ def validate_model(model):
     else:
         print("Model is compatible for DP with opacus.")
 
+
 def fix_and_validate(model):
     model = ModuleValidator.fix_and_validate(model)
     return model
-
 
 
 class TimeCode:

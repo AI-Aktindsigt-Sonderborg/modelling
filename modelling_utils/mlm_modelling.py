@@ -44,9 +44,54 @@ class DatasetWrapper(Dataset):
 class MLMUnsupervisedModelling:
     """
     Class to train an MLM unsupervised model
+
     Attributes
     ----------
     args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible arguments
+
+    Methods
+    -------
+    train_model()
+        load data, set up training and train model
+    train_epoch(model, train_loader, optimizer, epoch, val_loader, step)
+        train one epoch
+    evaluate(model, val_loader)
+        evaluate model at given step
+    set_up_training()
+        Load data and set up for training an MLM unsupervised model
+    create_dummy_trainer(train_data_wrapped):
+        Create dummy trainer, such that we get optimizer and can save model object
+    tokenize_and_wrap_data(data):
+        Tokenize dataset with tokenize_function and wrap with DatasetWrapper
+    load_data(train):
+        Load data using datasets.load_dataset for training and evaluation
+    load_model_and_replace_bert_head():
+        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+
+    Static methods
+    --------------
+    get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps)
+        Compute min loss and max accuracy based on all values from evaluation
+    get_data_collator()
+        Based on word mask load corresponding data collator
+    freeze_layers(model)
+        Freeze all bert layers in model, such that we can train only the head
+    unfreeze_layers(model)
+        Un-freeze all bert layers in model, such that we can train full model
+    save_model(model, output_dir, data_collator, tokenizer, step):
+        Wrap model in trainer class and save to pytorch object
+    save_config(output_dir: str, args: argparse.Namespace)
+        Save config file with input arguments
+    get_lr(optimizer: DPOptimizer)
+        Get current learning rate from optimizer
+    save_key_metrics(output_dir, args, best_acc, best_loss, filename)
+        Save important args and performance for benchmarking
+    save_json(output_dir, data, filename)
+        Save list of dicts to json dump
+    accuracy(preds, labels)
+        Compute accuracy on predictions and labels
+    create_scheduler(optimizer, start_factor, end_factor, total_iters)
+        Create scheduler for learning rate warmup and decay
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -99,11 +144,12 @@ class MLMUnsupervisedModelling:
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
-            min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
-                                                          self.args.freeze_layers_n_steps)
+            if step > self.args.freeze_layers_n_steps:
+                min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+                                                              self.args.freeze_layers_n_steps)
 
-            self.save_key_metrics(output_dir=self.output_dir, args=self.args,
-                                  best_acc=max_acc, best_loss=min_loss)
+                self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                                      best_acc=max_acc, best_loss=min_loss)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -315,8 +361,18 @@ class MLMUnsupervisedModelling:
         )
 
     def tokenize_and_wrap_data(self, data: Dataset):
+        """
+        Tokenize dataset with tokenize_function and wrap with DatasetWrapper
+        :param data: Dataset
+        :return: DatasetWrapper(Dataset)
+        """
 
         def tokenize_function(examples):
+            """
+            Using .map to tokenize each sentence examples['text'] in dataset
+            :param examples: data
+            :return: tokenized examples
+            """
             # Remove empty lines
             examples['text'] = [
                 line for line in examples['text'] if len(line) > 0 and not line.isspace()
@@ -380,6 +436,14 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps):
+        """
+        Compute min loss and max accuracy based on all values from evaluation
+        :param losses: List[dict] of all losses evaluate()
+        :param accuracies: List[dict] of all accuracies computed by evaluate()
+        :param freeze_layers_n_steps: only get best performance after model is un-freezed
+        :return: Best metric for loss and accuracy
+        """
+
         min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
                        key=lambda x: x['loss'])
         max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
@@ -551,9 +615,52 @@ class MLMUnsupervisedModelling:
 
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     """
-    Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
-    differential privacy
-    """
+        Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
+        differential privacy
+
+        Attributes
+        ----------
+        args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible
+        arguments
+        Methods
+        -------
+        train_model()
+            Load data, set up private training and train with differential privacy -
+            modification of superclass train_epoch
+        train_epoch(model, train_loader, optimizer, epoch, val_loader, step)
+            Train one epoch with DP - modification of superclass train_epoch
+        set_up_training()
+            Load data and set up for training an unsupervised MLM model with differential privacy -
+            modification of superclass set_up_training
+        set_up_privacy(train_loader)
+            Set up privacy engine for private training
+
+        Static methods
+        --------------
+        validate_model(model, strict)
+            Validate whether model is compatible with opacus
+        freeze_layers(model)
+            Freeze all bert layers in model, such that we can train only the head -
+            modification of superclass freeze_layers
+        unfreeze_layers(model)
+            Un-freeze all bert layers in model, such that we can train full model -
+            modification of superclass freeze_layers
+        save_model(model, output_dir, data_collator, tokenizer, step)
+            Wrap model in trainer class and save to pytorch object -
+            modification of superclass save_model
+        save_config(output_dir: str, args: argparse.Namespace)
+            Save config file with input arguments
+        get_lr(optimizer: DPOptimizer)
+            Get current learning rate from optimizer
+        save_key_metrics(output_dir, args, best_acc, best_loss, filename)
+            Save important args and performance for benchmarking
+        save_json(output_dir, data, filename)
+            Save list of dicts to json dump
+        accuracy(preds, labels)
+            Compute accuracy on predictions and labels
+        create_scheduler(optimizer, start_factor, end_factor, total_iters)
+            Create scheduler for learning rate warmup and decay
+        """
 
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
@@ -568,7 +675,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     def train_model(self):
         """
-        Load data, set up private training and train with privacy
+        Load data, set up private training and train with differential privacy
         """
         dp_model, dp_optimizer, dp_train_loader = self.set_up_training()
 
@@ -598,13 +705,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
             self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
 
-            try:
+            if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
                                                           self.args.freeze_layers_n_steps)
                 self.save_key_metrics(output_dir=self.output_dir, args=self.args,
                                   best_acc=max_acc, best_loss=min_loss)
-            except Exception as e:
-                print(e)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -635,7 +740,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0):
         """
-        Train one epoch with DP - modification of superclass train epoch
+        Train one epoch with DP - modification of superclass train_epoch
         :param model: Differentially private model wrapped in GradSampleModule
         :param train_loader: Differentially private data loader of type DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
@@ -645,7 +750,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
         else: return model, step, lrs
         """
-
         model.train()
         model = model.to(self.args.device)
 
@@ -685,10 +789,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                        self.args.lr_start_decay)
 
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
-
-                # if step % 100 == 0:
-                #     print(f'Step: {step}, lr: {self.get_lr(optimizer)[0]}')
-                #     # print(f'Total steps: {self.total_steps}')
 
                 optimizer.zero_grad()
 
