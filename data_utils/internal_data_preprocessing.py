@@ -46,11 +46,13 @@ class InternalDataPreprocessing:
                                                     val_output='val_new_scrape.json')
         data_preprocessor.from_raw_to_train_val()
         """
+
     def __init__(self,
                  data_dir: str = '../data',
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
-                 data_sources: List[str] = ['dr', 'dagw']):
+                 data_sources: List[str] = ['dr', 'dagw'],
+                 split: float = 0.95):
         self.data_dir = data_dir
         self.internal_data_dir = self.data_dir + '/internal_data'
         self.new_scrape_dir = self.data_dir + '/new_scrape'
@@ -58,10 +60,12 @@ class InternalDataPreprocessing:
         self.train_output = train_output
         self.val_output = val_output
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
+        self.split = split
 
     def from_raw_to_train_val(self):
         self.concat_and_save_data()
         self.split_to_sentences()
+        self.create_train_val()
 
     def concat_and_save_data(self, out_file_name: str = 'concat_data.json'):
         with open(os.path.join(self.internal_data_dir, out_file_name), 'w',
@@ -89,51 +93,51 @@ class InternalDataPreprocessing:
         # seen = set()
         with open(os.path.join(self.internal_data_dir, out_file_name), 'w',
                   encoding='utf-8') as outfile:
-                with open(os.path.join(self.internal_data_dir, in_file_name), 'rb') as file:
-                    for line in file:
-                        data_dict = json.loads(line)
-                        text_splitted = (
-                            '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
-                        sentences = re.split('\n', text_splitted)
-                        for i, sentence in enumerate(sentences):
-                            final_sentence = sentence.strip().replace('|', '')
-                            search = any(c.isalpha() for c in final_sentence)
-                            word_count = len(final_sentence.split(' '))
-                            if word_count >= word_count_threshold and search:
-                                # approved_sentences.append(1)
-                                # line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                # unique_approved.append(1)
-                                json.dump({'filename': data_dict['filename'], 'sentence': i,
-                                           'text': final_sentence}, outfile)
-                                outfile.write('\n')
-                                # if line_hash not in seen:
-                                #     unique_approved.append(1)
-                                #     json.dump({'filename': data_dict['filename'], 'sentence': i,
-                                #                'text': final_sentence}, outfile)
-                                #     outfile.write('\n')
-                                #
-                                #     # seen.add(line_hash)
-                                # else:
-                                #     dissapproved_sentences.append(1)
+            with open(os.path.join(self.internal_data_dir, in_file_name), 'rb') as file:
+                for line in file:
+                    data_dict = json.loads(line)
+                    text_splitted = (
+                        '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+                    sentences = re.split('\n', text_splitted)
+                    for i, sentence in enumerate(sentences):
+                        final_sentence = sentence.strip().replace('|', '')
+                        search = any(c.isalpha() for c in final_sentence)
+                        word_count = len(final_sentence.split(' '))
+                        if word_count >= word_count_threshold and search:
+                            # approved_sentences.append(1)
+                            # line_hash = hashlib.md5(final_sentence.encode()).digest()
+                            # unique_approved.append(1)
+                            json.dump({'filename': data_dict['filename'], 'sentence': i,
+                                       'text': final_sentence}, outfile)
+                            outfile.write('\n')
+                            # if line_hash not in seen:
+                            #     unique_approved.append(1)
+                            #     json.dump({'filename': data_dict['filename'], 'sentence': i,
+                            #                'text': final_sentence}, outfile)
+                            #     outfile.write('\n')
+                            #
+                            #     # seen.add(line_hash)
+                            # else:
+                            #     dissapproved_sentences.append(1)
 
         # print(f'Approved sentences: {np.sum(approved_sentences)}')
         # print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')
         # print(f'Total unique sentences: {np.sum(unique_approved)}')
 
     def create_train_val(self, in_file: str = 'all_sentences.json',
-                    split: float = 0.9,
-                    seed: int = 42):
+                         seed: int = 42):
         np.random.seed(seed)
         with open(os.path.join(self.internal_data_dir, self.train_output), 'w',
                   encoding='utf-8') as train_file:
             with open(os.path.join(self.internal_data_dir, self.val_output), 'w',
                       encoding='utf-8') as val_file:
 
-                with open(os.path.join(self.internal_data_dir, in_file), 'r', encoding='utf-8') as file:
+                with open(os.path.join(self.internal_data_dir, in_file), 'r',
+                          encoding='utf-8') as file:
 
                     for line in file:
                         data_dict = json.loads(line)
-                        a = np.random.choice([0, 1], 1, p=[0.9, 0.1])
+                        a = np.random.choice([0, 1], 1, p=[self.split, 1 - self.split])
                         if a == 0:
                             json.dump({'text': data_dict['text']}, train_file)
                             train_file.write('\n')
@@ -142,12 +146,9 @@ class InternalDataPreprocessing:
                             val_file.write('\n')
 
 
-
-
-
-
 if __name__ == "__main__":
     data_prep = InternalDataPreprocessing()
     # data_prep.concat_and_save_data()
     # data_prep.split_to_sentences()
     # data_prep.create_train_val()
+    data_prep.from_raw_to_train_val()
