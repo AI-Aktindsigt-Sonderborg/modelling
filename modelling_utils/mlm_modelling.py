@@ -566,7 +566,8 @@ class MLMUnsupervisedModelling:
                                     'epsilon': args.epsilon,
                                     'delta': args.delta,
                                     'lot_size': args.lot_size,
-                                    'whole_word_mask': args.whole_word_mask},
+                                    'whole_word_mask': args.whole_word_mask,
+                                    'train_data': args.train_data},
                                    {'best_acc': best_acc},
                                    {'best_loss': best_loss}]}
 
