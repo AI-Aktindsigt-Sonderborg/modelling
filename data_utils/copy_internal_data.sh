@@ -1,3 +1,4 @@
+mkdir ../data/internal_data/dagw
 cp -avr /mnt/data/hard_disk_stuff/text/dagw/sektioner/skat ../data/internal_data/dagw
 cp -avr /mnt/data/hard_disk_stuff/text/dagw/sektioner/wikibooks ../data/internal_data/dagw
 cp -avr /mnt/data/hard_disk_stuff/text/dagw/sektioner/tv2r ../data/internal_data/dagw
