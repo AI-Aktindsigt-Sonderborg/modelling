@@ -51,7 +51,7 @@ class MLMArgParser:
                                      help="Whether to test on local machine with small subset")
         training_params.add_argument("--dp", type=lambda x: bool(strtobool(x)), default=True,
                                      help="Whether to train model with differential privacy")
-        training_params.add_argument("--max_length", type=int, default=128,
+        training_params.add_argument("--max_length", type=int, default=64,
                                      help="Max length for a text input")
         training_params.add_argument("--epochs", type=int, default=20,
                                      help="Number of epochs to train model")
