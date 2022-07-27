@@ -1,6 +1,12 @@
 # pylint: disable=protected-access
-from modelling_utils.mlm_modelling import MLMUnsupervisedModellingDP
+from modelling_utils.mlm_modelling import MLMUnsupervisedModellingDP, MLMUnsupervisedModelling
 from utils.input_args import MLMArgParser
+
+# to check if cuda available - if not update pycharm fx
+# import torch
+# a = torch.cuda.is_available()
+
+
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
@@ -16,7 +22,7 @@ if args.local_testing:
     args.train_data = 'train_10.json'
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
-
+    args.logging_steps = 2
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
     args.lr_freezed = 0.001
@@ -30,12 +36,16 @@ if args.local_testing:
     args.max_length = 8
     args.save_model_at_end = False
     args.make_plots = True
+    args.dp = False
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
     print('exiting - try again')
     mlm_parser.parser.exit()
 
-mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
+if args.dp:
+    mlm_modelling = MLMUnsupervisedModellingDP(args=args)
+else:
+    mlm_modelling = MLMUnsupervisedModelling(args=args)
 
-mlm_modelling_dp.train_model()
+mlm_modelling.train_model()
