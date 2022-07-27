@@ -23,6 +23,7 @@ if args.local_testing:
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
     args.logging_steps = 2
+    args.save_steps = 2
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
     args.lr_freezed = 0.001
@@ -31,7 +32,7 @@ if args.local_testing:
     args.lr_start_decay = 20
     # args.lr = 0.01
 
-    args.epochs = 5
+    args.epochs = 10
     args.train_batch_size = 2
     args.max_length = 8
     args.save_model_at_end = False

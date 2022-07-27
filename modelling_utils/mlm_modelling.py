@@ -262,16 +262,39 @@ class MLMUnsupervisedModelling:
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
+
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
-                    self.save_model(model, output_dir=self.output_dir,
-                                    data_collator=self.data_collator,
-                                    tokenizer=self.tokenizer,
-                                    step=f'/epoch-{epoch}_step-{step}')
+                    self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+
             step += 1
         if self.eval_data:
             return model, eval_losses, eval_accuracies, step, lrs
         return model, step, lrs
+
+    def save_model_at_step(self, model, epoch, step, eval_losses, eval_accuracies):
+        """
+        Save model at step and overwrite best_model if loss is lowest and acc is highest
+        :param model: Current model
+        :param epoch: Current epoch
+        :param step: Current step
+        :param eval_losses: Current list of losses
+        :param eval_accuracies: Current list of accuracies
+        """
+
+        self.save_model(model, output_dir=self.output_dir,
+                        data_collator=self.data_collator,
+                        tokenizer=self.tokenizer,
+                        step=f'/epoch-{epoch}_step-{step}')
+        if step > self.args.freeze_layers_n_steps:
+            min_loss, max_acc = self.get_max_acc_min_loss(eval_losses, eval_accuracies,
+                                                          self.args.freeze_layers_n_steps)
+            if min_loss['loss'] == eval_losses[-1]['loss'] \
+                and max_acc['acc'] == eval_accuracies[-1]['acc']:
+                self.save_model(model, output_dir=self.output_dir,
+                                data_collator=self.data_collator,
+                                tokenizer=self.tokenizer,
+                                step='/best_model')
 
     def evaluate(self, model, val_loader: DataLoader):
         """
@@ -819,7 +842,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 optimizer.step()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0:
+                if step % self.args.logging_steps == 0 and not (step % self.args.evaluate_steps == 0):
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
@@ -846,10 +869,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
-                        self.save_model(model, output_dir=self.output_dir,
-                                        data_collator=self.data_collator,
-                                        tokenizer=self.tokenizer,
-                                        step=f'/epoch-{epoch}_step-{step}')
+                        self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+
                 step += 1
 
         if self.eval_data:
