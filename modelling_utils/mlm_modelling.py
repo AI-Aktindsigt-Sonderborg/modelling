@@ -239,8 +239,9 @@ class MLMUnsupervisedModelling:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0:
+            if step % self.args.logging_steps == 0 and not (step % self.args.evaluate_steps == 0):
                 print(
+                    "\n"
                     f"\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
@@ -254,6 +255,7 @@ class MLMUnsupervisedModelling:
                 )
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
                 print(
+                    f"\n"
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
@@ -282,32 +284,31 @@ class MLMUnsupervisedModelling:
 
         loss_arr = []
         accuracy_arr = []
-        with tqdm(val_loader, unit="batch") as batches:
-            for batch in batches:
-                # batches.set_description(f"Batch {batch}")
-        # for i, batch in enumerate(tqdm(len(val_loader)), desc="Step", unit="step"):
-        # for batch in val_loader:
-                output = model(input_ids=batch["input_ids"].to('cuda'),
-                               attention_mask=batch["attention_mask"].to('cuda'),
-                               labels=batch["labels"].to('cuda'))
+        # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
+        for batch in tqdm(val_loader, unit="batch", desc="Batch"):
+            # for batch in val_loader:
+            output = model(input_ids=batch["input_ids"].to('cuda'),
+                           attention_mask=batch["attention_mask"].to('cuda'),
+                           labels=batch["labels"].to('cuda'))
 
-                preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
-                labels = batch["labels"].cpu().numpy()
+            preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
+            labels = batch["labels"].cpu().numpy()
 
-                labels_flat = labels.flatten()
-                preds_flat = preds.flatten()
+            labels_flat = labels.flatten()
+            preds_flat = preds.flatten()
 
-                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
+            filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
-                eval_acc = self.accuracy(np.array([x[1] for x in filtered]),
-                                         np.array([x[0] for x in filtered]))
-                eval_loss = output.loss.item()
+            eval_acc = self.accuracy(np.array([x[1] for x in filtered]),
+                                     np.array([x[0] for x in filtered]))
+            eval_loss = output.loss.item()
 
-                if not np.isnan(eval_loss):
-                    loss_arr.append(eval_loss)
-                if not np.isnan(eval_acc):
-                    accuracy_arr.append(eval_acc)
-                sleep(0.001)
+            if not np.isnan(eval_loss):
+                loss_arr.append(eval_loss)
+            if not np.isnan(eval_acc):
+                accuracy_arr.append(eval_acc)
+
+            sleep(0.001)
 
         model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
@@ -826,6 +827,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     )
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
+
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
@@ -835,6 +837,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     )
                     eval_loss, eval_accuracy = self.evaluate(model, val_loader)
                     print(
+                        f"\n"
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )

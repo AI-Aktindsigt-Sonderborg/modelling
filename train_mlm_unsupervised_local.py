@@ -36,7 +36,7 @@ if args.local_testing:
     args.max_length = 8
     args.save_model_at_end = False
     args.make_plots = True
-    args.dp = False
+    # args.dp = False
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
