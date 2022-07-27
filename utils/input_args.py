@@ -98,8 +98,12 @@ class MLMArgParser:
                                  help="Log model accuracy after number of steps")
         eval_params.add_argument("--save_steps", type=int, default=None,
                                  help="save checkpoint after number of steps")
+        eval_params.add_argument("--save_only_best_model", type=lambda x: bool(strtobool(x)),
+                                 default=True,
+                             help="Whether to only save best model - overwrites save_steps if True")
         eval_params.add_argument("--eval_batch_size", type=int, default=6,
                                  help="Batch size for evaluation")
+
         eval_params.add_argument("--evaluate_during_training", type=bool, default=True,
                                  help="Whether to evaluate model during training")
         eval_params.add_argument("--make_plots", type=lambda x: bool(strtobool(x)), default=True,

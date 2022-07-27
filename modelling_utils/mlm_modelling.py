@@ -281,11 +281,11 @@ class MLMUnsupervisedModelling:
         :param eval_losses: Current list of losses
         :param eval_accuracies: Current list of accuracies
         """
-
-        self.save_model(model, output_dir=self.output_dir,
-                        data_collator=self.data_collator,
-                        tokenizer=self.tokenizer,
-                        step=f'/epoch-{epoch}_step-{step}')
+        if not self.args.save_only_best_model:
+            self.save_model(model, output_dir=self.output_dir,
+                            data_collator=self.data_collator,
+                            tokenizer=self.tokenizer,
+                            step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
             min_loss, max_acc = self.get_max_acc_min_loss(eval_losses, eval_accuracies,
                                                           self.args.freeze_layers_n_steps)
