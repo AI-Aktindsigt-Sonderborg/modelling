@@ -239,7 +239,7 @@ class MLMUnsupervisedModelling:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0 and not (step % self.args.evaluate_steps == 0):
+            if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                 print(
                     "\n"
                     f"\tTrain Epoch: {epoch} \t"
@@ -800,7 +800,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            # for i, batch in enumerate(memory_safe_data_loader):
             for batch in memory_safe_data_loader:
 
                 if self.args.freeze_layers and step == 0:
@@ -842,7 +841,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 optimizer.step()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0 and not (step % self.args.evaluate_steps == 0):
+                if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
@@ -935,7 +934,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         )
 
         self.trainer = None
-
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
@@ -999,5 +997,4 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         )
         trainer_test.save_model(output_dir=output_dir)
         # trainer_test.save_metrics()
-
         model._module.save_pretrained(save_directory=output_dir)
