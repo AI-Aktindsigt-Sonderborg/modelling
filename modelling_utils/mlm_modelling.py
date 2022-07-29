@@ -341,10 +341,12 @@ class MLMUnsupervisedModelling:
         Load data and set up for training an MLM unsupervised model
         :return: optimizer and train_loader for training
         """
+        self.load_data()
+
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
-        self.load_data()
+
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.replace_head:
@@ -448,6 +450,10 @@ class MLMUnsupervisedModelling:
                                            split='train')
             self.total_steps = int(
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
+
+        if self.args.compute_delta:
+            self.args.delta = 1/len(self.train_data)
+
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
@@ -881,10 +887,12 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         Load data and set up for training an unsupervised MLM model with differential privacy
         :return: model, optimizer and train_loader for DP training
         """
+        self.load_data()
+
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
-        self.load_data()
+
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.replace_head:

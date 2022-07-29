@@ -117,6 +117,8 @@ class MLMArgParser:
         dp_params.add_argument("--epsilon", type=float, default=1, help="privacy parameter epsilon")
         dp_params.add_argument("--delta", type=float, default=4.6e-05,
                                help="privacy parameter delta. Usually a good delta is 1/len(train)")
+        dp_params.add_argument("--compute_delta", type=lambda x: bool(strtobool(x)), default=True,
+                                 help="Whether to compute delta such that delta=1/len(train)")
         dp_params.add_argument("--max_grad_norm", type=float, default=1.2,
                                help="maximum norm to clip gradient")
         dp_params.add_argument("--lot_size", type=int, default=36,
