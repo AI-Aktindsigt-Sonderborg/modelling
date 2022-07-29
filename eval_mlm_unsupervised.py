@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import numpy as np
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, DataCollatorForWholeWordMask, \
     DataCollatorForLanguageModeling, TrainingArguments, Trainer
@@ -9,6 +10,8 @@ from local_constants import DATA_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM
 from modelling_utils.mlm_modelling import DatasetWrapper
 from utils.input_args import MLMArgParser
+
+os.environ["WANDB_DISABLED"] = "true"
 
 class MLMUnsupervisedEvaluation:
     def __init__(self, args: argparse.Namespace):
@@ -80,13 +83,21 @@ class MLMUnsupervisedEvaluation:
                                                 mlm_probability=self.args.mlm_prob)
         return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
                                                mlm_probability=self.args.mlm_prob)
-
+    @staticmethod
+    def accuracy(preds: np.array, labels: np.array):
+        """
+        Compute accuracy on predictions and labels
+        :param preds: Predicted token
+        :param labels: Input labelled token
+        :return: Mean accuracy
+        """
+        return (preds == labels).mean()
 
 if __name__ == '__main__':
     mlm_parser = MLMArgParser()
     args = mlm_parser.parser.parse_args()
-    args.eval_data = 'val_10.json'
-
+    args.eval_data = 'validation.json'
+    args.model_name = 'models/NbAiLab_nb-bert-base-2022-07-27_17-07-29/best_model/'
     mlm_eval = MLMUnsupervisedEvaluation(args=args)
     mlm_eval.load_data()
 
@@ -95,7 +106,8 @@ if __name__ == '__main__':
     training_args = TrainingArguments(
         output_dir='models/eval_model_test',
         weight_decay=0.1,
-        do_eval=True
+        # do_eval=True,
+        per_device_eval_batch_size=2
     )
 
     trainer = Trainer(
@@ -106,7 +118,18 @@ if __name__ == '__main__':
         tokenizer=mlm_eval.tokenizer
     )
 
-    trainer.evaluate()
+    evaluation = trainer.evaluate()
+
+    preds = trainer.predict(eval_data)
+    softmax = np.argmax(preds.predictions, axis=-1)
+    labels_flat = preds.label_ids.flatten()
+
+    preds_flat = softmax.flatten()
+
+    filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
+
+    eval_acc = mlm_eval.accuracy(np.array([x[1] for x in filtered]),
+                             np.array([x[0] for x in filtered]))
 
     print()
 
