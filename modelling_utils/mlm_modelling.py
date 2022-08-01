@@ -150,7 +150,8 @@ class MLMUnsupervisedModelling:
                                                               self.args.freeze_layers_n_steps)
 
                 self.save_key_metrics(output_dir=self.output_dir, args=self.args,
-                                      best_acc=max_acc, best_loss=min_loss)
+                                      best_acc=max_acc, best_loss=min_loss,
+                                      total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -343,6 +344,11 @@ class MLMUnsupervisedModelling:
         """
         self.load_data()
 
+        if self.args.auto_lr_scheduling:
+            self.compute_lr_automatically()
+            self.compute_lr_automatically()
+
+
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
@@ -361,11 +367,17 @@ class MLMUnsupervisedModelling:
                                   collate_fn=self.data_collator)
 
         optimizer = self.trainer.create_optimizer()
+        if self.args.freeze_layers:
+            self.scheduler = self.create_scheduler(optimizer,
+                                                   start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
+                                                   end_factor=1,
+                                                   total_iters=self.args.lr_freezed_warmup_steps)
+        else:
+            self.scheduler = self.create_scheduler(optimizer,
+                                                   start_factor=self.args.lr / self.args.lr_warmup_steps,
+                                                   end_factor=1,
+                                                           total_iters=self.args.lr_warmup_steps)
 
-        self.scheduler = self.create_scheduler(optimizer,
-                                               start_factor=self.args.lr / self.args.lr_warmup_steps,
-                                               end_factor=1,
-                                               total_iters=self.args.lr_warmup_steps)
         return optimizer, train_loader
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
@@ -476,6 +488,13 @@ class MLMUnsupervisedModelling:
 
         self.model = model
 
+    def compute_lr_automatically(self):
+        self.args.freeze_layers_n_steps = int(np.ceil(0.1*self.total_steps))
+        self.args.lr_freezed_warmup_steps = int(np.ceil(0.1*self.args.freeze_layers_n_steps))
+        self.args.lr_warmup_steps = int(np.ceil(0.1*(self.total_steps-self.args.freeze_layers_n_steps)))
+        self.args.lr_start_decay = int(np.ceil((self.total_steps-self.args.freeze_layers_n_steps)*
+                                       0.5+self.args.freeze_layers_n_steps))
+
     @staticmethod
     def get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps):
         """
@@ -584,7 +603,7 @@ class MLMUnsupervisedModelling:
 
     @staticmethod
     def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
-                         filename: str = 'key_metrics'):
+                         total_steps: int, filename: str = 'key_metrics'):
         """
         Save important args and performance for benchmarking
         :param output_dir:
@@ -609,7 +628,8 @@ class MLMUnsupervisedModelling:
                                     'delta': args.delta,
                                     'lot_size': args.lot_size,
                                     'whole_word_mask': args.whole_word_mask,
-                                    'train_data': args.train_data},
+                                    'train_data': args.train_data,
+                                    'total_steps': total_steps},
                                    {'best_acc': best_acc},
                                    {'best_loss': best_loss}]}
 
@@ -654,6 +674,8 @@ class MLMUnsupervisedModelling:
         return LinearLR(optimizer, start_factor=start_factor,
                         end_factor=end_factor,
                         total_iters=total_iters)
+
+
 
 
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
@@ -752,7 +774,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
                                                           self.args.freeze_layers_n_steps)
                 self.save_key_metrics(output_dir=self.output_dir, args=self.args,
-                                  best_acc=max_acc, best_loss=min_loss)
+                                  best_acc=max_acc, best_loss=min_loss,
+                                      total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -888,6 +911,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         :return: model, optimizer and train_loader for DP training
         """
         self.load_data()
+
+        if self.args.auto_lr_scheduling:
+            self.compute_lr_automatically()
 
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)

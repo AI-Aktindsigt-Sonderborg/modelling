@@ -107,7 +107,7 @@ if __name__ == '__main__':
         output_dir='models/eval_model_test',
         weight_decay=0.1,
         # do_eval=True,
-        per_device_eval_batch_size=2
+        per_device_eval_batch_size=args.eval_batch_size
     )
 
     trainer = Trainer(
