@@ -8,6 +8,7 @@ from typing import List
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
+from local_constants import PROJECT_ROOT, DATA_DIR
 
 
 class RawScrapePreprocessing:
@@ -47,13 +48,13 @@ class RawScrapePreprocessing:
     data_preprocessor.from_raw_to_train_val()
     """
 
-    def __init__(self, data_dir: str = '../data',
+    def __init__(self, data_dir: str = os.path.join(PROJECT_ROOT, DATA_DIR),
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
                  save_data: bool = True):
         self.data_dir = data_dir
         self.filtered_dir = self.data_dir + '/filtered_scrape'
-        self.new_scrape_dir = self.data_dir + '/new_scrape'
+        self.scrape_data_dir = self.data_dir + '/scraped_data'
         self.train_output = train_output
         self.val_output = val_output
         self.save_data = save_data
@@ -74,11 +75,11 @@ class RawScrapePreprocessing:
         :param confidence_threshold: Keep all "danish-detected" sentences with a score above this
         threshold
         """
-        for filename in os.listdir(self.new_scrape_dir):
+        for filename in os.listdir(self.scrape_data_dir):
             data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            with open(os.path.join(self.new_scrape_dir, filename), 'rb') as file:
+            with open(os.path.join(self.scrape_data_dir, filename), 'rb') as file:
                 for index, line in enumerate(file):
                     data_dict = json.loads(line)
                     if "__label__da" in data_dict['detected_page_lang']:

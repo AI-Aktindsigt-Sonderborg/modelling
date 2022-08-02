@@ -121,7 +121,7 @@ class MLMUnsupervisedModelling:
         code_timer = TimeCode()
         all_lrs = []
         step = 0
-        model = self.model
+        # model = self.model
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
             eval_loader = DataLoader(dataset=eval_data_wrapped,
@@ -131,12 +131,12 @@ class MLMUnsupervisedModelling:
             accuracies = []
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
-                                                                              train_loader=train_loader,
-                                                                              optimizer=optimizer,
-                                                                              val_loader=eval_loader,
-                                                                              epoch=epoch + 1,
-                                                                              step=step)
+                self.model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=self.model,
+                                                                                   train_loader=train_loader,
+                                                                                   optimizer=optimizer,
+                                                                                   val_loader=eval_loader,
+                                                                                   epoch=epoch + 1,
+                                                                                   step=step)
                 losses.extend(eval_loss)
                 accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
@@ -161,20 +161,20 @@ class MLMUnsupervisedModelling:
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs = self.train_epoch(model=model,
-                                                    train_loader=train_loader,
-                                                    optimizer=optimizer,
-                                                    step=step)
+                self.model, step, lrs = self.train_epoch(model=self.model,
+                                                         train_loader=train_loader,
+                                                         optimizer=optimizer,
+                                                         step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=model,
+                model=self.model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
             )
-        self.model = model
+        # self.model = model
 
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
@@ -263,7 +263,6 @@ class MLMUnsupervisedModelling:
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
-
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
                     self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
@@ -321,6 +320,8 @@ class MLMUnsupervisedModelling:
             labels_flat = labels.flatten()
             preds_flat = preds.flatten()
 
+            # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.
+            # See nn.CrossEntropyLoss(): ignore_index for more information
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
             eval_acc = self.accuracy(np.array([x[1] for x in filtered]),
@@ -348,10 +349,8 @@ class MLMUnsupervisedModelling:
             self.compute_lr_automatically()
             self.compute_lr_automatically()
 
-
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
-
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
@@ -376,7 +375,7 @@ class MLMUnsupervisedModelling:
             self.scheduler = self.create_scheduler(optimizer,
                                                    start_factor=self.args.lr / self.args.lr_warmup_steps,
                                                    end_factor=1,
-                                                           total_iters=self.args.lr_warmup_steps)
+                                                   total_iters=self.args.lr_warmup_steps)
 
         return optimizer, train_loader
 
@@ -464,8 +463,7 @@ class MLMUnsupervisedModelling:
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
 
         if self.args.compute_delta:
-            self.args.delta = 1/len(self.train_data)
-
+            self.args.delta = 1 / len(self.train_data)
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
@@ -489,11 +487,13 @@ class MLMUnsupervisedModelling:
         self.model = model
 
     def compute_lr_automatically(self):
-        self.args.freeze_layers_n_steps = int(np.ceil(0.1*self.total_steps))
-        self.args.lr_freezed_warmup_steps = int(np.ceil(0.1*self.args.freeze_layers_n_steps))
-        self.args.lr_warmup_steps = int(np.ceil(0.1*(self.total_steps-self.args.freeze_layers_n_steps)))
-        self.args.lr_start_decay = int(np.ceil((self.total_steps-self.args.freeze_layers_n_steps)*
-                                       0.5+self.args.freeze_layers_n_steps))
+        self.args.freeze_layers_n_steps = int(np.ceil(0.1 * self.total_steps))
+        self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
+        self.args.lr_warmup_steps = int(
+            np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
+        self.args.lr_start_decay = int(
+            np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
+                    0.5 + self.args.freeze_layers_n_steps))
 
     @staticmethod
     def get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps):
@@ -676,8 +676,6 @@ class MLMUnsupervisedModelling:
                         total_iters=total_iters)
 
 
-
-
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     """
         Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
@@ -742,7 +740,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         """
         Load data, set up private training and train with differential privacy
         """
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_training()
+        dp_optimizer, dp_train_loader = self.set_up_training()
 
         code_timer = TimeCode()
         all_lrs = []
@@ -756,12 +754,14 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                dp_model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=dp_model,
-                                                                                 train_loader=dp_train_loader,
-                                                                                 optimizer=dp_optimizer,
-                                                                                 val_loader=eval_loader,
-                                                                                 epoch=epoch + 1,
-                                                                                 step=step)
+                self.model, eval_loss, eval_accuracy, step, lrs = \
+                    self.train_epoch(model=self.model,
+                                     train_loader=dp_train_loader,
+                                     optimizer=dp_optimizer,
+                                     val_loader=eval_loader,
+                                     epoch=epoch + 1,
+                                     step=step)
+
                 losses.extend(eval_loss)
                 accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
@@ -772,9 +772,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
-                                                          self.args.freeze_layers_n_steps)
+                                                              self.args.freeze_layers_n_steps)
                 self.save_key_metrics(output_dir=self.output_dir, args=self.args,
-                                  best_acc=max_acc, best_loss=min_loss,
+                                      best_acc=max_acc, best_loss=min_loss,
                                       total_steps=self.total_steps)
 
             if self.args.make_plots:
@@ -787,7 +787,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                dp_model, step, lrs = self.train_epoch(model=dp_model,
+                self.model, step, lrs = self.train_epoch(model=self.model,
                                                        train_loader=dp_train_loader,
                                                        optimizer=dp_optimizer,
                                                        step=step)
@@ -795,12 +795,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=dp_model,
+                model=self.model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
             )
-        self.model = dp_model
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
@@ -918,7 +917,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir, args=self.args)
 
-
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.replace_head:
@@ -932,7 +930,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
+        self.model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
 
         # ToDo: finish head warmup lr
         self.scheduler = self.create_scheduler(dp_optimizer,
@@ -940,7 +938,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                end_factor=1,
                                                total_iters=self.args.lr_freezed_warmup_steps)
 
-        return dp_model, dp_optimizer, dp_train_loader
+        return dp_optimizer, dp_train_loader
 
     def set_up_privacy(self, train_loader: DataLoader):
         """

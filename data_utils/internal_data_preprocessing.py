@@ -6,7 +6,7 @@ from typing import List
 
 import nltk
 import numpy as np
-
+from local_constants import PROJECT_ROOT, DATA_DIR
 
 class InternalDataPreprocessing:
     """
@@ -48,14 +48,14 @@ class InternalDataPreprocessing:
         """
 
     def __init__(self,
-                 data_dir: str = '../data',
+                 data_dir: str = os.path.join(PROJECT_ROOT, DATA_DIR),
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
                  data_sources: List[str] = ['dr', 'dagw'],
                  split: float = 0.95):
+
         self.data_dir = data_dir
         self.internal_data_dir = self.data_dir + '/internal_data'
-        self.new_scrape_dir = self.data_dir + '/new_scrape'
         self.data_sources = data_sources
         self.train_output = train_output
         self.val_output = val_output

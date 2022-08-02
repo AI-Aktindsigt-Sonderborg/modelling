@@ -72,6 +72,7 @@ class MLMUnsupervisedEvaluation:
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
+
     @property
     def get_data_collator(self):
         """
@@ -98,6 +99,7 @@ if __name__ == '__main__':
     args = mlm_parser.parser.parse_args()
     args.eval_data = 'validation.json'
     args.model_name = 'models/NbAiLab_nb-bert-base-2022-07-27_17-07-29/best_model/'
+    args.eval_batch_size = 2
     mlm_eval = MLMUnsupervisedEvaluation(args=args)
     mlm_eval.load_data()
 
@@ -130,9 +132,3 @@ if __name__ == '__main__':
 
     eval_acc = mlm_eval.accuracy(np.array([x[1] for x in filtered]),
                              np.array([x[0] for x in filtered]))
-
-    print()
-
-
-
-
