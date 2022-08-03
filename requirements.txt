@@ -1,0 +1,7 @@
+transformers==4.19.2
+opacus==1.1.2
+datasets==2.2.2
+sklearn==0.0
+matplotlib
+nltk
+ftfy
