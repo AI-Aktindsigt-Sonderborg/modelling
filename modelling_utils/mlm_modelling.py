@@ -4,8 +4,8 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import List
 from time import sleep
+from typing import List
 
 import numpy as np
 from datasets import load_dataset
@@ -97,7 +97,6 @@ class MLMUnsupervisedModelling:
 
     def __init__(self, args: argparse.Namespace):
         self.total_steps = None
-        self.trainer = None
         self.args = args
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
@@ -116,12 +115,12 @@ class MLMUnsupervisedModelling:
         """
         load data, set up training and train model
         """
-        optimizer, train_loader = self.set_up_training()
+        model, optimizer, train_loader = self.set_up_training()
 
         code_timer = TimeCode()
         all_lrs = []
         step = 0
-        # model = self.model
+
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
             eval_loader = DataLoader(dataset=eval_data_wrapped,
@@ -131,12 +130,12 @@ class MLMUnsupervisedModelling:
             accuracies = []
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                self.model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=self.model,
-                                                                                   train_loader=train_loader,
-                                                                                   optimizer=optimizer,
-                                                                                   val_loader=eval_loader,
-                                                                                   epoch=epoch + 1,
-                                                                                   step=step)
+                model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
+                                                                              train_loader=train_loader,
+                                                                              optimizer=optimizer,
+                                                                              val_loader=eval_loader,
+                                                                              epoch=epoch + 1,
+                                                                              step=step)
                 losses.extend(eval_loss)
                 accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
@@ -161,20 +160,20 @@ class MLMUnsupervisedModelling:
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                self.model, step, lrs = self.train_epoch(model=self.model,
-                                                         train_loader=train_loader,
-                                                         optimizer=optimizer,
-                                                         step=step)
+                model, step, lrs = self.train_epoch(model=model,
+                                                    train_loader=train_loader,
+                                                    optimizer=optimizer,
+                                                    step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=self.model,
+                model=model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
             )
-        # self.model = model
+        self.model = model
 
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
@@ -341,12 +340,11 @@ class MLMUnsupervisedModelling:
     def set_up_training(self):
         """
         Load data and set up for training an MLM unsupervised model
-        :return: optimizer and train_loader for training
+        :return: model, optimizer and train_loader for training
         """
         self.load_data()
 
         if self.args.auto_lr_scheduling:
-            self.compute_lr_automatically()
             self.compute_lr_automatically()
 
         if self.args.save_config:
@@ -356,34 +354,38 @@ class MLMUnsupervisedModelling:
 
         if self.args.replace_head:
             print('Replacing bert head')
-            self.load_model_and_replace_bert_head()
+            model = self.load_model_and_replace_bert_head()
         else:
-            self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
+            model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
-        self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
+        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
+                                                  model=model)
 
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
                                   collate_fn=self.data_collator)
 
-        optimizer = self.trainer.create_optimizer()
+        optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
             self.scheduler = self.create_scheduler(optimizer,
-                                                   start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
+                                                   start_factor=self.args.lr_freezed /
+                                                                self.args.lr_freezed_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_freezed_warmup_steps)
         else:
             self.scheduler = self.create_scheduler(optimizer,
-                                                   start_factor=self.args.lr / self.args.lr_warmup_steps,
+                                                   start_factor=self.args.lr /
+                                                                self.args.lr_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_warmup_steps)
 
-        return optimizer, train_loader
+        return model, optimizer, train_loader
 
-    def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper):
+    def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper, model):
         """
         Create dummy trainer, such that we get optimizer and can save model object
         :param train_data_wrapped: Train data of type DatasetWrapper
-        :return: Add self.trainer to class
+        :param model: initial model
+        :return: Trainer object
         """
         if self.args.freeze_layers:
             learning_rate_init: float = self.args.lr_freezed
@@ -401,8 +403,8 @@ class MLMUnsupervisedModelling:
         )
 
         # Dummy training for optimizer
-        self.trainer = Trainer(
-            model=self.model,
+        return Trainer(
+            model=model,
             args=training_args,
             train_dataset=train_data_wrapped,
             data_collator=self.data_collator,
@@ -481,10 +483,12 @@ class MLMUnsupervisedModelling:
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
 
+        # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
+        #  grad sampler - as this is not implemented in opacus
         for param in model.bert.embeddings.parameters():
             param.requires_grad = False
 
-        self.model = model
+        return model
 
     def compute_lr_automatically(self):
         self.args.freeze_layers_n_steps = int(np.ceil(0.1 * self.total_steps))
@@ -531,21 +535,23 @@ class MLMUnsupervisedModelling:
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if name.startswith("bert."):
+            if name.startswith("cls."):
                 param.requires_grad = False
+
         model.train()
         return model
 
     @staticmethod
     def unfreeze_layers(model):
         """
-        Un-freeze all bert layers in model, such that we can train full model
+        Un-freeze all layers exept for embeddings in model, such that we can train full model
         :param model: Model of type BertForMaskedLM
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if name.startswith("bert.encoder"):
+            if not name.startswith("bert.embeddings"):
                 param.requires_grad = True
+
         model.train()
         return model
 
@@ -740,7 +746,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         """
         Load data, set up private training and train with differential privacy
         """
-        dp_optimizer, dp_train_loader = self.set_up_training()
+        model, dp_optimizer, dp_train_loader = self.set_up_training()
 
         code_timer = TimeCode()
         all_lrs = []
@@ -754,8 +760,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                self.model, eval_loss, eval_accuracy, step, lrs = \
-                    self.train_epoch(model=self.model,
+                model, eval_loss, eval_accuracy, step, lrs = \
+                    self.train_epoch(model=model,
                                      train_loader=dp_train_loader,
                                      optimizer=dp_optimizer,
                                      val_loader=eval_loader,
@@ -787,19 +793,20 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                self.model, step, lrs = self.train_epoch(model=self.model,
-                                                       train_loader=dp_train_loader,
-                                                       optimizer=dp_optimizer,
-                                                       step=step)
+                model, step, lrs = self.train_epoch(model=model,
+                                                    train_loader=dp_train_loader,
+                                                    optimizer=dp_optimizer,
+                                                    step=step)
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=self.model,
+                model=model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
             )
+        self.model = model
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
@@ -921,16 +928,19 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         if self.args.replace_head:
             print('Replacing bert head')
-            self.load_model_and_replace_bert_head()
+            model = self.load_model_and_replace_bert_head()
         else:
-            self.model = BertForMaskedLM.from_pretrained(self.args.model_name)
+            model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
-        self.create_dummy_trainer(train_data_wrapped=train_data_wrapped)
+        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
+                                                  model=model)
 
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
-        self.model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader)
+        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader,
+                                                                      trainer=dummy_trainer,
+                                                                      model=model)
 
         # ToDo: finish head warmup lr
         self.scheduler = self.create_scheduler(dp_optimizer,
@@ -938,9 +948,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                end_factor=1,
                                                total_iters=self.args.lr_freezed_warmup_steps)
 
-        return dp_optimizer, dp_train_loader
+        return dp_model, dp_optimizer, dp_train_loader
 
-    def set_up_privacy(self, train_loader: DataLoader):
+    def set_up_privacy(self, train_loader: DataLoader, trainer, model):
         """
         Set up privacy engine for private training
         :param train_loader: DataLoader for training
@@ -948,16 +958,16 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         """
         self.privacy_engine = PrivacyEngine()
 
-        self.model = self.model.train()
+        model = model.train()
 
         # validate if model works with opacus
-        self.validate_model(self.model)
+        self.validate_model(model)
 
-        self.trainer.create_optimizer()
+        trainer.create_optimizer()
 
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
-            module=self.model,
-            optimizer=self.trainer.optimizer,
+            module=model,
+            optimizer=trainer.optimizer,
             data_loader=train_loader,
             epochs=self.args.epochs,
             target_epsilon=self.args.epsilon,
@@ -965,7 +975,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             max_grad_norm=self.args.max_grad_norm
         )
 
-        self.trainer = None
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
@@ -986,13 +995,14 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     @staticmethod
     def freeze_layers(model):
         """
-        Freeze all bert layers in model, such that we can train only the head
+        Freeze all bert encoder layers in model, such that we can train only the head
         :param model: Model of type GradSampleModule
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
+            if not name.startswith("_module.cls"):
                 param.requires_grad = False
+
         model.train()
         return model
 
@@ -1004,8 +1014,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if name.startswith("_module.bert.encoder"):
+            if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
+
         model.train()
         return model
 
@@ -1028,5 +1039,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
+
         # trainer_test.save_metrics()
         model._module.save_pretrained(save_directory=output_dir)

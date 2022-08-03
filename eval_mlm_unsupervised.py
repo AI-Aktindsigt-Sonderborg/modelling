@@ -13,6 +13,7 @@ from utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
 
+
 class MLMUnsupervisedEvaluation:
     def __init__(self, args: argparse.Namespace):
         self.args = args
@@ -84,6 +85,7 @@ class MLMUnsupervisedEvaluation:
                                                 mlm_probability=self.args.mlm_prob)
         return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
                                                mlm_probability=self.args.mlm_prob)
+
     @staticmethod
     def accuracy(preds: np.array, labels: np.array):
         """
@@ -93,6 +95,7 @@ class MLMUnsupervisedEvaluation:
         :return: Mean accuracy
         """
         return (preds == labels).mean()
+
 
 if __name__ == '__main__':
     mlm_parser = MLMArgParser()
@@ -131,4 +134,4 @@ if __name__ == '__main__':
     filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
     eval_acc = mlm_eval.accuracy(np.array([x[1] for x in filtered]),
-                             np.array([x[0] for x in filtered]))
+                                 np.array([x[0] for x in filtered]))
