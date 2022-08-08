@@ -100,9 +100,11 @@ class MLMUnsupervisedEvaluation:
 if __name__ == '__main__':
     mlm_parser = MLMArgParser()
     args = mlm_parser.parser.parse_args()
-    args.eval_data = 'validation.json'
+    args.eval_data = 'val_new_scrape2.json'
     args.model_name = 'models/NbAiLab_nb-bert-base-2022-07-27_17-07-29/best_model/'
-    args.eval_batch_size = 2
+    args.eval_batch_size = 1
+    args.compute_delta = False
+    # args.max_length = 32
     mlm_eval = MLMUnsupervisedEvaluation(args=args)
     mlm_eval.load_data()
 

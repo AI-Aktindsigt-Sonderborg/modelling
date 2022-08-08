@@ -303,7 +303,7 @@ class MLMUnsupervisedModelling:
         :return: mean eval loss and mean accuracy
         """
         model.eval()
-
+        model = model.to(self.args.device)
         loss_arr = []
         accuracy_arr = []
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
@@ -334,7 +334,6 @@ class MLMUnsupervisedModelling:
 
             sleep(0.001)
 
-        model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
 
     def set_up_training(self):
@@ -464,8 +463,8 @@ class MLMUnsupervisedModelling:
             self.total_steps = int(
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
 
-        if self.args.compute_delta:
-            self.args.delta = 1 / len(self.train_data)
+            if self.args.compute_delta:
+                self.args.delta = 1 / len(self.train_data)
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset('json',
@@ -904,7 +903,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
                         self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
-
+                    model.train()
                 step += 1
 
         if self.eval_data:
