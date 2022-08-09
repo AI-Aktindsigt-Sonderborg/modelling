@@ -111,7 +111,7 @@ class RawScrapePreprocessing:
         dissapproved_sentences = []
         unique_approved = []
         seen = set()
-        with open(os.path.join('../data', out_file_name), 'w',
+        with open(os.path.join(DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(self.filtered_dir):
                 with open(os.path.join(self.filtered_dir, filename), 'rb') as file:

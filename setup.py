@@ -5,14 +5,9 @@ import os
 
 import nltk
 
-from local_constants import DATA_DIR, CONFIG_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR
+from local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR
 
 nltk.download('punkt')
-
-if not os.path.exists(CONFIG_DIR):
-    # Create a new directory because it does not exist
-    os.makedirs(CONFIG_DIR)
-    print("Create config dir!")
 
 if not os.path.exists(DATA_DIR):
     # Create a new directory because it does not exist
