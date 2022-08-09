@@ -254,11 +254,32 @@ class MLMUnsupervisedModelling:
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+
+                trainer_test = Trainer(
+                    model=model,
+                    args=TrainingArguments(output_dir='test'),
+                    data_collator=self.data_collator,
+                    tokenizer=self.tokenizer
+                )
+                trainer_test.save_model(output_dir='test')
+
+                test_model = BertForMaskedLM.from_pretrained("test/")
+
+                eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
+
                 print(
                     f"\n"
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
+
+                print(
+                    f"\n"
+                    f"eval loss: {eval_loss2} \t"
+                    f"eval acc: {eval_accuracy2}"
+                )
+
+
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
