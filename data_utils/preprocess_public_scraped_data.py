@@ -8,7 +8,7 @@ from typing import List
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
-from local_constants import PROJECT_ROOT, DATA_DIR
+from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR
 
 
 class RawScrapePreprocessing:
@@ -48,13 +48,10 @@ class RawScrapePreprocessing:
     data_preprocessor.from_raw_to_train_val()
     """
 
-    def __init__(self, data_dir: str = os.path.join(PROJECT_ROOT, DATA_DIR),
+    def __init__(self,
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
                  save_data: bool = True):
-        self.data_dir = data_dir
-        self.filtered_dir = self.data_dir + '/filtered_scrape'
-        self.scrape_data_dir = self.data_dir + '/scraped_data'
         self.train_output = train_output
         self.val_output = val_output
         self.save_data = save_data
@@ -75,11 +72,11 @@ class RawScrapePreprocessing:
         :param confidence_threshold: Keep all "danish-detected" sentences with a score above this
         threshold
         """
-        for filename in os.listdir(self.scrape_data_dir):
+        for filename in os.listdir(SCRAPED_DATA_DIR):
             data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            with open(os.path.join(self.scrape_data_dir, filename), 'rb') as file:
+            with open(os.path.join(SCRAPED_DATA_DIR, filename), 'rb') as file:
                 for index, line in enumerate(file):
                     data_dict = json.loads(line)
                     if "__label__da" in data_dict['detected_page_lang']:
@@ -94,7 +91,7 @@ class RawScrapePreprocessing:
                         else:
                             false_lang_preds.append(1)
             print(f'Number of false preds: {np.sum(false_lang_preds)}')
-            with open(os.path.join(self.filtered_dir, filtered_filename + '.json'), 'w',
+            with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in data:
                     json.dump(entry, outfile)
@@ -113,8 +110,8 @@ class RawScrapePreprocessing:
         seen = set()
         with open(os.path.join(DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
-            for filename in os.listdir(self.filtered_dir):
-                with open(os.path.join(self.filtered_dir, filename), 'rb') as file:
+            for filename in os.listdir(FILTERED_SCRAPE_DIR):
+                with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
                     for line in file:
                         data_dict = json.loads(line)
                         text_splitted = (
@@ -151,7 +148,7 @@ class RawScrapePreprocessing:
         :param seed: seed for reproducibility
         """
         sentences = []
-        with open(os.path.join(self.data_dir, in_file), 'r', encoding='utf-8') as file:
+        with open(os.path.join(DATA_DIR, in_file), 'r', encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
                 sentences.append(data_dict['text'])
@@ -170,12 +167,12 @@ class RawScrapePreprocessing:
         :param train: List[str] where each element is a valid sentence for training
         :param val: List[str] where each element is a valid sentence for validation
         """
-        with open(os.path.join(self.data_dir, self.train_output), 'w', encoding='utf-8') as outfile:
+        with open(os.path.join(DATA_DIR, self.train_output), 'w', encoding='utf-8') as outfile:
             for entry in train:
                 json.dump({'text': entry}, outfile)
                 outfile.write('\n')
 
-        with open(os.path.join(self.data_dir, self.val_output), 'w', encoding='utf-8') as outfile:
+        with open(os.path.join(DATA_DIR, self.val_output), 'w', encoding='utf-8') as outfile:
             for entry in val:
                 json.dump({'text': entry}, outfile)
                 outfile.write('\n')
