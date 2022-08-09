@@ -255,13 +255,16 @@ class MLMUnsupervisedModelling:
                 )
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
-                trainer_test = Trainer(
-                    model=model,
-                    args=TrainingArguments(output_dir='test'),
-                    data_collator=self.data_collator,
-                    tokenizer=self.tokenizer
-                )
-                trainer_test.save_model(output_dir='test')
+                # trainer_test = Trainer(
+                #     model=model,
+                #     args=TrainingArguments(output_dir='test'),
+                #     data_collator=self.data_collator,
+                #     tokenizer=self.tokenizer
+                # )
+                # trainer_test.save_model(output_dir='test')
+
+                model.save_pretrained(save_directory='test')
+                self.tokenizer.save_pretrained(save_directory='test')
 
                 test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True)
 
