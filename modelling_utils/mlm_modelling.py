@@ -578,7 +578,7 @@ class MLMUnsupervisedModelling:
         trainer_test.save_model(output_dir=output_dir)
         # trainer_test.save_metrics()
 
-        model.save_pretrained(save_directory=output_dir)
+        # model.save_pretrained(save_directory=output_dir)
 
     @staticmethod
     def save_config(output_dir: str, args: argparse.Namespace):
@@ -1033,7 +1033,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         """
         output_dir = output_dir + step
         trainer_test = Trainer(
-            model=model,
+            model=model._module,
             args=TrainingArguments(output_dir=output_dir),
             data_collator=data_collator,
             tokenizer=tokenizer
@@ -1041,4 +1041,4 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         trainer_test.save_model(output_dir=output_dir)
 
         # trainer_test.save_metrics()
-        model._module.save_pretrained(save_directory=output_dir)
+        # model._module.save_pretrained(save_directory=output_dir)
