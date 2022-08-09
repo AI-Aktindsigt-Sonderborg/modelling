@@ -263,7 +263,7 @@ class MLMUnsupervisedModelling:
                 )
                 trainer_test.save_model(output_dir='test')
 
-                test_model = BertForMaskedLM.from_pretrained("test/")
+                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True)
 
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
