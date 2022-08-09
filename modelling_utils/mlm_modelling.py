@@ -462,6 +462,7 @@ class MLMUnsupervisedModelling:
                                            split='train')
             self.total_steps = int(
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
+            self.args.total_steps = self.total_steps
 
             if self.args.compute_delta:
                 self.args.delta = 1 / len(self.train_data)
