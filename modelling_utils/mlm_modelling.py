@@ -1,5 +1,6 @@
 # pylint: disable=protected-access
 import argparse
+import csv
 import json
 import os
 import sys
@@ -18,7 +19,7 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, \
-    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
+    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, AutoConfig
 
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
@@ -255,20 +256,23 @@ class MLMUnsupervisedModelling:
                 )
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
+                # train_args = TrainingArguments(output_dir='test', do_train=True)
                 # trainer_test = Trainer(
                 #     model=model,
-                #     args=TrainingArguments(output_dir='test'),
+                #     args=train_args,
                 #     data_collator=self.data_collator,
                 #     tokenizer=self.tokenizer
                 # )
-                # trainer_test.save_model(output_dir='test')
 
                 model.save_pretrained(save_directory='test')
                 self.tokenizer.save_pretrained(save_directory='test')
+                config = AutoConfig.from_pretrained('test/')
 
-                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True)
+                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True, config=config)
+
 
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
+
 
                 print(
                     f"\n"
@@ -330,6 +334,7 @@ class MLMUnsupervisedModelling:
         model = model.to(self.args.device)
         loss_arr = []
         accuracy_arr = []
+
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         for batch in tqdm(val_loader, unit="batch", desc="Batch"):
             # for batch in val_loader:
@@ -341,6 +346,7 @@ class MLMUnsupervisedModelling:
             labels = batch["labels"].cpu().numpy()
 
             labels_flat = labels.flatten()
+
             preds_flat = preds.flatten()
 
             # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.

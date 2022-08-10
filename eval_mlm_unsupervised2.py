@@ -5,7 +5,7 @@ import numpy as np
 from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, TrainingArguments, Trainer
+    DataCollatorForLanguageModeling, TrainingArguments, Trainer, MODEL_FOR_MASKED_LM_MAPPING
 
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM
@@ -14,6 +14,7 @@ from utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
 
+MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 
 
 if __name__ == '__main__':
