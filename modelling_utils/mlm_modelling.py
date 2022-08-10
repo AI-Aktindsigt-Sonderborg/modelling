@@ -263,7 +263,7 @@ class MLMUnsupervisedModelling:
                 #     data_collator=self.data_collator,
                 #     tokenizer=self.tokenizer
                 # )
-
+                bias = model.cls.predictions.transform.dense.bias
                 model.save_pretrained(save_directory='test')
                 self.tokenizer.save_pretrained(save_directory='test')
                 config = AutoConfig.from_pretrained('test/')
@@ -271,16 +271,10 @@ class MLMUnsupervisedModelling:
                 test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
                                                              config=config,
                                                              cache_dir='test/')
-
+                test_model.cls.predictions.transform.dense.bias = bias
 
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
-                test_model2 = BertForMaskedLM.from_pretrained("test/",
-                                                             config=config,
-                                                             cache_dir='test/')
-
-
-                eval_loss3, eval_accuracy3 = self.evaluate(test_model2, val_loader)
 
                 print(
                     f"\n"
@@ -292,12 +286,6 @@ class MLMUnsupervisedModelling:
                     f"\n"
                     f"eval loss: {eval_loss2} \t"
                     f"eval acc: {eval_accuracy2}"
-                )
-
-                print(
-                    f"\n"
-                    f"eval loss: {eval_loss3} \t"
-                    f"eval acc: {eval_accuracy3}"
                 )
 
 
