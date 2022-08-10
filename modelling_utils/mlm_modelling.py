@@ -254,7 +254,7 @@ class MLMUnsupervisedModelling:
                     f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
-                set_seed(42)
+                # set_seed(42)
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
                 model.save_pretrained(save_directory='test')
@@ -269,7 +269,7 @@ class MLMUnsupervisedModelling:
                 lm_head = model.cls
                 lm_head = lm_head.to(self.args.device)
                 test_model.cls = lm_head
-                set_seed(42)
+                # set_seed(42)
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
 
