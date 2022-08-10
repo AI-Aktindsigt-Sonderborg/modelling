@@ -19,7 +19,7 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, \
-    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, AutoConfig
+    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, AutoConfig, set_seed
 
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
@@ -254,27 +254,22 @@ class MLMUnsupervisedModelling:
                     f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
+                set_seed(42)
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
-                # train_args = TrainingArguments(output_dir='test', do_train=True)
-                # trainer_test = Trainer(
-                #     model=model,
-                #     args=train_args,
-                #     data_collator=self.data_collator,
-                #     tokenizer=self.tokenizer
-                # )
-                bias = model.cls.predictions.transform.dense.bias
                 model.save_pretrained(save_directory='test')
+
                 self.tokenizer.save_pretrained(save_directory='test')
                 config = AutoConfig.from_pretrained('test/')
 
+                set_seed(42)
                 test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
                                                              config=config,
                                                              cache_dir='test/')
-                test_model.cls.predictions.transform.dense.bias = bias
                 lm_head = model.cls
                 lm_head = lm_head.to(self.args.device)
                 test_model.cls = lm_head
+                set_seed(42)
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
 
@@ -510,6 +505,7 @@ class MLMUnsupervisedModelling:
         """
         Load BertForMaskedLM, replace head and freeze all params in embeddings layer
         """
+        set_seed(42)
         model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         config = BertConfig.from_pretrained(self.args.model_name)
