@@ -5,7 +5,8 @@ import numpy as np
 from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, TrainingArguments, Trainer, MODEL_FOR_MASKED_LM_MAPPING
+    DataCollatorForLanguageModeling, TrainingArguments, Trainer, MODEL_FOR_MASKED_LM_MAPPING, \
+    AutoConfig
 
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM
@@ -13,8 +14,6 @@ from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
-
-MODEL_CONFIG_CLASSES = list(MODEL_FOR_MASKED_LM_MAPPING.keys())
 
 
 if __name__ == '__main__':
@@ -36,14 +35,15 @@ if __name__ == '__main__':
 
 
 
-    eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
-    print(f'eval_loss: {eval_loss}')
-    print(f'eval_acc: {eval_accuracy}')
+    # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
+    # print(f'eval_loss: {eval_loss}')
+    # print(f'eval_acc: {eval_accuracy}')
 
     mlm_eval.save_model(model=mlm_eval.model, data_collator=mlm_eval.data_collator,
                         output_dir="models/test/",
                         tokenizer=mlm_eval.tokenizer)
 
+    config = AutoConfig.from_pretrained('test/')
     mlm_eval.model = BertForMaskedLM.from_pretrained("models/test/")
     eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
     print(f'eval_loss: {eval_loss}')

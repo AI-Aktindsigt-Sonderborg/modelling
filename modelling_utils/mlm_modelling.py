@@ -268,11 +268,19 @@ class MLMUnsupervisedModelling:
                 self.tokenizer.save_pretrained(save_directory='test')
                 config = AutoConfig.from_pretrained('test/')
 
-                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True, config=config)
+                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
+                                                             config=config,
+                                                             cache_dir='test/')
 
 
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
+                test_model2 = BertForMaskedLM.from_pretrained("test/",
+                                                             config=config,
+                                                             cache_dir='test/')
+
+
+                eval_loss3, eval_accuracy3 = self.evaluate(test_model2, val_loader)
 
                 print(
                     f"\n"
@@ -284,6 +292,12 @@ class MLMUnsupervisedModelling:
                     f"\n"
                     f"eval loss: {eval_loss2} \t"
                     f"eval acc: {eval_accuracy2}"
+                )
+
+                print(
+                    f"\n"
+                    f"eval loss: {eval_loss3} \t"
+                    f"eval acc: {eval_accuracy3}"
                 )
 
 
@@ -890,7 +904,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                        self.args.lr_start_decay)
 
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
-
+                # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
                 optimizer.zero_grad()
 
                 # compute models
