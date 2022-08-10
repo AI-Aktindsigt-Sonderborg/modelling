@@ -272,7 +272,9 @@ class MLMUnsupervisedModelling:
                                                              config=config,
                                                              cache_dir='test/')
                 test_model.cls.predictions.transform.dense.bias = bias
-
+                lm_head = model.cls
+                lm_head = lm_head.to(self.args.device)
+                test_model.cls = lm_head
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
 
