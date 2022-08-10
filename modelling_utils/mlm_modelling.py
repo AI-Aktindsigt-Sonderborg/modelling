@@ -254,7 +254,7 @@ class MLMUnsupervisedModelling:
                     f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
-                # set_seed(42)
+
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
                 model.save_pretrained(save_directory='test')
@@ -262,14 +262,15 @@ class MLMUnsupervisedModelling:
                 self.tokenizer.save_pretrained(save_directory='test')
                 config = AutoConfig.from_pretrained('test/')
 
-                set_seed(42)
+
                 test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
-                                                             config=config,
+                                                             config=model.config,
                                                              cache_dir='test/')
+                # ToDo: Find fix for this
                 lm_head = model.cls
                 lm_head = lm_head.to(self.args.device)
                 test_model.cls = lm_head
-                # set_seed(42)
+
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
 
 
