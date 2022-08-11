@@ -104,6 +104,7 @@ class MLMUnsupervisedModelling:
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+        self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.train_data = None
         self.eval_data = None
         self.model = None
@@ -142,21 +143,21 @@ class MLMUnsupervisedModelling:
                 accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
-            self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
-            self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
-            self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
+            self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
+            self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
+            self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
 
-                self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                       best_acc=max_acc, best_loss=min_loss,
                                       total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
-                    output_dir=self.output_dir,
+                    output_dir=self.metrics_dir,
                     epochs=self.args.epochs,
                     lrs=all_lrs, accs=accuracies, loss=losses)
 
@@ -258,39 +259,11 @@ class MLMUnsupervisedModelling:
 
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
-                model.save_pretrained(save_directory='test')
-
-                self.tokenizer.save_pretrained(save_directory='test')
-                config = AutoConfig.from_pretrained('test/')
-
-                torch.save(model.cls.state_dict(), 'test/head.json')
-                test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
-                                                             config=model.config,
-                                                             cache_dir='test/')
-                # ToDo: Find fix for this
-                # lm_head = model.cls
-                config = BertConfig.from_pretrained(self.args.model_name)
-                new_head = BertOnlyMLMHeadCustom(config)
-                new_head.load_state_dict(torch.load('test/head.json'))
-
-                lm_head = new_head.to(self.args.device)
-                test_model.cls = lm_head
-
-                eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
-
-
                 print(
                     f"\n"
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
-
-                print(
-                    f"\n"
-                    f"eval loss: {eval_loss2} \t"
-                    f"eval acc: {eval_accuracy2}"
-                )
-
 
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
@@ -382,7 +355,7 @@ class MLMUnsupervisedModelling:
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, args=self.args)
+            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
@@ -612,12 +585,13 @@ class MLMUnsupervisedModelling:
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
-        # trainer_test.save_metrics()
-
+        torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
+        torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
         # model.save_pretrained(save_directory=output_dir)
 
+
     @staticmethod
-    def save_config(output_dir: str, args: argparse.Namespace):
+    def save_config(output_dir: str, metrics_dir: str,  args: argparse.Namespace):
         """
         Save config file with input arguments
         :param output_dir: model directory
@@ -627,7 +601,10 @@ class MLMUnsupervisedModelling:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        with open(os.path.join(output_dir, 'training_run_config.json'), 'w',
+        if not os.path.exists(metrics_dir):
+            os.makedirs(metrics_dir)
+
+        with open(os.path.join(metrics_dir, 'training_run_config.json'), 'w',
                   encoding='utf-8') as outfile:
             json.dump(args.__dict__, outfile, indent=2)
 
@@ -775,6 +752,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+        self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
 
@@ -808,20 +786,20 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
-            self.save_json(output_dir=self.output_dir, data=all_lrs, filename='learning_rates')
-            self.save_json(output_dir=self.output_dir, data=losses, filename='eval_losses')
-            self.save_json(output_dir=self.output_dir, data=accuracies, filename='accuracies')
+            self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
+            self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
+            self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
-                self.save_key_metrics(output_dir=self.output_dir, args=self.args,
+                self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                       best_acc=max_acc, best_loss=min_loss,
                                       total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
-                    output_dir=self.output_dir,
+                    output_dir=self.metrics_dir,
                     epsilon=str(self.args.epsilon),
                     delta=str(self.args.delta),
                     epochs=self.args.epochs,
@@ -958,7 +936,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, args=self.args)
+            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
@@ -1075,6 +1053,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
+        torch.save(model._module.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
+        torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))
 
-        # trainer_test.save_metrics()
         # model._module.save_pretrained(save_directory=output_dir)

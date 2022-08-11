@@ -9,7 +9,7 @@
   /python_api/*scrape_output* <path_to_project_dir>/data/scraped_data`
   - Go to project root and run: `python -m data_utils.preprocess_public_scraped_data.py 
   --train_outfile <train_file_name> --val_outfile <val_file_name>`
-- run train_mlm_unsupervised.py <args> to train mlm without differential 
+- run train <args> to train mlm without differential 
 privacy (see utils.input_args for available parameters): 
-  - example: `python train_mlm_unsupervised.py --train_data <train_file_name> 
+  - example: `python -m train.py --train_data <train_file_name> 
 --eval_data <val_file_nam>`

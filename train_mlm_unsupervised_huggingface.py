@@ -41,7 +41,8 @@ tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
 output_name = f'HF-{args.model_name.replace("/", "_")}-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 output_dir = os.path.join(MODEL_DIR, output_name)
-mlm_modelling.save_config(output_dir=output_dir, args=args)
+metrics_dir = os.path.join(output_dir, 'metrics')
+mlm_modelling.save_config(output_dir=output_dir, metrics_dir=metrics_dir, args=args)
 
 print("Save checkpoints to:", output_dir)
 
