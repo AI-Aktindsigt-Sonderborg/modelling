@@ -309,7 +309,8 @@ class MLMUnsupervisedModelling:
         :return: mean eval loss and mean accuracy
         """
         model.eval()
-        # model = model.to(self.args.device)
+        if not next(model.parameters()).is_cuda:
+            model = model.to(self.args.device)
         loss_arr = []
         accuracy_arr = []
 
@@ -636,6 +637,7 @@ class MLMUnsupervisedModelling:
                                     'lr': args.lr,
                                     'epochs': args.epochs,
                                     'train_batch_size': args.train_batch_size,
+                                    'eval_batch_size': args.eval_batch_size,
                                     'max_length': args.max_length,
                                     'lr_warmup_steps': args.lr_warmup_steps,
                                     'replace_head': args.replace_head,
