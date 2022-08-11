@@ -263,7 +263,7 @@ class MLMUnsupervisedModelling:
                 self.tokenizer.save_pretrained(save_directory='test')
                 config = AutoConfig.from_pretrained('test/')
 
-
+                torch.save(model.cls.state_dict(), 'test/head.json')
                 test_model = BertForMaskedLM.from_pretrained("test/", local_files_only=True,
                                                              config=model.config,
                                                              cache_dir='test/')
