@@ -309,7 +309,7 @@ class MLMUnsupervisedModelling:
         :return: mean eval loss and mean accuracy
         """
         model.eval()
-        model = model.to(self.args.device)
+        # model = model.to(self.args.device)
         loss_arr = []
         accuracy_arr = []
 
@@ -341,7 +341,7 @@ class MLMUnsupervisedModelling:
                 accuracy_arr.append(eval_acc)
 
             sleep(0.001)
-
+        model.train()
         return np.mean(loss_arr), np.mean(accuracy_arr)
 
     def set_up_training(self):
