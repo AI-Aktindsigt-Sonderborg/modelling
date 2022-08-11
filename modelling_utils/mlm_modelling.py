@@ -271,7 +271,7 @@ class MLMUnsupervisedModelling:
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
                     self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
-
+                model.train()
             step += 1
         if self.eval_data:
             return model, eval_losses, eval_accuracies, step, lrs
@@ -341,7 +341,7 @@ class MLMUnsupervisedModelling:
                 accuracy_arr.append(eval_acc)
 
             sleep(0.001)
-        model.train()
+
         return np.mean(loss_arr), np.mean(accuracy_arr)
 
     def set_up_training(self):
