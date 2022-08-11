@@ -114,11 +114,11 @@ class MLMArgParser:
         """
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=2400,
+        eval_params.add_argument("--evaluate_steps", type=int, default=50000,
                                  help="evaluate model accuracy after number of steps")
-        eval_params.add_argument("--logging_steps", type=int, default=2400,
+        eval_params.add_argument("--logging_steps", type=int, default=5000,
                                  help="Log model accuracy after number of steps")
-        eval_params.add_argument("--save_steps", type=int, default=None,
+        eval_params.add_argument("--save_steps", type=int, default=50000,
                                  help="save checkpoint after number of steps")
         eval_params.add_argument("--save_only_best_model", type=lambda x: bool(strtobool(x)),
                                  default=True,
