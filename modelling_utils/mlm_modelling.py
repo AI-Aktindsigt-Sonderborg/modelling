@@ -484,7 +484,7 @@ class MLMUnsupervisedModelling:
         """
         Load BertForMaskedLM, replace head and freeze all params in embeddings layer
         """
-        set_seed(42)
+        # set_seed(42)
         model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         config = BertConfig.from_pretrained(self.args.model_name)
