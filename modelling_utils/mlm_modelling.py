@@ -544,7 +544,7 @@ class MLMUnsupervisedModelling:
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if name.startswith("cls."):
+            if not name.startswith("cls."):
                 param.requires_grad = False
 
         model.train()
