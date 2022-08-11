@@ -147,7 +147,9 @@ class InternalDataPreprocessing:
 
 
 if __name__ == "__main__":
-    data_prep = InternalDataPreprocessing(split=0.95)
+    data_prep = InternalDataPreprocessing(split=0.95, data_sources=['dagw'],
+                                          train_output='train_dagw.json',
+                                          val_output='val_dagw.json')
     # data_prep.concat_and_save_data()
     # data_prep.split_to_sentences()
     # data_prep.create_train_val()

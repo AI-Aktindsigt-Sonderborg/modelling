@@ -9,6 +9,7 @@ from time import sleep
 from typing import List
 
 import numpy as np
+import torch
 from datasets import load_dataset
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
@@ -267,8 +268,12 @@ class MLMUnsupervisedModelling:
                                                              config=model.config,
                                                              cache_dir='test/')
                 # ToDo: Find fix for this
-                lm_head = model.cls
-                lm_head = lm_head.to(self.args.device)
+                # lm_head = model.cls
+                config = BertConfig.from_pretrained(self.args.model_name)
+                new_head = BertOnlyMLMHeadCustom(config)
+                new_head.load_state_dict(torch.load('test/head.json'))
+
+                lm_head = new_head.to(self.args.device)
                 test_model.cls = lm_head
 
                 eval_loss2, eval_accuracy2 = self.evaluate(test_model, val_loader)
