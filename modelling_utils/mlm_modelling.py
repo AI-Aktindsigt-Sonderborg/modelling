@@ -108,7 +108,10 @@ class MLMUnsupervisedModelling:
         self.train_data = None
         self.eval_data = None
         self.model = None
-        self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
+        self.local_alvenir_model_path = None
+        if self.args.load_alvenir_pretrained:
+            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name, 'best_model')
+            self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
         self.data_collator = self.get_data_collator
         self.scheduler = None
         if not self.args.freeze_layers:
@@ -360,11 +363,21 @@ class MLMUnsupervisedModelling:
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
-        if self.args.replace_head:
-            print('Replacing bert head')
-            model = self.load_model_and_replace_bert_head()
+        if self.args.load_alvenir_pretrained:
+            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
+            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
+            new_head = BertOnlyMLMHeadCustom(config)
+            new_head.load_state_dict(torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+
+            lm_head = new_head.to(self.args.device)
+            model.cls = lm_head
         else:
-            model = BertForMaskedLM.from_pretrained(self.args.model_name)
+            if self.args.replace_head:
+                print('Replacing bert head')
+                model = self.load_model_and_replace_bert_head()
+
+            else:
+                model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
@@ -489,6 +502,7 @@ class MLMUnsupervisedModelling:
         model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         config = BertConfig.from_pretrained(self.args.model_name)
+        # config.save_pretrained(self.metrics_dir)
         lm_head = BertOnlyMLMHeadCustom(config)
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
@@ -501,8 +515,11 @@ class MLMUnsupervisedModelling:
         return model
 
     def compute_lr_automatically(self):
-        self.args.freeze_layers_n_steps = int(np.ceil(0.1 * self.total_steps))
-        self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
+
+        if self.args.freeze_layers:
+            self.args.freeze_layers_n_steps = int(np.ceil(0.1 * self.total_steps))
+            self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
+
         self.args.lr_warmup_steps = int(
             np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
         self.args.lr_start_decay = int(
@@ -941,12 +958,21 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+        if self.args.load_alvenir_pretrained:
+            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
+            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
+            new_head = BertOnlyMLMHeadCustom(config)
+            new_head.load_state_dict(
+                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
 
-        if self.args.replace_head:
-            print('Replacing bert head')
-            model = self.load_model_and_replace_bert_head()
+            lm_head = new_head.to(self.args.device)
+            model.cls = lm_head
         else:
-            model = BertForMaskedLM.from_pretrained(self.args.model_name)
+            if self.args.replace_head:
+                print('Replacing bert head')
+                model = self.load_model_and_replace_bert_head()
+            else:
+                model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
@@ -959,10 +985,18 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                                       model=model)
 
         # ToDo: finish head warmup lr
-        self.scheduler = self.create_scheduler(dp_optimizer,
-                                               start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
-                                               end_factor=1,
-                                               total_iters=self.args.lr_freezed_warmup_steps)
+        if self.args.freeze_layers:
+            self.scheduler = self.create_scheduler(dp_optimizer,
+                                                   start_factor=self.args.lr_freezed /
+                                                                self.args.lr_freezed_warmup_steps,
+                                                   end_factor=1,
+                                                   total_iters=self.args.lr_freezed_warmup_steps)
+        else:
+            self.scheduler = self.create_scheduler(dp_optimizer,
+                                                   start_factor=self.args.lr /
+                                                                self.args.lr_warmup_steps,
+                                                   end_factor=1,
+                                                   total_iters=self.args.lr_warmup_steps)
 
         return dp_model, dp_optimizer, dp_train_loader
 

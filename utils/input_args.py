@@ -43,6 +43,8 @@ class MLMArgParser:
         Add model parameters
         """
         model_params = self.parser.add_argument_group('modelling')
+        model_params.add_argument("--load_alvenir_pretrained", type=lambda x: bool(strtobool(x)),
+                                  default=True, help="Whether to load local alvenir model")
         model_params.add_argument("--model_name", type=str, default='NbAiLab/nb-bert-base',
                                   help="foundation model from huggingface")
         model_params.add_argument("--save_config", type=lambda x: bool(strtobool(x)), default=True,
@@ -82,7 +84,7 @@ class MLMArgParser:
         training_params.add_argument("--device", type=str, default='cuda',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument("--freeze_layers", type=lambda x: bool(strtobool(x)),
-                                     default=True,
+                                     default=False,
                                      help="whether to freeze all bert layers until "
                                           "freeze_layers_n_steps is reached")
         training_params.add_argument("--freeze_layers_n_steps", type=int, default=10000,

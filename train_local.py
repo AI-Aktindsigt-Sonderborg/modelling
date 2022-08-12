@@ -1,11 +1,13 @@
 # pylint: disable=protected-access
+import torch
+
 from modelling_utils.mlm_modelling import MLMUnsupervisedModellingDP, MLMUnsupervisedModelling
 from utils.input_args import MLMArgParser
 
 # to check if cuda available - if not update pycharm fx
 # import torch
 # a = torch.cuda.is_available()
-
+# model = torch.hub.load('huggingface/transformers', 'modelForMaskedLM', 'bert')
 
 
 mlm_parser = MLMArgParser()
@@ -18,7 +20,8 @@ args.freeze_layers = True
 args.replace_head = True
 
 if args.local_testing:
-    args.model_name = 'Geotrend/distilbert-base-da-cased'
+    # args.model_name = 'Geotrend/distilbert-base-da-cased'
+    args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
     args.train_data = 'train_10.json'
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
@@ -38,15 +41,8 @@ if args.local_testing:
     # args.save_model_at_end = False
     args.make_plots = True
     # args.dp = False
+    args.freeze_layers = False
 
-# mlm_modelling = MLMUnsupervisedModellingDP(args=args)
-# mlm_modelling.load_model_and_replace_bert_head()
-# if args.dp:
-#     model = GradSampleModule(mlm_modelling.model)
-# else:
-#     model = mlm_modelling.model
-# model = mlm_modelling.freeze_layers(model)
-# model = mlm_modelling.unfreeze_layers(model)
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
