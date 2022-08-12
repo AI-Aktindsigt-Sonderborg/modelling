@@ -371,6 +371,12 @@ class MLMUnsupervisedModelling:
 
             lm_head = new_head.to(self.args.device)
             model.cls = lm_head
+
+            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
+            #  grad sampler - as this is not implemented in opacus
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
+
         else:
             if self.args.replace_head:
                 print('Replacing bert head')
@@ -511,6 +517,9 @@ class MLMUnsupervisedModelling:
         #  grad sampler - as this is not implemented in opacus
         for param in model.bert.embeddings.parameters():
             param.requires_grad = False
+
+        # for name, param in model.named_parameters():
+        #     print(f'name: {name}, grads: {param.requires_grad}')
 
         return model
 
@@ -894,7 +903,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
                 # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
-                optimizer.zero_grad()
+                # optimizer.zero_grad()
 
                 # compute models
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
@@ -908,6 +917,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 optimizer.step()
                 self.scheduler.step()
+                optimizer.zero_grad()
 
                 if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(
@@ -967,6 +977,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
             lm_head = new_head.to(self.args.device)
             model.cls = lm_head
+            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
+            #  grad sampler - as this is not implemented in opacus
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
+
         else:
             if self.args.replace_head:
                 print('Replacing bert head')
