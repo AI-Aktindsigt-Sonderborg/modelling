@@ -45,7 +45,7 @@ class MLMArgParser:
         model_params = self.parser.add_argument_group('modelling')
         model_params.add_argument("--load_alvenir_pretrained", type=lambda x: bool(strtobool(x)),
                                   default=True, help="Whether to load local alvenir model")
-        model_params.add_argument("--model_name", type=str, default='NbAiLab/nb-bert-base',
+        model_params.add_argument("--model_name", type=str, default='NbAiLab_nb-bert-base-2022-08-11_14-28-23',
                                   help="foundation model from huggingface")
         model_params.add_argument("--save_config", type=lambda x: bool(strtobool(x)), default=True,
                                   help="Whether to save input args to file")
