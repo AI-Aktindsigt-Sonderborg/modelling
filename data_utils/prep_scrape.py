@@ -57,13 +57,13 @@ class RawScrapePreprocessing:
         self.save_data = save_data
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
-    def from_raw_to_train_val(self):
+    def from_raw_to_train_val(self, split: float = 0.95):
         """
         Generate train and validation data as json line files from raw scrape file
         """
         self.extract_danish_and_save_from_raw()
         self.split_to_sentences(out_file_name='unique_sentences.json')
-        self.split_train_val(in_file='unique_sentences.json')
+        self.split_train_val(in_file='unique_sentences.json', split=split)
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
