@@ -92,7 +92,7 @@ class RawScrapePreprocessing:
                             data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                          'sha512': data_dict['redirected_to_url_sha512'],
                                          'text': data_dict['page_filtered_text']})
-            print(f'Number of false preds: {np.sum(false_lang_preds)}')
+            print(f'Number of false preds {filtered_filename}: {np.sum(false_lang_preds)}')
             with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in data:
