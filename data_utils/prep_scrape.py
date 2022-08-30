@@ -62,8 +62,8 @@ class RawScrapePreprocessing:
         Generate train and validation data as json line files from raw scrape file
         """
         self.extract_danish_and_save_from_raw()
-        self.split_to_sentences(out_file_name='scrape_v2_all_unique_sentences.json')
-        self.split_train_val(in_file='scrape_v2_all_unique_sentences.json')
+        self.split_to_sentences(out_file_name='unique_sentences.json')
+        self.split_train_val(in_file='unique_sentences.json')
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
@@ -82,14 +82,16 @@ class RawScrapePreprocessing:
                     if "__label__da" in data_dict['detected_page_lang']:
                         confidence = float(
                             re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
-                        if confidence > confidence_threshold:
+                        if confidence < confidence_threshold:
                             # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
                                 data_dict['page_filtered_text'] = fix_encoding(
                                     data_dict['page_filtered_text'])
-                            data.append({'id': index, 'text': data_dict['page_filtered_text']})
-                        else:
                             false_lang_preds.append(1)
+                        else:
+                            data.append({'id': index, 'url': data_dict['redirected_to_url'],
+                                         'sha512': data_dict['redirected_to_url_sha512'],
+                                         'text': data_dict['page_filtered_text']})
             print(f'Number of false preds: {np.sum(false_lang_preds)}')
             with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
@@ -97,7 +99,7 @@ class RawScrapePreprocessing:
                     json.dump(entry, outfile)
                     outfile.write('\n')
 
-    def split_to_sentences(self, out_file_name: str = 'scrape_v2_all_unique_sentences.json',
+    def split_to_sentences(self, out_file_name: str = 'unique_sentences.json',
                            word_count_threshold: int = 5):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
@@ -108,37 +110,40 @@ class RawScrapePreprocessing:
         dissapproved_sentences = []
         unique_approved = []
         seen = set()
-        with open(os.path.join(DATA_DIR, out_file_name), 'w',
+        with open(os.path.join(FILTERED_SCRAPE_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
-                with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
-                    for line in file:
-                        data_dict = json.loads(line)
-                        text_splitted = (
-                            '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
-                        sentences = re.split('\n', text_splitted)
-                        for i, sentence in enumerate(sentences):
-                            final_sentence = sentence.strip().replace('|', '')
-                            search = any(c.isalpha() for c in final_sentence)
-                            word_count = len(final_sentence.split(' '))
-                            if word_count >= word_count_threshold and search:
-                                approved_sentences.append(1)
-                                line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                if line_hash not in seen:
-                                    seen.add(line_hash)
-                                    unique_approved.append(1)
-                                    json.dump({'id': data_dict['id'], 'sentence': i,
-                                               'text': final_sentence}, outfile)
-                                    outfile.write('\n')
-                            else:
-                                dissapproved_sentences.append(1)
+                if not filename == out_file_name:
+                    with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
+                        for line in file:
+                            data_dict = json.loads(line)
+                            text_splitted = (
+                                '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+                            sentences = re.split('\n', text_splitted)
+                            for i, sentence in enumerate(sentences):
+                                final_sentence = sentence.strip().replace('|', '')
+                                search = any(c.isalpha() for c in final_sentence)
+                                word_count = len(final_sentence.split(' '))
+                                if word_count >= word_count_threshold and search:
+                                    approved_sentences.append(1)
+                                    line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                    if line_hash not in seen:
+                                        seen.add(line_hash)
+                                        unique_approved.append(1)
+                                        json.dump({'id': data_dict['id'], 'sentence': i,
+                                                   'url': data_dict['url'],
+                                                   'sha512': data_dict['sha512'],
+                                                   'text': final_sentence}, outfile)
+                                        outfile.write('\n')
+                                else:
+                                    dissapproved_sentences.append(1)
 
         print(f'Approved sentences: {np.sum(approved_sentences)}')
         print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')
         print(f'Total unique sentences: {np.sum(unique_approved)}')
 
     def split_train_val(self,
-                        in_file: str = 'scrape_v2_all_unique_sentences.json',
+                        in_file: str = 'unique_sentences.json',
                         split: float = 0.9,
                         seed: int = 42):
         """
@@ -148,7 +153,7 @@ class RawScrapePreprocessing:
         :param seed: seed for reproducibility
         """
         sentences = []
-        with open(os.path.join(DATA_DIR, in_file), 'r', encoding='utf-8') as file:
+        with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r', encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
                 sentences.append(data_dict['text'])
