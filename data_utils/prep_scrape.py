@@ -83,12 +83,12 @@ class RawScrapePreprocessing:
                         confidence = float(
                             re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
                         if confidence < confidence_threshold:
+                            false_lang_preds.append(1)
+                        else:
                             # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
                                 data_dict['page_filtered_text'] = fix_encoding(
                                     data_dict['page_filtered_text'])
-                            false_lang_preds.append(1)
-                        else:
                             data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                          'sha512': data_dict['redirected_to_url_sha512'],
                                          'text': data_dict['page_filtered_text']})
