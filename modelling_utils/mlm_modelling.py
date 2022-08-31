@@ -918,10 +918,12 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 if self.args.simulate_batches and (i+1) % self.args.batch_multiplier:
                     optimizer.step()
                     optimizer.zero_grad()
-                else:
+                elif not self.args.simulate_batches:
                     optimizer.step()
                     optimizer.zero_grad()
+
                 self.scheduler.step()
+
                 if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
