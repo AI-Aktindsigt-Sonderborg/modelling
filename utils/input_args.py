@@ -94,10 +94,10 @@ class MLMArgParser:
         lr_params.add_argument("--auto_lr_scheduling", type=lambda x: bool(strtobool(x)),
                                      default=True,
                                      help="Whether to compute lr_warmup and decay automatically\n"
-                                          "freeze_layers_n_steps = 10% of total_steps\n"
-                                          "lr_freezed_warmup_steps = 10% of freeze_layers_n_steps\n"
-                                          "lr_warmup_steps = 10% of steps training full model\n"
-                                          "lr_start_decay = 50% of training full model")
+                                          "freeze_layers_n_steps = 10%% of total_steps\n"
+                                          "lr_freezed_warmup_steps = 10%% of freeze_layers_n_steps\n"
+                                          "lr_warmup_steps = 10%% of steps training full model\n"
+                                          "lr_start_decay = 50%% of training full model")
         lr_params.add_argument("--lr_freezed", type=float, default=0.0005,
                                      help="number of steps to train head only")
         lr_params.add_argument("--lr_freezed_warmup_steps", type=int, default=1000,
