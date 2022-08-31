@@ -877,7 +877,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for batch in memory_safe_data_loader:
+            for i, batch in enumerate(memory_safe_data_loader):
 
                 if self.args.freeze_layers and step == 0:
                     model = self.freeze_layers(model)
@@ -914,10 +914,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 loss.backward()
 
                 train_losses.append(loss.item())
-
-                optimizer.step()
                 self.scheduler.step()
-                optimizer.zero_grad()
+                if self.args.simulate_batches and (i+1) % self.args.batch_multiplier:
+                    optimizer.step()
+                    optimizer.zero_grad()
 
                 if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(

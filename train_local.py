@@ -42,7 +42,8 @@ if args.local_testing:
     args.make_plots = True
     # args.dp = False
     args.freeze_layers = False
-
+    args.simulate_batches = True
+    args.batch_multiplier = 2
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
