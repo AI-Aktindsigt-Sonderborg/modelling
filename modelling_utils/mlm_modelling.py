@@ -903,7 +903,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
                 # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
-                # optimizer.zero_grad()
+                optimizer.zero_grad()
 
                 # compute models
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
@@ -917,12 +917,12 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 # self.scheduler.step()
                 if self.args.simulate_batches and ((i+1) % self.args.batch_multiplier == 0):
                     optimizer.step()
-                    optimizer.zero_grad()
+                    # optimizer.zero_grad()
+                    self.scheduler.step()
                 elif not self.args.simulate_batches:
                     optimizer.step()
-                    optimizer.zero_grad()
-
-                self.scheduler.step()
+                    # optimizer.zero_grad()
+                    self.scheduler.step()
 
                 if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(
