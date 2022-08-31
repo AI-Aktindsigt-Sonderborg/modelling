@@ -915,7 +915,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 train_losses.append(loss.item())
                 # self.scheduler.step()
-                if self.args.simulate_batches and (i+1) % self.args.batch_multiplier:
+                if self.args.simulate_batches and ((i+1) % self.args.batch_multiplier == 0):
                     optimizer.step()
                     optimizer.zero_grad()
                 elif not self.args.simulate_batches:
