@@ -148,8 +148,8 @@ class MLMArgParser:
         dp_params.add_argument("--lot_size", type=int, default=36,
                                help="Lot size specifies the sample size of which noise is "
                                     "injected into. Must be larger and multiple of batch size")
-        dp_params.add_argument("--simulate_batches", type=lambda x: bool(strtobool(x)), default=False,
-                               help="Simulate larger batch size due to GPU limitations")
-        dp_params.add_argument("--batch_multiplier", type=int, default=2,
-                               help="simulate batches the size of train_batch_size*batch_multiplier")
+        # dp_params.add_argument("--simulate_batches", type=lambda x: bool(strtobool(x)), default=False,
+        #                        help="Simulate larger batch size due to GPU limitations")
+        # dp_params.add_argument("--batch_multiplier", type=int, default=2,
+        #                        help="simulate batches the size of train_batch_size*batch_multiplier")
 

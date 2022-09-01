@@ -112,6 +112,8 @@ class MLMUnsupervisedModelling:
         if self.args.load_alvenir_pretrained:
             self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name, 'best_model')
             self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
         self.data_collator = self.get_data_collator
         self.scheduler = None
         if not self.args.freeze_layers:
@@ -136,14 +138,16 @@ class MLMUnsupervisedModelling:
             accuracies = []
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, eval_loss, eval_accuracy, step, lrs = self.train_epoch(model=model,
+                model, losses, accuracies, step, lrs = self.train_epoch(model=model,
                                                                               train_loader=train_loader,
                                                                               optimizer=optimizer,
                                                                               val_loader=eval_loader,
                                                                               epoch=epoch + 1,
-                                                                              step=step)
-                losses.extend(eval_loss)
-                accuracies.extend(eval_accuracy)
+                                                                              step=step,
+                                                                              eval_losses=losses,
+                                                                              eval_accuracies=accuracies)
+                # losses.extend(eval_loss)
+                # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
             self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
@@ -183,9 +187,11 @@ class MLMUnsupervisedModelling:
 
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0):
+                    step: int = 0, eval_losses: List[dict] = None, eval_accuracies: List[dict] = None):
         """
         Train one epoch
+        :param eval_accuracies:
+        :param eval_losses:
         :param model: Model of type BertForMaskedLM
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
@@ -200,8 +206,8 @@ class MLMUnsupervisedModelling:
         model = model.to(self.args.device)
 
         train_losses = []
-        eval_losses = []
-        eval_accuracies = []
+        # eval_losses = []
+        # eval_accuracies = []
         lrs = []
 
         for batch in train_loader:
@@ -802,16 +808,18 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             losses = []
             accuracies = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, eval_loss, eval_accuracy, step, lrs = \
+                model, losses, accuracies, step, lrs = \
                     self.train_epoch(model=model,
                                      train_loader=dp_train_loader,
                                      optimizer=dp_optimizer,
                                      val_loader=eval_loader,
                                      epoch=epoch + 1,
-                                     step=step)
+                                     step=step,
+                                     eval_losses=losses,
+                                     eval_accuracies=accuracies)
 
-                losses.extend(eval_loss)
-                accuracies.extend(eval_accuracy)
+                # losses.extend(eval_loss)
+                # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
             self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
@@ -852,9 +860,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0):
+                    step: int = 0, eval_losses: List[dict] = None, eval_accuracies: List[dict] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
+        :param eval_accuracies: list of evaluation accuracies
+        :param eval_losses: list of evaluation losses
         :param model: Differentially private model wrapped in GradSampleModule
         :param train_loader: Differentially private data loader of type DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
@@ -868,8 +878,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         model = model.to(self.args.device)
 
         train_losses = []
-        eval_losses = []
-        eval_accuracies = []
+        # eval_losses = []
+        # eval_accuracies = []
         lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,

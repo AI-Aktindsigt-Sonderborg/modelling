@@ -20,8 +20,8 @@ args.freeze_layers = True
 args.replace_head = True
 
 if args.local_testing:
-    # args.model_name = 'Geotrend/distilbert-base-da-cased'
-    args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
+    args.model_name = 'Geotrend/distilbert-base-da-cased'
+    # args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
     args.train_data = 'train_10.json'
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
@@ -41,9 +41,10 @@ if args.local_testing:
     # args.save_model_at_end = False
     args.make_plots = True
     # args.dp = False
-    args.freeze_layers = False
-    args.simulate_batches = True
-    args.batch_multiplier = 2
+    args.freeze_layers = True
+    # args.simulate_batches = True
+    # args.batch_multiplier = 2
+    args.load_alvenir_pretrained = False
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):

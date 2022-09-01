@@ -137,6 +137,7 @@ class RawScrapePreprocessing:
                                         outfile.write('\n')
                                 else:
                                     dissapproved_sentences.append(1)
+                print(f'unique in {filename}: {len(seen)}')
 
         print(f'Approved sentences: {np.sum(approved_sentences)}')
         print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')
