@@ -152,4 +152,3 @@ class MLMArgParser:
         #                        help="Simulate larger batch size due to GPU limitations")
         # dp_params.add_argument("--batch_multiplier", type=int, default=2,
         #                        help="simulate batches the size of train_batch_size*batch_multiplier")
-
