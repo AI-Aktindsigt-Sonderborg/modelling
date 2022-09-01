@@ -73,7 +73,7 @@ class MLMArgParser:
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--train_batch_size", type=int, default=6,
+        training_params.add_argument("--train_batch_size", type=int, default=8,
                                      help="Batch size specifies the sample size of which the "
                                           "gradients are computed. Depends on memory available")
         training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)),
@@ -145,7 +145,7 @@ class MLMArgParser:
                                  help="Whether to compute delta such that delta=1/len(train)")
         dp_params.add_argument("--max_grad_norm", type=float, default=1.2,
                                help="maximum norm to clip gradient")
-        dp_params.add_argument("--lot_size", type=int, default=36,
+        dp_params.add_argument("--lot_size", type=int, default=64,
                                help="Lot size specifies the sample size of which noise is "
                                     "injected into. Must be larger and multiple of batch size")
         # dp_params.add_argument("--simulate_batches", type=lambda x: bool(strtobool(x)), default=False,
