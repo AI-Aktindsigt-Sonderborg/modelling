@@ -109,10 +109,12 @@ class RawScrapePreprocessing:
         approved_sentences = []
         dissapproved_sentences = []
         unique_approved = []
-        seen = set()
+
         with open(os.path.join(FILTERED_SCRAPE_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
+                # ToDo: Maybe move seen above loop, such that we dont have same sentences across municipalities
+                seen = set()
                 if not filename == out_file_name:
                     with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
                         for line in file:
@@ -137,7 +139,7 @@ class RawScrapePreprocessing:
                                         outfile.write('\n')
                                 else:
                                     dissapproved_sentences.append(1)
-                print(f'unique in {filename}: {len(seen)}')
+                print(f'n unique in {filename}: {len(seen)}')
 
         print(f'Approved sentences: {np.sum(approved_sentences)}')
         print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')

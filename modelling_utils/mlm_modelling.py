@@ -593,7 +593,7 @@ class MLMUnsupervisedModelling:
         for name, param in model.named_parameters():
             if not name.startswith("bert.embeddings"):
                 param.requires_grad = True
-
+        print("bert layers unfreezed")
         model.train()
         return model
 
