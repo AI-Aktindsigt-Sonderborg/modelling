@@ -326,9 +326,9 @@ class MLMUnsupervisedModelling:
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         for batch in tqdm(val_loader, unit="batch", desc="Batch"):
             # for batch in val_loader:
-            output = model(input_ids=batch["input_ids"].to('cuda'),
-                           attention_mask=batch["attention_mask"].to('cuda'),
-                           labels=batch["labels"].to('cuda'))
+            output = model(input_ids=batch["input_ids"].to(self.args.device),
+                           attention_mask=batch["attention_mask"].to(self.args.device),
+                           labels=batch["labels"].to(self.args.device))
 
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
