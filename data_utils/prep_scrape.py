@@ -51,19 +51,21 @@ class RawScrapePreprocessing:
     def __init__(self,
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
-                 save_data: bool = True):
+                 save_data: bool = True,
+                 split: float = 0.95):
         self.train_output = train_output
         self.val_output = val_output
         self.save_data = save_data
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
+        self.split = split
 
-    def from_raw_to_train_val(self, split: float = 0.95):
+    def from_raw_to_train_val(self):
         """
         Generate train and validation data as json line files from raw scrape file
         """
         self.extract_danish_and_save_from_raw()
         self.split_to_sentences(out_file_name='unique_sentences.json')
-        self.split_train_val(in_file='unique_sentences.json', split=split)
+        self.split_train_val(in_file='unique_sentences.json', split=self.split)
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
@@ -194,9 +196,11 @@ if __name__ == '__main__':
                         default='train.json', help="Name of final training data file")
     parser.add_argument('--val_outfile', type=str,
                         default='validation.json', help="Name of final validation data file")
+    parser.add_argument('--split', type=float, default=0.95, help='training set size between 0 and 1')
 
     args = parser.parse_args()
 
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
-                                               val_output=args.val_outfile)
+                                               val_output=args.val_outfile,
+                                               split=args.split)
     data_preprocessor.from_raw_to_train_val()
