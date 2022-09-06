@@ -33,3 +33,8 @@ if not os.path.exists('data/internal_data'):
     # Create a new directory because it does not exist
     os.makedirs('data/internal_data')
     print("Create internal data dir!")
+
+if not os.path.exists('plots'):
+    # Create a new directory because it does not exist
+    os.makedirs('plots')
+    print("Create plots dir!")
