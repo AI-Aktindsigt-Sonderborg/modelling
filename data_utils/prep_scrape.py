@@ -64,8 +64,8 @@ class RawScrapePreprocessing:
         Generate train and validation data as json line files from raw scrape file
         """
         self.extract_danish_and_save_from_raw()
-        self.split_to_sentences(out_file_name='unique_sentences.json')
-        self.split_train_val(in_file='unique_sentences.json', split=self.split)
+        self.split_to_sentences()
+        self.split_train_val(split=self.split)
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
