@@ -5,3 +5,4 @@ sklearn==0.0
 matplotlib
 nltk
 ftfy
+wordcloud
