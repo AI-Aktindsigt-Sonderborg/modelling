@@ -61,6 +61,9 @@ if __name__ == '__main__':
                 data_dict = json.loads(line)
                 all_text += " " + data_dict['text']
 
+        with open(os.path.join(DATA_DIR, 'all_text.txt'), 'w', encoding='utf-8') as out_file:
+            out_file.write(all_text)
+
         wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
                               background_color="white").generate(
             all_text)
