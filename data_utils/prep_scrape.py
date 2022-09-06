@@ -135,6 +135,7 @@ class RawScrapePreprocessing:
                                         seen.add(line_hash)
                                         unique_approved.append(1)
                                         json.dump({'id': data_dict['id'], 'sentence': i,
+                                                   'kommune': filename.split('_')[0],
                                                    'url': data_dict['url'],
                                                    'sha512': data_dict['sha512'],
                                                    'text': final_sentence}, outfile)
