@@ -12,7 +12,7 @@ stopwords_union = set.union(set(stopwords.words('danish')), STOPWORDS)
 # danish_stopwords = set(stopwords.words('danish'))
 stopwords_union.update(
     ["ved", "kan", "samt", "så", "se", "får", "få", "f eks", "f", "eks", "Stk", "stk", "må", "der",
-     "for"])
+     "for", "fx", ])
 
 
 def individual_clouds(in_file: str = 'unique_sentences.json', max_words: int = 75):

@@ -88,6 +88,8 @@ class RawScrapePreprocessing:
                             false_lang_preds.append(1)
                         elif '<div ' in data_dict['page_filtered_text']:
                             false_lang_preds.append(1)
+                        elif 'endif' in data_dict['page_filtered_text']:
+                            false_lang_preds.append(1)
                         else:
                             # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
