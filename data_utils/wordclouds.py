@@ -50,30 +50,34 @@ def individual_clouds(in_file: str = 'unique_sentences.json', max_words: int = 7
         plt.axis("off")
         plt.savefig(f'plots/{current_muni}.png')
 
+def total_cloud(in_file: str = 'unique_sentences.json', max_words: int = 75,
+                exclude_muni: str = ''):
 
-if __name__ == '__main__':
-    def total_cloud(in_file: str = 'unique_sentences.json', max_words: int = 75):
-
-        all_text = ""
-        with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r',
-                  encoding='utf-8') as file:
-            for i, line in enumerate(file):
-                data_dict = json.loads(line)
+    all_text = ""
+    with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r',
+              encoding='utf-8') as file:
+        for i, line in enumerate(file):
+            data_dict = json.loads(line)
+            if not data_dict['kommune'] == exclude_muni:
                 all_text += " " + data_dict['text']
 
-        with open(os.path.join(DATA_DIR, 'all_text.txt'), 'w', encoding='utf-8') as out_file:
-            out_file.write(all_text)
+    with open(os.path.join(DATA_DIR, 'all_text.txt'), 'w', encoding='utf-8') as out_file:
+        out_file.write(all_text)
 
-        wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
-                              background_color="white").generate(
-            all_text)
-        plt.imshow(wordcloud, interpolation='bilinear')
-        plt.title(f'Mest benyttede ord i alle kommuner')
-        plt.axis("off")
-        plt.savefig(f'plots/total_cloud.png')
+    wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
+                          background_color="white").generate(
+        all_text)
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.title(f'Mest benyttede ord i alle kommuner')
+    plt.axis("off")
+    plt.savefig(f'plots/total_cloud_ex-{exclude_muni}.png')
+
+
+if __name__ == '__main__':
 
     total_cloud()
-
+    total_cloud(exclude_muni='kk')
+    individual_clouds()
     # with open(os.path.join(DATA_DIR, 'municipality_list'), 'r', encoding='utf-8') as file:
     #     municipalities = file.readlines()
 
