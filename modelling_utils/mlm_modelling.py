@@ -532,7 +532,7 @@ class MLMUnsupervisedModelling:
     def compute_lr_automatically(self):
 
         if self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 40000
+            # self.args.freeze_layers_n_steps = 20000
             self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
         self.args.lr_warmup_steps = int(

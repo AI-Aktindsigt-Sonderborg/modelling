@@ -87,7 +87,7 @@ class MLMArgParser:
                                      default=False,
                                      help="whether to freeze all bert layers until "
                                           "freeze_layers_n_steps is reached")
-        training_params.add_argument("--freeze_layers_n_steps", type=int, default=10000,
+        training_params.add_argument("--freeze_layers_n_steps", type=int, default=20000,
                                      help="number of steps to train head only")
 
         lr_params = self.parser.add_argument_group('learning rate')
