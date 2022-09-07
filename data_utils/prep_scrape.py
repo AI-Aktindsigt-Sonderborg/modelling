@@ -86,6 +86,8 @@ class RawScrapePreprocessing:
                             re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
                         if confidence < confidence_threshold:
                             false_lang_preds.append(1)
+                        elif '<div ' in data_dict['page_filtered_text']:
+                            false_lang_preds.append(1)
                         else:
                             # ToDo: Below does not fix encoding for example 'Ã¥'
                             if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
@@ -94,7 +96,8 @@ class RawScrapePreprocessing:
                             data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                          'sha512': data_dict['redirected_to_url_sha512'],
                                          'text': data_dict['page_filtered_text']})
-            print(f'Number of false preds {filtered_filename}: {np.sum(false_lang_preds)}')
+            # print(f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
+            print(f'Urls approved in {filtered_filename}: {index - np.sum(false_lang_preds)} of {index}')
             with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in data:
