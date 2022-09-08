@@ -106,7 +106,7 @@ class RawScrapePreprocessing:
                     json.dump(entry, outfile)
                     outfile.write('\n')
 
-    def split_to_sentences(self, out_file_name: str = 'unique_sentences1.json',
+    def split_to_sentences(self, out_file_name: str = 'unique_sentences.json',
                            word_count_threshold: int = 10):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
@@ -154,7 +154,7 @@ class RawScrapePreprocessing:
         print(f'Total unique sentences: {np.sum(unique_approved)}')
 
     def split_train_val(self,
-                        in_file: str = 'unique_sentences1.json',
+                        in_file: str = 'unique_sentences.json',
                         split: float = 0.95,
                         seed: int = 42):
         """

@@ -45,7 +45,7 @@ if args.local_testing:
     # args.simulate_batches = True
     # args.batch_multiplier = 2
     args.load_alvenir_pretrained = False
-
+    args.freeze_layers_n_steps = 2
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
