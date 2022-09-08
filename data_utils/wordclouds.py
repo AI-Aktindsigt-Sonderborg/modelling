@@ -75,7 +75,7 @@ def total_cloud(in_file: str = 'unique_sentences.json', max_words: int = 75,
     plt.axis("off")
     plt.savefig(f'plots/total_cloud_ex-{exclude_muni}.png')
 
- def get_vocab_size(in_file: str = 'all_text_ex-.txt'):
+def get_vocab_size(in_file: str = 'all_text_ex-.txt'):
 
         with open(os.path.join(DATA_DIR, in_file), 'r',
                   encoding='utf-8') as file:
