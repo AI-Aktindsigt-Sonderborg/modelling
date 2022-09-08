@@ -59,7 +59,11 @@ def total_cloud(in_file: str = 'unique_sentences.json', max_words: int = 75,
         for i, line in enumerate(file):
             data_dict = json.loads(line)
             if 'Station.Kort' in data_dict['text']:
+                print(data_dict['id'])
+                print(data_dict['sentence'])
+                print(data_dict['kommune'])
                 print(data_dict['text'])
+
             if not data_dict['kommune'] == exclude_muni:
                 all_text += " " + data_dict['text']
 
