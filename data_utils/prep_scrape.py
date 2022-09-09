@@ -80,6 +80,8 @@ class RawScrapePreprocessing:
             false_lang_preds = []
             with open(os.path.join(SCRAPED_DATA_DIR, filename), 'rb') as file:
                 for index, line in enumerate(file):
+                    if index == 1397:
+                        print()
                     data_dict = json.loads(line)
                     if "__label__da" in data_dict['detected_page_lang']:
                         confidence = float(

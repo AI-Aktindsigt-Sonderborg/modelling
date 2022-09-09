@@ -51,6 +51,8 @@ class MLMArgParser:
                                   help="Whether to save input args to file")
         model_params.add_argument("--replace_head", type=lambda x: bool(strtobool(x)), default=True,
                                   help="Whether to replace bert head")
+        model_params.add_argument("--freeze_embeddings", type=lambda x: bool(strtobool(x)), default=True,
+                                  help="Whether to freeze embeddings layer")
         model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)),
                                   default=True,
                                   help="Whether to save final model after training.")

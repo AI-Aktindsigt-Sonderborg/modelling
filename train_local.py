@@ -7,8 +7,6 @@ from utils.input_args import MLMArgParser
 # to check if cuda available - if not update pycharm fx
 # import torch
 # a = torch.cuda.is_available()
-# model = torch.hub.load('huggingface/transformers', 'modelForMaskedLM', 'bert')
-
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
@@ -22,6 +20,7 @@ args.replace_head = True
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
     # args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
+    # args.model_name = 'NbAiLab/nb-bert-base'
     args.train_data = 'train_10.json'
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
@@ -45,7 +44,9 @@ if args.local_testing:
     # args.simulate_batches = True
     # args.batch_multiplier = 2
     args.load_alvenir_pretrained = False
+    args.freeze_embeddings = False
     args.freeze_layers_n_steps = 2
+
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
@@ -58,3 +59,7 @@ else:
     mlm_modelling = MLMUnsupervisedModelling(args=args)
 
 mlm_modelling.train_model()
+
+# for name, param in model.named_parameters():
+#     if 'embed' in name:
+#         print(f'name: {name}, param: {param.requires_grad}')

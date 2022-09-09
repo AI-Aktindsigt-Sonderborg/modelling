@@ -521,8 +521,9 @@ class MLMUnsupervisedModelling:
 
         # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
         #  grad sampler - as this is not implemented in opacus
-        for param in model.bert.embeddings.parameters():
-            param.requires_grad = False
+        if self.args.freeze_embeddings:
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
 
         # for name, param in model.named_parameters():
         #     print(f'name: {name}, grads: {param.requires_grad}')
@@ -926,7 +927,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 train_losses.append(loss.item())
                 # self.scheduler.step()
 
-
                 optimizer.step()
                 optimizer.zero_grad()
                 self.scheduler.step()
@@ -1038,13 +1038,13 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         model = model.train()
 
         # validate if model works with opacus
-        self.validate_model(model)
+        self.validate_model(model, strict=True)
 
-        trainer.create_optimizer()
-
+        # trainer.create_optimizer()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.0005)
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=model,
-            optimizer=trainer.optimizer,
+            optimizer=optimizer,
             data_loader=train_loader,
             epochs=self.args.epochs,
             target_epsilon=self.args.epsilon,
@@ -1091,6 +1091,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
+            # ToDo: Fix this
             if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
 
