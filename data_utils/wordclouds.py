@@ -86,7 +86,10 @@ def get_vocab_size(in_file: str = 'all_text_ex-.txt'):
             all_text = file.read()
 
         unique_words = set(all_text.split(' '))
-        print(unique_words)
+        with open('unique_words.txt', 'w', encoding='utf-8') as out_file:
+            for word in unique_words:
+                out_file.write(word + '\n')
+
         return unique_words
 
 def make_sentence_boxplots(in_file: str = 'unique_sentences.json'):
@@ -123,12 +126,26 @@ def make_sentence_boxplots(in_file: str = 'unique_sentences.json'):
 
 if __name__ == '__main__':
 
-    total_cloud()
+    # total_cloud()
     # total_cloud(exclude_muni='kk')
     # individual_clouds()
 
 
-    get_vocab_size()
+    # get_vocab_size()
 
+    def read_vocab(in_file: str = 'unique_words.txt'):
+        words = []
+        with open(os.path.join(DATA_DIR, in_file), 'r',
+                  encoding='utf-8') as file:
+            for line in file:
+                words.append(file.readline())
+
+        return words
+
+    all_words = read_vocab()
+
+    with open('data/discarded_words.txt', 'w', encoding='utf-8') as out_file:
+        for word in discard:
+            out_file.write(word + '\n')
 
     print()

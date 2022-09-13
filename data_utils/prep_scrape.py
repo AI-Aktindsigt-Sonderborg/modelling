@@ -123,32 +123,38 @@ class RawScrapePreprocessing:
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
                 # ToDo: Maybe move seen above loop, such that we dont have same sentences across municipalities
+
                 seen = set()
                 if not filename == out_file_name:
-                    with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
-                        for line in file:
-                            data_dict = json.loads(line)
-                            text_splitted = (
-                                '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
-                            sentences = re.split('\n', text_splitted)
-                            for i, sentence in enumerate(sentences):
-                                final_sentence = sentence.strip().replace('|', '')
-                                search = any(c.isalpha() for c in final_sentence)
-                                word_count = len(final_sentence.split(' '))
-                                if word_count >= word_count_threshold and search:
-                                    approved_sentences.append(1)
-                                    line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                    if line_hash not in seen:
-                                        seen.add(line_hash)
-                                        unique_approved.append(1)
-                                        json.dump({'id': data_dict['id'], 'sentence': i,
-                                                   'kommune': filename.split('_')[0],
-                                                   'url': data_dict['url'],
-                                                   'sha512': data_dict['sha512'],
-                                                   'text': final_sentence}, outfile)
-                                        outfile.write('\n')
-                                else:
-                                    dissapproved_sentences.append(1)
+                    with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
+                              encoding='utf-8') as muni_outfile:
+                        test_sentences = []
+                        with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
+                            for line in file:
+                                data_dict = json.loads(line)
+                                text_splitted = (
+                                    '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+                                sentences = re.split('\n', text_splitted)
+                                for i, sentence in enumerate(sentences):
+                                    final_sentence = sentence.strip().replace('|', '').replace(u'\xa0', u' ')
+                                    search = any(c.isalpha() for c in final_sentence)
+                                    word_count = len(final_sentence.split(' '))
+                                    if word_count >= word_count_threshold and search:
+                                        approved_sentences.append(1)
+                                        line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                        if line_hash not in seen:
+                                            seen.add(line_hash)
+                                            unique_approved.append(1)
+                                            json.dump({'id': data_dict['id'], 'sentence': i,
+                                                       'kommune': filename.split('_')[0],
+                                                       'url': data_dict['url'],
+                                                       'sha512': data_dict['sha512'],
+                                                       'text': final_sentence}, outfile)
+                                            outfile.write('\n')
+                                            muni_outfile.write(f"{data_dict['id']} - {i} - {final_sentence}\n")
+                                            test_sentences.append([data_dict['id'], i, data_dict['url'], final_sentence])
+                                    else:
+                                        dissapproved_sentences.append(1)
                 print(f'n unique in {filename}: {len(seen)}')
 
         print(f'Approved sentences: {np.sum(approved_sentences)}')
@@ -211,4 +217,5 @@ if __name__ == '__main__':
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
                                                val_output=args.val_outfile,
                                                split=args.split)
-    data_preprocessor.from_raw_to_train_val()
+    data_preprocessor.split_to_sentences()
+    # data_preprocessor.from_raw_to_train_val()
