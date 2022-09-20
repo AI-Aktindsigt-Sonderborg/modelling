@@ -132,9 +132,32 @@ class RawScrapePreprocessing:
                         with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
                             for line in file:
                                 data_dict = json.loads(line)
+                                if data_dict['id'] == 37 and filename == 'vejen_filtered.json':
+                                    print()
                                 text_splitted = (
                                     '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
                                 sentences = re.split('\n', text_splitted)
+                                new_sentences = []
+                                for sentence in sentences:
+                                    find_wrong_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]|\?[A-Z]|\.[A-Z]", sentence)]
+                                    # wrong_letters = len(find_wrong_letter_break_ids) > 0
+                                    #
+                                    # find_wrong_question_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("\?[A-Z]", sentence)]
+                                    # wrong_question = len(find_wrong_question_break_ids) > 0
+                                    #
+                                    # find_wrong_dot_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("\.[A-Z]", sentence)]
+                                    # wrong_dot = len(find_wrong_dot_break_ids) > 0
+
+                                    if len(find_wrong_break_ids) > 0:
+                                        for id in find_wrong_break_ids:
+                                            tmp_sentence = sentence[:id[0]+1] + '\n' + sentence[id[1]-1:]
+                                            splitted = tmp_sentence.split('\n')
+
+                                            new_sentences.extend(splitted)
+
+                                    else:
+                                        new_sentences.append(sentence)
+
                                 for i, sentence in enumerate(sentences):
                                     final_sentence = sentence.strip().replace('|', '').replace(u'\xa0', u' ')
                                     search = any(c.isalpha() for c in final_sentence)
