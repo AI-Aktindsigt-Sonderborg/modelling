@@ -109,57 +109,86 @@ class RawScrapePreprocessing:
                     outfile.write('\n')
 
     def split_to_sentences(self, out_file_name: str = 'unique_sentences.json',
-                           word_count_threshold: int = 10):
+                           word_count_threshold: int = 8):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
         :param word_count_threshold: Keep only sentences with word count above this threshold
         """
         approved_sentences = []
-        dissapproved_sentences = []
+        disapproved_sentences = []
         unique_approved = []
-
+        wrong_letter_counter = 0
+        wrong_letter_examples = []
         with open(os.path.join(FILTERED_SCRAPE_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
                 # ToDo: Maybe move seen above loop, such that we dont have same sentences across municipalities
 
                 seen = set()
-                if not filename == out_file_name:
+                if not filename == out_file_name: # and filename == 'vejen_filtered.json':
                     with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
                               encoding='utf-8') as muni_outfile:
                         test_sentences = []
-                        with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'rb') as file:
+                        with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'r', encoding='utf-8') as file:
                             for line in file:
                                 data_dict = json.loads(line)
-                                if data_dict['id'] == 37 and filename == 'vejen_filtered.json':
-                                    print()
+                                # if data_dict['id'] == 7 and filename == 'vejen_filtered.json':
+                                #     print()
+                                raw_text = repr(data_dict['text'])
+                                special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
+                                prep_text = raw_text
+                                for special_char in special_chars1:
+                                    prep_text = prep_text.replace(special_char, ' ')
+                                special_chars2 = ['”', '"', "'"]
+                                for special_char in special_chars2:
+                                    prep_text = prep_text.replace(special_char, '')
+
+                                # removed_whitespaces = ' '.join(raw_text.split())
+                                prep_text = re.sub(' +', ' ', prep_text)
+
+                                special_words = ['NemID', 'MitID', 'minSU', 'LinkedIn']
+                                for case in special_words:
+                                    if case in prep_text:
+                                        prep_text = prep_text.replace(case, case.lower())
+
+                                find_wrong_break_ids = [
+                                    (m.start(0), m.end(0)) for m in
+                                    re.finditer("\?[A-Z]|\.[A-Z]", prep_text)]
+
+                                if len(find_wrong_break_ids) > 0:
+                                    increment = 1
+                                    for id in find_wrong_break_ids:
+                                        prep_text = prep_text[:id[0]+increment] + '\n' + prep_text[id[0]+increment:]
+                                        increment += 1
+
+
                                 text_splitted = (
-                                    '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+                                    '\n'.join(self.sentence_splitter.tokenize(prep_text)))
+
+                                # text_splitted = (
+                                #     '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+
                                 sentences = re.split('\n', text_splitted)
                                 new_sentences = []
-                                for sentence in sentences:
-                                    find_wrong_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]|\?[A-Z]|\.[A-Z]", sentence)]
-                                    # wrong_letters = len(find_wrong_letter_break_ids) > 0
-                                    #
-                                    # find_wrong_question_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("\?[A-Z]", sentence)]
-                                    # wrong_question = len(find_wrong_question_break_ids) > 0
-                                    #
-                                    # find_wrong_dot_break_ids = [(m.start(0), m.end(0)) for m in re.finditer("\.[A-Z]", sentence)]
-                                    # wrong_dot = len(find_wrong_dot_break_ids) > 0
 
-                                    if len(find_wrong_break_ids) > 0:
-                                        for id in find_wrong_break_ids:
-                                            tmp_sentence = sentence[:id[0]+1] + '\n' + sentence[id[1]-1:]
-                                            splitted = tmp_sentence.split('\n')
+                                for j, sentence in enumerate(sentences):
 
-                                            new_sentences.extend(splitted)
+                                    find_wrong_letter_ids = [
+                                        (m.start(0), m.end(0)) for m in
+                                        re.finditer("[a-z][A-Z]", sentence)]
+
+                                    if len(find_wrong_letter_ids) > 0:
+                                        wrong_letter_counter += 1
+                                        wrong_letter_examples.append(data_dict['url'])
+                                        disapproved_sentences.append(
+                                            f'{data_dict["id"]} - {j} - {sentence}')
 
                                     else:
                                         new_sentences.append(sentence)
 
-                                for i, sentence in enumerate(sentences):
-                                    final_sentence = sentence.strip().replace('|', '').replace(u'\xa0', u' ')
+                                for i, sentence in enumerate(new_sentences):
+                                    final_sentence = sentence.strip()
                                     search = any(c.isalpha() for c in final_sentence)
                                     word_count = len(final_sentence.split(' '))
                                     if word_count >= word_count_threshold and search:
@@ -177,12 +206,19 @@ class RawScrapePreprocessing:
                                             muni_outfile.write(f"{data_dict['id']} - {i} - {final_sentence}\n")
                                             test_sentences.append([data_dict['id'], i, data_dict['url'], final_sentence])
                                     else:
-                                        dissapproved_sentences.append(1)
+                                        if not len(final_sentence.strip()) == 0:
+                                            disapproved_sentences.append(f'{data_dict["id"]} - {i} - {final_sentence}')
                 print(f'n unique in {filename}: {len(seen)}')
 
+        with open(os.path.join(DATA_DIR, 'data_testing/disaproved_sentences.txt'), 'w',
+                  encoding='utf-8') as dis_outfile:
+            for sentence in disapproved_sentences:
+                dis_outfile.write(f"{sentence}\n")
+
         print(f'Approved sentences: {np.sum(approved_sentences)}')
-        print(f'Dissapproved sentences: {np.sum(dissapproved_sentences)}')
+        print(f'Disapproved sentences: {len(disapproved_sentences)}')
         print(f'Total unique sentences: {np.sum(unique_approved)}')
+        print()
 
     def split_train_val(self,
                         in_file: str = 'unique_sentences.json',
@@ -240,5 +276,5 @@ if __name__ == '__main__':
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
                                                val_output=args.val_outfile,
                                                split=args.split)
-    data_preprocessor.split_to_sentences()
-    # data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor.split_to_sentences()
+    data_preprocessor.from_raw_to_train_val()
