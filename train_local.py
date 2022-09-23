@@ -29,7 +29,7 @@ if args.local_testing:
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
     args.lr_freezed = 0.001
-
+    args.lr = 0.001
     args.lr_warmup_steps = 10
     args.lr_start_decay = 20
     # args.lr = 0.01
@@ -39,12 +39,12 @@ if args.local_testing:
     args.max_length = 8
     # args.save_model_at_end = False
     args.make_plots = True
-    # args.dp = False
+    args.dp = False
     args.freeze_layers = True
     # args.simulate_batches = True
     # args.batch_multiplier = 2
     args.load_alvenir_pretrained = False
-    args.freeze_embeddings = False
+    # args.freeze_embeddings = False
     args.freeze_layers_n_steps = 2
 
 
@@ -59,6 +59,7 @@ else:
     mlm_modelling = MLMUnsupervisedModelling(args=args)
 
 mlm_modelling.train_model()
+
 
 # for name, param in model.named_parameters():
 #     if 'embed' in name:

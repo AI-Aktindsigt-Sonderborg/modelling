@@ -133,8 +133,8 @@ class RawScrapePreprocessing:
                         with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'r', encoding='utf-8') as file:
                             for line in file:
                                 data_dict = json.loads(line)
-                                # if data_dict['id'] == 7 and filename == 'vejen_filtered.json':
-                                #     print()
+                                if data_dict['id'] == 4 and filename == 'kk_filtered.json':
+                                    print()
                                 raw_text = repr(data_dict['text'])
                                 special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
                                 prep_text = raw_text
@@ -145,12 +145,20 @@ class RawScrapePreprocessing:
                                     prep_text = prep_text.replace(special_char, '')
 
                                 # removed_whitespaces = ' '.join(raw_text.split())
-                                prep_text = re.sub(' +', ' ', prep_text)
+                                # prep_text = re.sub(' +', ' ', prep_text)
 
-                                special_words = ['NemID', 'MitID', 'minSU', 'LinkedIn']
-                                for case in special_words:
+                                special_words1 = ['NemID', 'MitID', 'minSU', 'LinkedIn', ]
+                                for case in special_words1:
                                     if case in prep_text:
                                         prep_text = prep_text.replace(case, case.lower())
+
+                                # special_words2 = ['E-Boks', 'e-Boks', 'e-boks', 'mit.dk',
+                                #                   'Mit.dk', 'borger.dk', 'Borger.dk']
+                                # for case in special_words2:
+                                #     if case in prep_text:
+                                #         prep_text = prep_text.replace(case, case + ' ')
+
+                                prep_text = re.sub(' +', ' ', prep_text)
 
                                 find_wrong_break_ids = [
                                     (m.start(0), m.end(0)) for m in
