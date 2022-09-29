@@ -84,5 +84,5 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
 
 if __name__ == '__main__':
     approved_content, disapproved_content = read_sentences_compute_ppl()
-    threshold_higher_dis = [x for x in disapproved_content if x['ppl_score'] > 250]
-    print()
+    # threshold_higher_dis = [x for x in disapproved_content if x['ppl_score'] > 250]
+    # print()
