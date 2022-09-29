@@ -51,7 +51,7 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
         open(os.path.join(DATA_DIR, 'data_testing/disapproved_sentences_ppl.txt'), 'w', encoding='utf-8') as disapproved_sentences:
 
         for i, line in enumerate(file):
-            if i % 1000 == 0:
+            if i % 5000 == 0:
                 print(i)
             data_dict = json.loads(line)
 
