@@ -3,11 +3,15 @@ import json
 import os.path
 import random
 import re
+import sys
 from typing import List
 
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
+from transformers import AutoTokenizer, AutoModelWithLMHead
+
+from data_utils.perplex import score_gpt2
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR
 
 
@@ -58,6 +62,8 @@ class RawScrapePreprocessing:
         self.save_data = save_data
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
         self.split = split
+        self.model_id = 'pere/norwegian-gpt2'
+
 
     def from_raw_to_train_val(self):
         """
@@ -228,6 +234,57 @@ class RawScrapePreprocessing:
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
 
+
+    def add_ppl(self, in_file: str = 'unique_sentences.json',
+                                   out_file_name: str = 'unique_sentences_ppl.json'):
+
+        model, tokenizer = self.load_model_for_ppl()
+
+        approved_counter = 0
+        disapproved_counter = 0
+        with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r', encoding='utf-8') as file, \
+            open(os.path.join(DATA_DIR, f'data_testing/{out_file_name}'), 'w',
+                 encoding='utf-8') as out_file:
+
+            for i, line in enumerate(file):
+                if i % 5000 == 0 and i != 0:
+                    print(i)
+                data_dict = json.loads(line)
+
+                # text = data_dict['text'].replace(u'\\.', '')
+                # new = re.sub('\.', '', data_dict['text'])
+                # new = re.sub('[\.|,]', ' ', data_dict['text'])
+                # criteria_matching = text_processor.matches_all_criteria(data_dict['text'])
+                # criterias.append(criteria_matching)
+                # if not criteria_matching: #or not (data_dict['text'][0].isupper()):
+                #     continue
+
+                try:
+                    # greedy_score = score(data_dict['text'])
+                    ppl_score = score_gpt2(data_dict['text'], model, tokenizer)
+                    if ppl_score < 1000:
+                        approved_counter += 1
+                    else:
+                        disapproved_counter += 1
+
+                    data_dict['ppl_score'] = str(ppl_score)
+                except Exception as e:
+                    print(e)
+                    print(data_dict['text'])
+                    sys.exit()
+
+                json.dump(data_dict, out_file)
+                out_file.write('\n')
+
+                # if ppl_score < 1000.0:
+                #     # approved_content.append(data_dict)
+                #     approved_sentences.write(
+                #         f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
+                #         f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
+            print(f'ppl disapproved: {disapproved_counter}')
+            print(f'ppl approved: {approved_counter}')
+            print(f'total: {i+1}, pct approved: {float(approved_counter/(i+1))*100.0}%')
+
     def split_train_val(self,
                         in_file: str = 'unique_sentences.json',
                         split: float = 0.95,
@@ -267,6 +324,15 @@ class RawScrapePreprocessing:
             for entry in val:
                 json.dump({'text': entry}, outfile)
                 outfile.write('\n')
+
+    @staticmethod
+    def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2', device: str = 'cuda'):
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+        model = AutoModelWithLMHead.from_pretrained(model_id)
+        model = model.to(device)
+        model.eval()
+        return model, tokenizer
 
 
 if __name__ == '__main__':

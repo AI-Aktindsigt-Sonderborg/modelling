@@ -10,7 +10,7 @@ import re
 from local_constants import FILTERED_SCRAPE_DIR, DATA_DIR
 
 
-def score_gpt2(sentence):
+def score_gpt2(sentence, model, tokenizer):
     words = sentence.split(" ")
     new_sentence = " ".join(words[0:200])
     tensor_input = tokenizer.encode(sentence, return_tensors='pt').to(device)
@@ -31,8 +31,6 @@ def score_gpt2(sentence):
 
 device = "cuda"
 with torch.no_grad():
-    # tokenizer = AutoTokenizer.from_pretrained("Maltehb/danish-bert-botxo")
-    # model = AutoModelForMaskedLM.from_pretrained("Maltehb/danish-bert-botxo")
     model_id = "pere/norwegian-gpt2"
 
     tokenizer = AutoTokenizer.from_pretrained(model_id)
@@ -42,7 +40,7 @@ with torch.no_grad():
     model.eval()
 
 
-def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
+def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json', out_file: str = 'unique_sentences_ppl.json'):
     approved_content = []
     disapproved_content = []
     criterias = []
@@ -65,7 +63,7 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
 
             try:
                 # greedy_score = score(data_dict['text'])
-                ppl_score = score_gpt2(data_dict['text'])
+                ppl_score = score_gpt2(data_dict['text'], model, tokenizer)
                 data_dict['ppl_score'] = ppl_score
             except Exception as e:
                 print(e)
@@ -80,7 +78,6 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
                 # disapproved_content.append(data_dict)
                 disapproved_sentences.write(f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
                                          f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
-
 
     # return approved_content, disapproved_content
 
