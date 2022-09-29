@@ -19,9 +19,9 @@ def score_gpt2(sentence):
         return 50000.0
 
     if max(tensor_input[0]) > 50257:
-        print("Bad sentence")
-        print(new_sentence)
-        return 50000.0
+        # print("Bad sentence")
+        # print(new_sentence)
+        return 51000.0
 
     with torch.no_grad():
         result = model(tensor_input, labels=tensor_input).loss
@@ -51,6 +51,8 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
         open(os.path.join(DATA_DIR, 'data_testing/disapproved_sentences_ppl.txt'), 'w', encoding='utf-8') as disapproved_sentences:
 
         for i, line in enumerate(file):
+            if i % 1000 == 0:
+                print(i)
             data_dict = json.loads(line)
 
             # text = data_dict['text'].replace(u'\\.', '')
@@ -71,18 +73,21 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json'):
                 sys.exit()
 
             if ppl_score < 1000.0:
-                approved_content.append(data_dict)
-                approved_sentences.write(f"{data_dict['id']} -- {data_dict['sentence']} -- "
+                # approved_content.append(data_dict)
+                approved_sentences.write(f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
                                          f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
             else:
-                disapproved_content.append(data_dict)
-                disapproved_sentences.write(f"{data_dict['id']} -- {data_dict['sentence']} -- "
+                # disapproved_content.append(data_dict)
+                disapproved_sentences.write(f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
                                          f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
 
 
-    return approved_content, disapproved_content
+    # return approved_content, disapproved_content
 
 if __name__ == '__main__':
-    approved_content, disapproved_content = read_sentences_compute_ppl()
+    from utils.helpers import TimeCode
+    code_timer = TimeCode()
+    read_sentences_compute_ppl()
+    code_timer.how_long_since_start()
     # threshold_higher_dis = [x for x in disapproved_content if x['ppl_score'] > 250]
     # print()
