@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from time import sleep
 from typing import List
-
+import shutil
 import numpy as np
 import torch
 from datasets import load_dataset
@@ -641,6 +641,20 @@ class MLMUnsupervisedModelling:
         with open(os.path.join(metrics_dir, 'training_run_config.json'), 'w',
                   encoding='utf-8') as outfile:
             json.dump(args.__dict__, outfile, indent=2)
+
+        if args.print_only_args:
+            metrics_path = os.path.dirname(os.path.abspath(metrics_dir))
+            print('Training arguments:\n')
+            for arg in args.__dict__:
+                print(f'{arg}: {args.__dict__[arg]}')
+
+            print('\nDeleting model path...')
+            shutil.rmtree(metrics_path)
+
+
+
+            print('\nExiting.')
+            sys.exit(0)
 
     @staticmethod
     def get_lr(optimizer: DPOptimizer):

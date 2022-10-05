@@ -28,6 +28,12 @@ class MLMArgParser:
         self.add_eval_params()
         self.add_dp_params()
 
+    def add_helper_args(self):
+        helper_params = self.parser.add_argument_group('helpers')
+        helper_params.add_argument("--print_only_args", type=lambda x: bool(strtobool(x)),
+                                   default=False, help="training data file name")
+
+
     def add_data_params(self):
         """
         Add data parameters
@@ -154,3 +160,4 @@ class MLMArgParser:
         #                        help="Simulate larger batch size due to GPU limitations")
         # dp_params.add_argument("--batch_multiplier", type=int, default=2,
         #                        help="simulate batches the size of train_batch_size*batch_multiplier")
+
