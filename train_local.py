@@ -46,7 +46,7 @@ if args.local_testing:
     args.load_alvenir_pretrained = False
     # args.freeze_embeddings = False
     args.freeze_layers_n_steps = 2
-    args.print_only_args = True
+    # args.print_only_args = True
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
