@@ -80,8 +80,9 @@ class RawScrapePreprocessing:
         self.split_to_sentences()
         self.filter_ppl_scores()
         self.split_train_val(split=self.split)
+
     @staticmethod
-    def filter_ppl_scores(ppl_threshold: int = 1000, in_file_name: str = 'unique_sentences.json'):
+    def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
         with open(os.path.join(PREP_DATA_DIR, in_file_name), 'r', encoding='utf-8') as infile, \
             open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
                  'w', encoding='utf-8') as approved_sentences, \
@@ -91,13 +92,14 @@ class RawScrapePreprocessing:
             for index, line in enumerate(infile):
                 data_dict = json.loads(line)
                 ppl_score = float(data_dict['ppl_score'])
-                if ppl_score < 10000:
+                if ppl_score < ppl_threshold:
                     json.dump(data_dict, approved_sentences)
                     approved_sentences.write('\n')
                 else:
                     json.dump(data_dict, disapproved_sentences)
                     disapproved_sentences.write('\n')
 
+            print()
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
@@ -133,7 +135,7 @@ class RawScrapePreprocessing:
                                          'sha512': data_dict['redirected_to_url_sha512'],
                                          'text': data_dict['page_filtered_text']})
             # print(f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
-            print(f'Urls approved in {filtered_filename}: {index - np.sum(false_lang_preds)} of {index}')
+            # print(f'Urls approved in {filtered_filename}: {index - np.sum(false_lang_preds)} of {index}')
             with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in data:
@@ -331,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', type=float, default=0.95, help='training set size between 0 and 1')
     parser.add_argument('--add_ppl', type=lambda x: bool(strtobool(x)), default=True,
                         help='whether or not to add ppl_score to unique sentences')
-    parser.add_argument('--ppl_threshold', type=int, default=1000,
+    parser.add_argument('--ppl_threshold', type=int, default=10000,
                         help='ppl_threshold for approving sentences')
 
     args = parser.parse_args()
@@ -341,4 +343,5 @@ if __name__ == '__main__':
                                                split=args.split,
                                                ppl_threshold=args.ppl_threshold)
     # data_preprocessor.split_to_sentences()
-    data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor.from_raw_to_train_val()
+    data_preprocessor.filter_ppl_scores()
