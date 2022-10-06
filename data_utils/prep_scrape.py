@@ -4,6 +4,7 @@ import os.path
 import random
 import re
 import sys
+from distutils.util import strtobool
 from typing import List
 
 import nltk.data
@@ -12,7 +13,7 @@ from ftfy import fix_encoding
 from transformers import AutoTokenizer, AutoModelWithLMHead
 
 from data_utils.perplex import score_gpt2
-from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR
+from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
 
 
 class RawScrapePreprocessing:
@@ -56,13 +57,19 @@ class RawScrapePreprocessing:
                  train_output: str = 'train.json',
                  val_output: str = 'validation.json',
                  save_data: bool = True,
-                 split: float = 0.95):
+                 split: float = 0.95,
+                 add_ppl: bool = True,
+                 ppl_threshold: int = 1000):
         self.train_output = train_output
         self.val_output = val_output
         self.save_data = save_data
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
         self.split = split
+        self.ppl_threshold = ppl_threshold
+        self.add_ppl = add_ppl
         self.model_id = 'pere/norwegian-gpt2'
+
+
 
 
     def from_raw_to_train_val(self):
@@ -71,7 +78,26 @@ class RawScrapePreprocessing:
         """
         self.extract_danish_and_save_from_raw()
         self.split_to_sentences()
+        self.filter_ppl_scores()
         self.split_train_val(split=self.split)
+    @staticmethod
+    def filter_ppl_scores(ppl_threshold: int = 1000, in_file_name: str = 'unique_sentences.json'):
+        with open(os.path.join(PREP_DATA_DIR, in_file_name), 'r', encoding='utf-8') as infile, \
+            open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
+                 'w', encoding='utf-8') as approved_sentences, \
+            open(os.path.join(PREP_DATA_DIR,'disapproved_sentences_ppl.json'),
+                 'w', encoding='utf-8') as disapproved_sentences:
+
+            for index, line in enumerate(infile):
+                data_dict = json.loads(line)
+                ppl_score = float(data_dict['ppl_score'])
+                if ppl_score < 10000:
+                    json.dump(data_dict, approved_sentences)
+                    approved_sentences.write('\n')
+                else:
+                    json.dump(data_dict, disapproved_sentences)
+                    disapproved_sentences.write('\n')
+
 
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
@@ -121,108 +147,118 @@ class RawScrapePreprocessing:
         :param out_file_name: json out file name
         :param word_count_threshold: Keep only sentences with word count above this threshold
         """
+        if self.add_ppl:
+            model, tokenizer = self.load_model_for_ppl(model_id=self.model_id)
         approved_sentences = []
         disapproved_sentences = []
         unique_approved = []
         wrong_letter_counter = 0
         wrong_letter_examples = []
-        with open(os.path.join(FILTERED_SCRAPE_DIR, out_file_name), 'w',
+        with open(os.path.join(PREP_DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
                 # ToDo: Maybe move seen above loop, such that we dont have same sentences across municipalities
 
                 seen = set()
-                if not filename == out_file_name: # and filename == 'vejen_filtered.json':
-                    with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
-                              encoding='utf-8') as muni_outfile:
-                        test_sentences = []
-                        with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'r', encoding='utf-8') as file:
-                            for line in file:
-                                data_dict = json.loads(line)
-                                if data_dict['id'] == 4 and filename == 'kk_filtered.json':
-                                    print()
-                                raw_text = repr(data_dict['text'])
-                                special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
-                                prep_text = raw_text
-                                for special_char in special_chars1:
-                                    prep_text = prep_text.replace(special_char, ' ')
-                                special_chars2 = ['”', '"', "'"]
-                                for special_char in special_chars2:
-                                    prep_text = prep_text.replace(special_char, '')
+                # if not filename == out_file_name: # and filename == 'vejen_filtered.json':
+                with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
+                          encoding='utf-8') as muni_outfile:
+                    test_sentences = []
+                    with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'r', encoding='utf-8') as file:
+                        for line in file:
+                            data_dict = json.loads(line)
+                            raw_text = repr(data_dict['text'])
+                            special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
+                            prep_text = raw_text
+                            for special_char in special_chars1:
+                                prep_text = prep_text.replace(special_char, ' ')
+                            special_chars2 = ['”', '"', "'"]
+                            for special_char in special_chars2:
+                                prep_text = prep_text.replace(special_char, '')
 
-                                # removed_whitespaces = ' '.join(raw_text.split())
-                                # prep_text = re.sub(' +', ' ', prep_text)
+                            # removed_whitespaces = ' '.join(raw_text.split())
+                            # prep_text = re.sub(' +', ' ', prep_text)
 
-                                special_words1 = ['NemID', 'MitID', 'minSU', 'LinkedIn', ]
-                                for case in special_words1:
-                                    if case in prep_text:
-                                        prep_text = prep_text.replace(case, case.lower())
+                            special_words1 = ['NemID', 'MitID', 'minSU', 'LinkedIn', ]
+                            for case in special_words1:
+                                if case in prep_text:
+                                    prep_text = prep_text.replace(case, case.lower())
 
-                                # special_words2 = ['E-Boks', 'e-Boks', 'e-boks', 'mit.dk',
-                                #                   'Mit.dk', 'borger.dk', 'Borger.dk']
-                                # for case in special_words2:
-                                #     if case in prep_text:
-                                #         prep_text = prep_text.replace(case, case + ' ')
+                            # special_words2 = ['E-Boks', 'e-Boks', 'e-boks', 'mit.dk',
+                            #                   'Mit.dk', 'borger.dk', 'Borger.dk']
+                            # for case in special_words2:
+                            #     if case in prep_text:
+                            #         prep_text = prep_text.replace(case, case + ' ')
 
-                                prep_text = re.sub(' +', ' ', prep_text)
+                            prep_text = re.sub(' +', ' ', prep_text)
 
-                                find_wrong_break_ids = [
+                            find_wrong_break_ids = [
+                                (m.start(0), m.end(0)) for m in
+                                re.finditer("\?[A-Z]|\.[A-Z]", prep_text)]
+
+                            if len(find_wrong_break_ids) > 0:
+                                increment = 1
+                                for id in find_wrong_break_ids:
+                                    prep_text = prep_text[:id[0]+increment] + '\n' + prep_text[id[0]+increment:]
+                                    increment += 1
+
+
+                            text_splitted = (
+                                '\n'.join(self.sentence_splitter.tokenize(prep_text)))
+
+                            # text_splitted = (
+                            #     '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
+
+                            sentences = re.split('\n', text_splitted)
+                            new_sentences = []
+
+                            for j, sentence in enumerate(sentences):
+
+                                find_wrong_letter_ids = [
                                     (m.start(0), m.end(0)) for m in
-                                    re.finditer("\?[A-Z]|\.[A-Z]", prep_text)]
+                                    re.finditer("[a-z][A-Z]", sentence)]
 
-                                if len(find_wrong_break_ids) > 0:
-                                    increment = 1
-                                    for id in find_wrong_break_ids:
-                                        prep_text = prep_text[:id[0]+increment] + '\n' + prep_text[id[0]+increment:]
-                                        increment += 1
+                                if len(find_wrong_letter_ids) > 0:
+                                    wrong_letter_counter += 1
+                                    wrong_letter_examples.append(data_dict['url'])
+                                    disapproved_sentences.append(
+                                        f'{data_dict["id"]} - {j} - {sentence}')
 
+                                else:
+                                    new_sentences.append(sentence)
 
-                                text_splitted = (
-                                    '\n'.join(self.sentence_splitter.tokenize(prep_text)))
-
-                                # text_splitted = (
-                                #     '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
-
-                                sentences = re.split('\n', text_splitted)
-                                new_sentences = []
-
-                                for j, sentence in enumerate(sentences):
-
-                                    find_wrong_letter_ids = [
-                                        (m.start(0), m.end(0)) for m in
-                                        re.finditer("[a-z][A-Z]", sentence)]
-
-                                    if len(find_wrong_letter_ids) > 0:
-                                        wrong_letter_counter += 1
-                                        wrong_letter_examples.append(data_dict['url'])
-                                        disapproved_sentences.append(
-                                            f'{data_dict["id"]} - {j} - {sentence}')
-
-                                    else:
-                                        new_sentences.append(sentence)
-
-                                for i, sentence in enumerate(new_sentences):
-                                    final_sentence = sentence.strip()
-                                    search = any(c.isalpha() for c in final_sentence)
-                                    word_count = len(final_sentence.split(' '))
-                                    if word_count >= word_count_threshold and search:
-                                        approved_sentences.append(1)
-                                        line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                        if line_hash not in seen:
-                                            seen.add(line_hash)
-                                            unique_approved.append(1)
+                            for i, sentence in enumerate(new_sentences):
+                                final_sentence = sentence.strip()
+                                search = any(c.isalpha() for c in final_sentence)
+                                word_count = len(final_sentence.split(' '))
+                                if word_count >= word_count_threshold and search:
+                                    approved_sentences.append(1)
+                                    line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                    if line_hash not in seen:
+                                        seen.add(line_hash)
+                                        unique_approved.append(1)
+                                        if self.add_ppl:
+                                            ppl_score = score_gpt2(final_sentence, model, tokenizer)
+                                            json.dump({'id': data_dict['id'], 'sentence': i,
+                                                       'kommune': filename.split('_')[0],
+                                                       'url': data_dict['url'],
+                                                       'sha512': data_dict['sha512'],
+                                                       'text': final_sentence,
+                                                       'ppl_score': str(ppl_score)}, outfile)
+                                        else:
                                             json.dump({'id': data_dict['id'], 'sentence': i,
                                                        'kommune': filename.split('_')[0],
                                                        'url': data_dict['url'],
                                                        'sha512': data_dict['sha512'],
                                                        'text': final_sentence}, outfile)
-                                            outfile.write('\n')
-                                            muni_outfile.write(f"{data_dict['id']} - {i} - {final_sentence}\n")
-                                            test_sentences.append([data_dict['id'], i, data_dict['url'], final_sentence])
-                                    else:
-                                        if not len(final_sentence.strip()) == 0:
-                                            disapproved_sentences.append(f'{data_dict["id"]} - {i} - {final_sentence}')
-                print(f'n unique in {filename}: {len(seen)}')
+
+                                        outfile.write('\n')
+                                        muni_outfile.write(f"{data_dict['id']} - {i} - {final_sentence}\n")
+                                        test_sentences.append([data_dict['id'], i, data_dict['url'], final_sentence])
+                                else:
+                                    if not len(final_sentence.strip()) == 0:
+                                        disapproved_sentences.append(f'{data_dict["id"]} - {i} - {final_sentence}')
+                    print(f'n unique in {filename}: {len(seen)}')
 
         with open(os.path.join(DATA_DIR, 'data_testing/disaproved_sentences.txt'), 'w',
                   encoding='utf-8') as dis_outfile:
@@ -233,57 +269,6 @@ class RawScrapePreprocessing:
         print(f'Disapproved sentences: {len(disapproved_sentences)}')
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
-
-
-    def add_ppl(self, in_file: str = 'unique_sentences.json',
-                                   out_file_name: str = 'unique_sentences_ppl.json'):
-
-        model, tokenizer = self.load_model_for_ppl()
-
-        approved_counter = 0
-        disapproved_counter = 0
-        with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r', encoding='utf-8') as file, \
-            open(os.path.join(DATA_DIR, f'data_testing/{out_file_name}'), 'w',
-                 encoding='utf-8') as out_file:
-
-            for i, line in enumerate(file):
-                if i % 5000 == 0 and i != 0:
-                    print(i)
-                data_dict = json.loads(line)
-
-                # text = data_dict['text'].replace(u'\\.', '')
-                # new = re.sub('\.', '', data_dict['text'])
-                # new = re.sub('[\.|,]', ' ', data_dict['text'])
-                # criteria_matching = text_processor.matches_all_criteria(data_dict['text'])
-                # criterias.append(criteria_matching)
-                # if not criteria_matching: #or not (data_dict['text'][0].isupper()):
-                #     continue
-
-                try:
-                    # greedy_score = score(data_dict['text'])
-                    ppl_score = score_gpt2(data_dict['text'], model, tokenizer)
-                    if ppl_score < 1000:
-                        approved_counter += 1
-                    else:
-                        disapproved_counter += 1
-
-                    data_dict['ppl_score'] = str(ppl_score)
-                except Exception as e:
-                    print(e)
-                    print(data_dict['text'])
-                    sys.exit()
-
-                json.dump(data_dict, out_file)
-                out_file.write('\n')
-
-                # if ppl_score < 1000.0:
-                #     # approved_content.append(data_dict)
-                #     approved_sentences.write(
-                #         f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
-                #         f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
-            print(f'ppl disapproved: {disapproved_counter}')
-            print(f'ppl approved: {approved_counter}')
-            print(f'total: {i+1}, pct approved: {float(approved_counter/(i+1))*100.0}%')
 
     def split_train_val(self,
                         in_file: str = 'unique_sentences.json',
@@ -296,7 +281,7 @@ class RawScrapePreprocessing:
         :param seed: seed for reproducibility
         """
         sentences = []
-        with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r', encoding='utf-8') as file:
+        with open(os.path.join(PREP_DATA_DIR, in_file), 'r', encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
                 sentences.append(data_dict['text'])
@@ -344,11 +329,16 @@ if __name__ == '__main__':
     parser.add_argument('--val_outfile', type=str,
                         default='validation.json', help="Name of final validation data file")
     parser.add_argument('--split', type=float, default=0.95, help='training set size between 0 and 1')
+    parser.add_argument('--add_ppl', type=lambda x: bool(strtobool(x)), default=True,
+                        help='whether or not to add ppl_score to unique sentences')
+    parser.add_argument('--ppl_threshold', type=int, default=1000,
+                        help='ppl_threshold for approving sentences')
 
     args = parser.parse_args()
 
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
                                                val_output=args.val_outfile,
-                                               split=args.split)
+                                               split=args.split,
+                                               ppl_threshold=args.ppl_threshold)
     # data_preprocessor.split_to_sentences()
     data_preprocessor.from_raw_to_train_val()
