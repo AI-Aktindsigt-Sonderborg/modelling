@@ -1,17 +1,19 @@
 import hashlib
 import json
+import mmap
 import os.path
 import random
 import re
 import sys
 from distutils.util import strtobool
 from typing import List
+from tqdm import tqdm
 
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
 from transformers import AutoTokenizer, AutoModelWithLMHead
-
+from utils.helpers import count_num_lines
 from data_utils.perplex import score_gpt2
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
 
@@ -69,9 +71,6 @@ class RawScrapePreprocessing:
         self.add_ppl = add_ppl
         self.model_id = 'pere/norwegian-gpt2'
 
-
-
-
     def from_raw_to_train_val(self):
         """
         Generate train and validation data as json line files from raw scrape file
@@ -81,26 +80,6 @@ class RawScrapePreprocessing:
         self.filter_ppl_scores()
         self.split_train_val(split=self.split)
 
-    @staticmethod
-    def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
-        with open(os.path.join(PREP_DATA_DIR, in_file_name), 'r', encoding='utf-8') as infile, \
-            open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
-                 'w', encoding='utf-8') as approved_sentences, \
-            open(os.path.join(PREP_DATA_DIR,'disapproved_sentences_ppl.json'),
-                 'w', encoding='utf-8') as disapproved_sentences:
-
-            for index, line in enumerate(infile):
-                data_dict = json.loads(line)
-                ppl_score = float(data_dict['ppl_score'])
-                if ppl_score < ppl_threshold:
-                    json.dump(data_dict, approved_sentences)
-                    approved_sentences.write('\n')
-                else:
-                    json.dump(data_dict, disapproved_sentences)
-                    disapproved_sentences.write('\n')
-
-            print()
-
     def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
         """
         Filters each raw scrape file, keeps line id and page_filtered_text where danish is detected
@@ -108,14 +87,18 @@ class RawScrapePreprocessing:
         :param confidence_threshold: Keep all "danish-detected" sentences with a score above this
         threshold
         """
+
+        print("Initial extraction of raw text...")
         for filename in os.listdir(SCRAPED_DATA_DIR):
             data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            with open(os.path.join(SCRAPED_DATA_DIR, filename), 'rb') as file:
-                for index, line in enumerate(file):
-                    if index == 1397:
-                        print()
+            in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
+            total_lines = count_num_lines(file_path=in_file_path)
+            with open(in_file_path, 'rb') as file:
+                for index, line in enumerate(tqdm(file,
+                                                  total=total_lines,
+                                                  desc=filename, unit="line")):
                     data_dict = json.loads(line)
                     if "__label__da" in data_dict['detected_page_lang']:
                         confidence = float(
@@ -134,13 +117,13 @@ class RawScrapePreprocessing:
                             data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                          'sha512': data_dict['redirected_to_url_sha512'],
                                          'text': data_dict['page_filtered_text']})
-            # print(f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
-            # print(f'Urls approved in {filtered_filename}: {index - np.sum(false_lang_preds)} of {index}')
+
             with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                       encoding='utf-8') as outfile:
                 for entry in data:
                     json.dump(entry, outfile)
                     outfile.write('\n')
+        print("Finished extracting text.")
 
     def split_to_sentences(self, out_file_name: str = 'unique_sentences.json',
                            word_count_threshold: int = 8):
@@ -156,6 +139,7 @@ class RawScrapePreprocessing:
         unique_approved = []
         wrong_letter_counter = 0
         wrong_letter_examples = []
+        print("Splitting data to sentences...")
         with open(os.path.join(PREP_DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             for filename in os.listdir(FILTERED_SCRAPE_DIR):
@@ -166,8 +150,13 @@ class RawScrapePreprocessing:
                 with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
                           encoding='utf-8') as muni_outfile:
                     test_sentences = []
-                    with open(os.path.join(FILTERED_SCRAPE_DIR, filename), 'r', encoding='utf-8') as file:
-                        for line in file:
+                    in_file_path = os.path.join(FILTERED_SCRAPE_DIR, filename)
+                    total_lines = count_num_lines(file_path=in_file_path)
+                    with open(in_file_path, 'r', encoding='utf-8') as file:
+
+                        for line in tqdm(file,
+                                         total=total_lines,
+                                         desc=filename, unit="line"):
                             data_dict = json.loads(line)
                             raw_text = repr(data_dict['text'])
                             special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
@@ -201,9 +190,9 @@ class RawScrapePreprocessing:
                             if len(find_wrong_break_ids) > 0:
                                 increment = 1
                                 for id in find_wrong_break_ids:
-                                    prep_text = prep_text[:id[0]+increment] + '\n' + prep_text[id[0]+increment:]
+                                    prep_text = prep_text[:id[0] + increment] + '\n' + prep_text[id[
+                                                                                                     0] + increment:]
                                     increment += 1
-
 
                             text_splitted = (
                                 '\n'.join(self.sentence_splitter.tokenize(prep_text)))
@@ -255,25 +244,27 @@ class RawScrapePreprocessing:
                                                        'text': final_sentence}, outfile)
 
                                         outfile.write('\n')
-                                        muni_outfile.write(f"{data_dict['id']} - {i} - {final_sentence}\n")
-                                        test_sentences.append([data_dict['id'], i, data_dict['url'], final_sentence])
+                                        muni_outfile.write(
+                                            f"{data_dict['id']} - {i} - {final_sentence}\n")
+                                        test_sentences.append(
+                                            [data_dict['id'], i, data_dict['url'], final_sentence])
                                 else:
                                     if not len(final_sentence.strip()) == 0:
-                                        disapproved_sentences.append(f'{data_dict["id"]} - {i} - {final_sentence}')
-                    print(f'n unique in {filename}: {len(seen)}')
+                                        disapproved_sentences.append(
+                                            f'{data_dict["id"]} - {i} - {final_sentence}')
+                    # print(f'n unique in {filename}: {len(seen)}')
 
         with open(os.path.join(DATA_DIR, 'data_testing/disaproved_sentences.txt'), 'w',
                   encoding='utf-8') as dis_outfile:
             for sentence in disapproved_sentences:
                 dis_outfile.write(f"{sentence}\n")
-
         print(f'Approved sentences: {np.sum(approved_sentences)}')
         print(f'Disapproved sentences: {len(disapproved_sentences)}')
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
 
     def split_train_val(self,
-                        in_file: str = 'unique_sentences.json',
+                        in_file: str = 'approved_sentences_ppl.json',
                         split: float = 0.95,
                         seed: int = 42):
         """
@@ -321,8 +312,27 @@ class RawScrapePreprocessing:
         model.eval()
         return model, tokenizer
 
+    @staticmethod
+    def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
+        with open(os.path.join(PREP_DATA_DIR, in_file_name), 'r', encoding='utf-8') as infile, \
+            open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
+                 'w', encoding='utf-8') as approved_sentences, \
+            open(os.path.join(PREP_DATA_DIR, 'disapproved_sentences_ppl.json'),
+                 'w', encoding='utf-8') as disapproved_sentences:
+
+            for index, line in enumerate(infile):
+                data_dict = json.loads(line)
+                ppl_score = float(data_dict['ppl_score'])
+                if ppl_score < ppl_threshold:
+                    json.dump(data_dict, approved_sentences)
+                    approved_sentences.write('\n')
+                else:
+                    json.dump(data_dict, disapproved_sentences)
+                    disapproved_sentences.write('\n')
+
 
 if __name__ == '__main__':
+
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -330,7 +340,8 @@ if __name__ == '__main__':
                         default='train.json', help="Name of final training data file")
     parser.add_argument('--val_outfile', type=str,
                         default='validation.json', help="Name of final validation data file")
-    parser.add_argument('--split', type=float, default=0.95, help='training set size between 0 and 1')
+    parser.add_argument('--split', type=float, default=0.95,
+                        help='training set size between 0 and 1')
     parser.add_argument('--add_ppl', type=lambda x: bool(strtobool(x)), default=True,
                         help='whether or not to add ppl_score to unique sentences')
     parser.add_argument('--ppl_threshold', type=int, default=10000,
@@ -341,7 +352,8 @@ if __name__ == '__main__':
     data_preprocessor = RawScrapePreprocessing(train_output=args.train_outfile,
                                                val_output=args.val_outfile,
                                                split=args.split,
-                                               ppl_threshold=args.ppl_threshold)
+                                               ppl_threshold=args.ppl_threshold,
+                                               add_ppl=True)
     # data_preprocessor.split_to_sentences()
-    # data_preprocessor.from_raw_to_train_val()
-    data_preprocessor.filter_ppl_scores()
+    data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor.filter_ppl_scores()

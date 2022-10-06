@@ -4,6 +4,16 @@ from typing import Optional
 
 from opacus.validators import ModuleValidator
 
+def blocks(files, size=65536):
+    while True:
+        b = files.read(size)
+        if not b: break
+        yield b
+
+def count_num_lines(file_path):
+    with open(file_path, "r", encoding="utf-8", errors='ignore') as f:
+        # print(sum(bl.count("\n") for bl in blocks(f)))
+        return sum(bl.count("\n") for bl in blocks(f))
 
 def validate_model(model):
     errors = ModuleValidator.validate(model, strict=False)
