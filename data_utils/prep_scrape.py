@@ -314,13 +314,23 @@ class RawScrapePreprocessing:
 
     @staticmethod
     def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
-        with open(os.path.join(PREP_DATA_DIR, in_file_name), 'r', encoding='utf-8') as infile, \
+        """
+        Filtering ppl scores from unique sentences - creates two files approved/disapproved
+        :param ppl_threshold: perplexity threshold - approve all below
+        :param in_file_name: unique sentences file
+        """
+
+        in_file_path = os.path.join(PREP_DATA_DIR, in_file_name)
+        total_lines = count_num_lines(file_path=in_file_path)
+        print("Filtering perplexity scores...")
+        with open(in_file_path, 'r', encoding='utf-8') as infile, \
             open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
                  'w', encoding='utf-8') as approved_sentences, \
             open(os.path.join(PREP_DATA_DIR, 'disapproved_sentences_ppl.json'),
                  'w', encoding='utf-8') as disapproved_sentences:
 
-            for index, line in enumerate(infile):
+            for index, line in enumerate(tqdm(infile, total=total_lines,
+                                              desc=in_file_name, unit="line")):
                 data_dict = json.loads(line)
                 ppl_score = float(data_dict['ppl_score'])
                 if ppl_score < ppl_threshold:
@@ -329,7 +339,7 @@ class RawScrapePreprocessing:
                 else:
                     json.dump(data_dict, disapproved_sentences)
                     disapproved_sentences.write('\n')
-
+        print("Finished.")
 
 if __name__ == '__main__':
 
