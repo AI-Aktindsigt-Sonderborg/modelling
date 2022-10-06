@@ -353,7 +353,7 @@ if __name__ == '__main__':
                                                val_output=args.val_outfile,
                                                split=args.split,
                                                ppl_threshold=args.ppl_threshold,
-                                               add_ppl=True)
+                                               add_ppl=args.add_ppl)
     # data_preprocessor.split_to_sentences()
     data_preprocessor.from_raw_to_train_val()
     # data_preprocessor.filter_ppl_scores()
