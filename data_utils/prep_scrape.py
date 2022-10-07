@@ -89,40 +89,50 @@ class RawScrapePreprocessing:
         """
 
         print("Initial extraction of raw text...")
-        for filename in os.listdir(SCRAPED_DATA_DIR):
+        file_count = len(os.listdir(SCRAPED_DATA_DIR))
+        for file_index, filename in enumerate(os.listdir(SCRAPED_DATA_DIR)):
             data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
-            total_lines = count_num_lines(file_path=in_file_path)
-            with open(in_file_path, 'rb') as file:
-                for index, line in enumerate(tqdm(file,
-                                                  total=total_lines,
-                                                  desc=filename, unit="line")):
-                    data_dict = json.loads(line)
-                    if "__label__da" in data_dict['detected_page_lang']:
-                        confidence = float(
-                            re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
-                        if confidence < confidence_threshold:
-                            false_lang_preds.append(1)
-                        elif '<div ' in data_dict['page_filtered_text']:
-                            false_lang_preds.append(1)
-                        elif 'endif' in data_dict['page_filtered_text']:
-                            false_lang_preds.append(1)
+            if '_scrape_output.jsonl' in filename:
+                in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
+                total_lines = count_num_lines(file_path=in_file_path)
+                with open(in_file_path, 'rb') as file:
+                    for index, line in enumerate(tqdm(file,
+                                                      total=total_lines,
+                                                      desc=f'{filename}: {file_index + 1} of {file_count}', unit="line")):
+                        data_dict = json.loads(line)
+                        if "__label__da" in data_dict['detected_page_lang']:
+                            confidence = float(
+                                re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
+                            if confidence < confidence_threshold:
+                                false_lang_preds.append(1)
+                            elif '<div ' in data_dict['page_filtered_text']:
+                                false_lang_preds.append(1)
+                            elif 'endif' in data_dict['page_filtered_text']:
+                                false_lang_preds.append(1)
+                            elif '<class' in data_dict['page_filtered_text']:
+                                false_lang_preds.append(1)
+                            else:
+                                # ToDo: Below does not fix encoding for example 'Ã¥'
+                                if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
+                                    data_dict['page_filtered_text'] = fix_encoding(
+                                        data_dict['page_filtered_text'])
+                                data.append({'id': index, 'url': data_dict['redirected_to_url'],
+                                             'sha512': data_dict['redirected_to_url_sha512'],
+                                             'text': data_dict['page_filtered_text']})
                         else:
-                            # ToDo: Below does not fix encoding for example 'Ã¥'
-                            if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
-                                data_dict['page_filtered_text'] = fix_encoding(
-                                    data_dict['page_filtered_text'])
-                            data.append({'id': index, 'url': data_dict['redirected_to_url'],
-                                         'sha512': data_dict['redirected_to_url_sha512'],
-                                         'text': data_dict['page_filtered_text']})
-
-            with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
-                      encoding='utf-8') as outfile:
-                for entry in data:
-                    json.dump(entry, outfile)
-                    outfile.write('\n')
+                            false_lang_preds.append(1)
+                assert total_lines == index + 1, {'Total lines and index dont match'}
+                print(f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
+                print(f'Urls approved in {filtered_filename}: {index + 1 - np.sum(false_lang_preds)} of {index + 1}')
+                with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
+                          encoding='utf-8') as outfile:
+                    for entry in data:
+                        json.dump(entry, outfile)
+                        outfile.write('\n')
+            else:
+                print(f'File {filename} is not a scrape file')
         print("Finished extracting text.")
 
     def split_to_sentences(self, out_file_name: str = 'unique_sentences.json',
@@ -133,6 +143,7 @@ class RawScrapePreprocessing:
         :param word_count_threshold: Keep only sentences with word count above this threshold
         """
         if self.add_ppl:
+            print('Adding perplexity to each sentence')
             model, tokenizer = self.load_model_for_ppl(model_id=self.model_id)
         approved_sentences = []
         disapproved_sentences = []
@@ -142,117 +153,103 @@ class RawScrapePreprocessing:
         print("Splitting data to sentences...")
         with open(os.path.join(PREP_DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
-            for filename in os.listdir(FILTERED_SCRAPE_DIR):
+            file_count = len(os.listdir(FILTERED_SCRAPE_DIR))
+            for file_index, filename in enumerate(os.listdir(FILTERED_SCRAPE_DIR)):
                 # ToDo: Maybe move seen above loop, such that we dont have same sentences across municipalities
+                if '_filtered.json' in filename:
+                    seen = set()
+                    with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
+                              encoding='utf-8') as muni_outfile:
+                        test_sentences = []
+                        in_file_path = os.path.join(FILTERED_SCRAPE_DIR, filename)
+                        total_lines = count_num_lines(file_path=in_file_path)
+                        with open(in_file_path, 'r', encoding='utf-8') as file:
+                            for line in tqdm(file,
+                                             total=total_lines,
+                                             desc=f'{filename}: {file_index + 1} of {file_count}', unit="line"):
+                                data_dict = json.loads(line)
+                                raw_text = repr(data_dict['text'])
+                                special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
+                                prep_text = raw_text
+                                for special_char in special_chars1:
+                                    prep_text = prep_text.replace(special_char, ' ')
+                                special_chars2 = ['”', '"', "'"]
+                                for special_char in special_chars2:
+                                    prep_text = prep_text.replace(special_char, '')
 
-                seen = set()
-                # if not filename == out_file_name: # and filename == 'vejen_filtered.json':
-                with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
-                          encoding='utf-8') as muni_outfile:
-                    test_sentences = []
-                    in_file_path = os.path.join(FILTERED_SCRAPE_DIR, filename)
-                    total_lines = count_num_lines(file_path=in_file_path)
-                    with open(in_file_path, 'r', encoding='utf-8') as file:
+                                special_words1 = ['NemID', 'MitID', 'minSU', 'LinkedIn', ]
+                                for case in special_words1:
+                                    if case in prep_text:
+                                        prep_text = prep_text.replace(case, case.lower())
 
-                        for line in tqdm(file,
-                                         total=total_lines,
-                                         desc=filename, unit="line"):
-                            data_dict = json.loads(line)
-                            raw_text = repr(data_dict['text'])
-                            special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
-                            prep_text = raw_text
-                            for special_char in special_chars1:
-                                prep_text = prep_text.replace(special_char, ' ')
-                            special_chars2 = ['”', '"', "'"]
-                            for special_char in special_chars2:
-                                prep_text = prep_text.replace(special_char, '')
+                                prep_text = re.sub(' +', ' ', prep_text)
 
-                            # removed_whitespaces = ' '.join(raw_text.split())
-                            # prep_text = re.sub(' +', ' ', prep_text)
-
-                            special_words1 = ['NemID', 'MitID', 'minSU', 'LinkedIn', ]
-                            for case in special_words1:
-                                if case in prep_text:
-                                    prep_text = prep_text.replace(case, case.lower())
-
-                            # special_words2 = ['E-Boks', 'e-Boks', 'e-boks', 'mit.dk',
-                            #                   'Mit.dk', 'borger.dk', 'Borger.dk']
-                            # for case in special_words2:
-                            #     if case in prep_text:
-                            #         prep_text = prep_text.replace(case, case + ' ')
-
-                            prep_text = re.sub(' +', ' ', prep_text)
-
-                            find_wrong_break_ids = [
-                                (m.start(0), m.end(0)) for m in
-                                re.finditer("\?[A-Z]|\.[A-Z]", prep_text)]
-
-                            if len(find_wrong_break_ids) > 0:
-                                increment = 1
-                                for id in find_wrong_break_ids:
-                                    prep_text = prep_text[:id[0] + increment] + '\n' + prep_text[id[
-                                                                                                     0] + increment:]
-                                    increment += 1
-
-                            text_splitted = (
-                                '\n'.join(self.sentence_splitter.tokenize(prep_text)))
-
-                            # text_splitted = (
-                            #     '\n'.join(self.sentence_splitter.tokenize(data_dict['text'])))
-
-                            sentences = re.split('\n', text_splitted)
-                            new_sentences = []
-
-                            for j, sentence in enumerate(sentences):
-
-                                find_wrong_letter_ids = [
+                                find_wrong_break_ids = [
                                     (m.start(0), m.end(0)) for m in
-                                    re.finditer("[a-z][A-Z]", sentence)]
+                                    re.finditer("\?[A-Z]|\.[A-Z]", prep_text)]
 
-                                if len(find_wrong_letter_ids) > 0:
-                                    wrong_letter_counter += 1
-                                    wrong_letter_examples.append(data_dict['url'])
-                                    disapproved_sentences.append(
-                                        f'{data_dict["id"]} - {j} - {sentence}')
+                                if len(find_wrong_break_ids) > 0:
+                                    increment = 1
+                                    for id in find_wrong_break_ids:
+                                        prep_text = prep_text[:id[0] + increment] + '\n' + \
+                                                    prep_text[id[0] + increment:]
+                                        increment += 1
 
-                                else:
-                                    new_sentences.append(sentence)
+                                text_splitted = (
+                                    '\n'.join(self.sentence_splitter.tokenize(prep_text)))
 
-                            for i, sentence in enumerate(new_sentences):
-                                final_sentence = sentence.strip()
-                                search = any(c.isalpha() for c in final_sentence)
-                                word_count = len(final_sentence.split(' '))
-                                if word_count >= word_count_threshold and search:
-                                    approved_sentences.append(1)
-                                    line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                    if line_hash not in seen:
-                                        seen.add(line_hash)
-                                        unique_approved.append(1)
-                                        if self.add_ppl:
-                                            ppl_score = score_gpt2(final_sentence, model, tokenizer)
-                                            json.dump({'id': data_dict['id'], 'sentence': i,
-                                                       'kommune': filename.split('_')[0],
-                                                       'url': data_dict['url'],
-                                                       'sha512': data_dict['sha512'],
-                                                       'text': final_sentence,
-                                                       'ppl_score': str(ppl_score)}, outfile)
-                                        else:
-                                            json.dump({'id': data_dict['id'], 'sentence': i,
-                                                       'kommune': filename.split('_')[0],
-                                                       'url': data_dict['url'],
-                                                       'sha512': data_dict['sha512'],
-                                                       'text': final_sentence}, outfile)
+                                sentences = re.split('\n', text_splitted)
+                                new_sentences = []
+                                for j, sentence in enumerate(sentences):
 
-                                        outfile.write('\n')
-                                        muni_outfile.write(
-                                            f"{data_dict['id']} - {i} - {final_sentence}\n")
-                                        test_sentences.append(
-                                            [data_dict['id'], i, data_dict['url'], final_sentence])
-                                else:
-                                    if not len(final_sentence.strip()) == 0:
+                                    find_wrong_letter_ids = [
+                                        (m.start(0), m.end(0)) for m in
+                                        re.finditer("[a-z][A-Z]", sentence)]
+
+                                    if len(find_wrong_letter_ids) > 0:
+                                        wrong_letter_counter += 1
+                                        wrong_letter_examples.append(data_dict['url'])
                                         disapproved_sentences.append(
-                                            f'{data_dict["id"]} - {i} - {final_sentence}')
-                    # print(f'n unique in {filename}: {len(seen)}')
+                                            f'{data_dict["id"]} - {j} - {sentence}')
+
+                                    else:
+                                        new_sentences.append(sentence)
+
+                                for i, sentence in enumerate(new_sentences):
+                                    final_sentence = sentence.strip()
+                                    search = any(c.isalpha() for c in final_sentence)
+                                    word_count = len(final_sentence.split(' '))
+                                    if word_count >= word_count_threshold and search:
+                                        approved_sentences.append(1)
+                                        line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                        if line_hash not in seen:
+                                            seen.add(line_hash)
+                                            unique_approved.append(1)
+                                            if self.add_ppl:
+                                                ppl_score = score_gpt2(final_sentence, model, tokenizer)
+                                                json.dump({'id': data_dict['id'], 'sentence': i,
+                                                           'kommune': filename.split('_')[0],
+                                                           'url': data_dict['url'],
+                                                           'sha512': data_dict['sha512'],
+                                                           'text': final_sentence,
+                                                           'ppl_score': str(ppl_score)}, outfile)
+                                            else:
+                                                json.dump({'id': data_dict['id'], 'sentence': i,
+                                                           'kommune': filename.split('_')[0],
+                                                           'url': data_dict['url'],
+                                                           'sha512': data_dict['sha512'],
+                                                           'text': final_sentence}, outfile)
+
+                                            outfile.write('\n')
+                                            muni_outfile.write(
+                                                f"{data_dict['id']} - {i} - {final_sentence}\n")
+                                            test_sentences.append(
+                                                [data_dict['id'], i, data_dict['url'], final_sentence])
+                                    else:
+                                        if not len(final_sentence.strip()) == 0:
+                                            disapproved_sentences.append(
+                                                f'{data_dict["id"]} - {i} - {final_sentence}')
+                    print(f'n unique in {filename}: {len(seen)}')
 
         with open(os.path.join(DATA_DIR, 'data_testing/disaproved_sentences.txt'), 'w',
                   encoding='utf-8') as dis_outfile:
