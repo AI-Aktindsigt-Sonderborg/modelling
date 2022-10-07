@@ -1,21 +1,20 @@
 import hashlib
 import json
-import mmap
 import os.path
 import random
 import re
-import sys
 from distutils.util import strtobool
 from typing import List
-from tqdm import tqdm
 
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
+from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelWithLMHead
-from utils.helpers import count_num_lines
+
 from data_utils.perplex import score_gpt2
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
+from utils.helpers import count_num_lines
 
 
 class RawScrapePreprocessing:
@@ -100,7 +99,8 @@ class RawScrapePreprocessing:
                 with open(in_file_path, 'rb') as file:
                     for index, line in enumerate(tqdm(file,
                                                       total=total_lines,
-                                                      desc=f'{filename}: {file_index + 1} of {file_count}', unit="line")):
+                                                      desc=f'{filename}: {file_index + 1} of {file_count}',
+                                                      unit="line")):
                         data_dict = json.loads(line)
                         if "__label__da" in data_dict['detected_page_lang']:
                             confidence = float(
@@ -125,7 +125,8 @@ class RawScrapePreprocessing:
                             false_lang_preds.append(1)
                 assert total_lines == index + 1, {'Total lines and index dont match'}
                 print(f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
-                print(f'Urls approved in {filtered_filename}: {index + 1 - np.sum(false_lang_preds)} of {index + 1}')
+                print(
+                    f'Urls approved in {filtered_filename}: {index + 1 - np.sum(false_lang_preds)} of {index + 1}')
                 with open(os.path.join(FILTERED_SCRAPE_DIR, filtered_filename + '.json'), 'w',
                           encoding='utf-8') as outfile:
                     for entry in data:
@@ -166,7 +167,8 @@ class RawScrapePreprocessing:
                         with open(in_file_path, 'r', encoding='utf-8') as file:
                             for line in tqdm(file,
                                              total=total_lines,
-                                             desc=f'{filename}: {file_index + 1} of {file_count}', unit="line"):
+                                             desc=f'{filename}: {file_index + 1} of {file_count}',
+                                             unit="line"):
                                 data_dict = json.loads(line)
                                 raw_text = repr(data_dict['text'])
                                 special_chars1 = ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*']
@@ -226,7 +228,8 @@ class RawScrapePreprocessing:
                                             seen.add(line_hash)
                                             unique_approved.append(1)
                                             if self.add_ppl:
-                                                ppl_score = score_gpt2(final_sentence, model, tokenizer)
+                                                ppl_score = score_gpt2(final_sentence, model,
+                                                                       tokenizer)
                                                 json.dump({'id': data_dict['id'], 'sentence': i,
                                                            'kommune': filename.split('_')[0],
                                                            'url': data_dict['url'],
@@ -244,7 +247,8 @@ class RawScrapePreprocessing:
                                             muni_outfile.write(
                                                 f"{data_dict['id']} - {i} - {final_sentence}\n")
                                             test_sentences.append(
-                                                [data_dict['id'], i, data_dict['url'], final_sentence])
+                                                [data_dict['id'], i, data_dict['url'],
+                                                 final_sentence])
                                     else:
                                         if not len(final_sentence.strip()) == 0:
                                             disapproved_sentences.append(
@@ -338,8 +342,8 @@ class RawScrapePreprocessing:
                     disapproved_sentences.write('\n')
         print("Finished.")
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser()
