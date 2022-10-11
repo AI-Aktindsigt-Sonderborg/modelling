@@ -1,12 +1,11 @@
+import json
+import os
 import sys
 
 import numpy as np
-
 import torch
 from transformers import AutoTokenizer, AutoModelWithLMHead
-import os
-import json
-import re
+
 from local_constants import FILTERED_SCRAPE_DIR, DATA_DIR
 
 
@@ -40,13 +39,16 @@ with torch.no_grad():
     model.eval()
 
 
-def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json', out_file: str = 'unique_sentences_ppl.json'):
+def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json',
+                               out_file: str = 'unique_sentences_ppl.json'):
     approved_content = []
     disapproved_content = []
     criterias = []
     with open(os.path.join(FILTERED_SCRAPE_DIR, in_file), 'r', encoding='utf-8') as file, \
-        open(os.path.join(DATA_DIR, 'data_testing/approved_sentences_ppl.txt'), 'w', encoding='utf-8') as approved_sentences, \
-        open(os.path.join(DATA_DIR, 'data_testing/disapproved_sentences_ppl.txt'), 'w', encoding='utf-8') as disapproved_sentences:
+        open(os.path.join(DATA_DIR, 'data_testing/approved_sentences_ppl.txt'), 'w',
+             encoding='utf-8') as approved_sentences, \
+        open(os.path.join(DATA_DIR, 'data_testing/disapproved_sentences_ppl.txt'), 'w',
+             encoding='utf-8') as disapproved_sentences:
 
         for i, line in enumerate(file):
             if i % 5000 == 0:
@@ -72,12 +74,14 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json', out_file:
 
             if ppl_score < 1000.0:
                 # approved_content.append(data_dict)
-                approved_sentences.write(f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
-                                         f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
+                approved_sentences.write(
+                    f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
+                    f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
             else:
                 # disapproved_content.append(data_dict)
-                disapproved_sentences.write(f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
-                                         f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
+                disapproved_sentences.write(
+                    f"{data_dict['kommune']} -- {data_dict['id']} -- {data_dict['sentence']} -- "
+                    f"{data_dict['ppl_score']} -- {data_dict['text']}\n")
 
     # return approved_content, disapproved_content
 
@@ -132,8 +136,10 @@ def read_sentences_compute_ppl(in_file: str = 'unique_sentences.json', out_file:
     #         print(f'ppl approved: {approved_counter}')
     #         print(f'total: {i+1}, pct approved: {float(approved_counter/(i+1))*100.0}%')
 
+
 if __name__ == '__main__':
     from utils.helpers import TimeCode
+
     code_timer = TimeCode()
     read_sentences_compute_ppl()
     code_timer.how_long_since_start()

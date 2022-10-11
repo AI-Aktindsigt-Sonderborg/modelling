@@ -84,7 +84,7 @@ class RawScrapePreprocessing:
             out_data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            if '_scrape_output.jsonl' in filename:
+            if '_scrape_output.jsonl' in filename or 'kk' in filename:
                 in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
                 total_lines = count_num_lines(file_path=in_file_path)
                 with open(in_file_path, 'rb') as file:
@@ -233,8 +233,8 @@ class RawScrapePreprocessing:
         :param train: List[str] where each element is a valid sentence for training
         :param val: List[str] where each element is a valid sentence for validation
         """
-        write_json_lines(out_dir=DATA_DIR, filename=self.args.train_output, data=train)
-        write_json_lines(out_dir=DATA_DIR, filename=self.args.val_output, data=val)
+        write_json_lines(out_dir=DATA_DIR, filename=self.args.train_outfile, data=train)
+        write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile, data=val)
 
     @staticmethod
     def is_correct_danish(data: dict, confidence_threshold: int):

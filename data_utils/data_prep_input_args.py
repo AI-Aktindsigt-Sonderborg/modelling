@@ -19,7 +19,6 @@ class DataPrepArgParser:
                         help='whether or not to add ppl_score to unique sentences')
         self.parser.add_argument('--ppl_threshold', type=int, default=10000,
                         help='ppl_threshold for approving sentences')
-
         self.parser.add_argument('--train_outfile', type=str,
                         default='train', help="Name of final training data file")
         self.parser.add_argument('--val_outfile', type=str,
