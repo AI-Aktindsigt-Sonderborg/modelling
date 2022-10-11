@@ -3,7 +3,6 @@ import json
 import os.path
 import random
 import re
-from distutils.util import strtobool
 from typing import List
 
 import nltk.data
@@ -11,8 +10,9 @@ import numpy as np
 from ftfy import fix_encoding
 from tqdm import tqdm
 
+from data_utils.data_prep_input_args import DataPrepArgParser
 from data_utils.helpers import write_json_lines, split_sentences, write_text_lines, score_gpt2, \
-    load_model_for_ppl
+    load_model_for_ppl, find_letters_and_word_count
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
 from utils.helpers import TimeCode
 from utils.helpers import count_num_lines
@@ -70,7 +70,7 @@ class RawScrapePreprocessing:
         else:
             self.split_train_val()
 
-    def extract_danish_and_save_from_raw(self, confidence_threshold: float = 0.6):
+    def extract_danish_and_save_from_raw(self):
         """
         Filters each raw scrape file, keeps line id and page_filtered_text where danish is detected
         and writes to json line file filtered_scrape/<source_name>_filtered
@@ -81,45 +81,39 @@ class RawScrapePreprocessing:
         print("Initial extraction of raw text...")
         file_count = len(os.listdir(SCRAPED_DATA_DIR))
         for file_index, filename in enumerate(os.listdir(SCRAPED_DATA_DIR)):
-            data = []
+            out_data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
             if '_scrape_output.jsonl' in filename:
                 in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
                 total_lines = count_num_lines(file_path=in_file_path)
                 with open(in_file_path, 'rb') as file:
+                    index: int
                     for index, line in enumerate(tqdm(file,
                                                       total=total_lines,
                                                       desc=f'{filename}: {file_index + 1} of {file_count}',
                                                       unit="line")):
                         data_dict = json.loads(line)
-                        if "__label__da" in data_dict['detected_page_lang']:
-                            confidence = float(
-                                re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
-                            if confidence < confidence_threshold:
-                                false_lang_preds.append(1)
-                            elif '<div ' in data_dict['page_filtered_text']:
-                                false_lang_preds.append(1)
-                            elif 'endif' in data_dict['page_filtered_text']:
-                                false_lang_preds.append(1)
-                            elif '<class' in data_dict['page_filtered_text']:
-                                false_lang_preds.append(1)
-                            else:
-                                # ToDo: Below does not fix encoding for example 'Ã¥'
-                                if ('Ã¥' or 'Ã¸') in data_dict['page_filtered_text']:
-                                    data_dict['page_filtered_text'] = fix_encoding(
-                                        data_dict['page_filtered_text'])
-                                data.append({'id': index, 'url': data_dict['redirected_to_url'],
+
+                        if self.is_correct_danish(
+                            data=data_dict,
+                            confidence_threshold=self.args.danish_threshold):
+
+                            data_dict = self.fix_utf8_encodings(data=data_dict)
+                            out_data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                              'sha512': data_dict['redirected_to_url_sha512'],
                                              'text': data_dict['page_filtered_text']})
+
                         else:
                             false_lang_preds.append(1)
+
                     assert total_lines == index + 1, {'Total lines and index dont match'}
                     print(
                         f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
                     print(f'Urls approved in {filtered_filename}: '
                           f'{index + 1 - np.sum(false_lang_preds)} of {index + 1}')
-                write_json_lines(out_dir=FILTERED_SCRAPE_DIR, filename=filtered_filename, data=data)
+                write_json_lines(out_dir=FILTERED_SCRAPE_DIR, filename=filtered_filename,
+                                 data=out_data)
             else:
                 print(f'File {filename} is not a scrape file')
         print("Finished extracting text.")
@@ -166,12 +160,14 @@ class RawScrapePreprocessing:
                                     filename=filename)
 
                                 for i, sentence in enumerate(sentences):
+                                    # Strip sentence, search for letters and filter by word count
                                     final_sentence = sentence.strip()
-                                    search = any(c.isalpha() for c in final_sentence)
-                                    word_count = len(final_sentence.split(' '))
-                                    if word_count >= self.args.min_len and search:
+                                    if find_letters_and_word_count(
+                                        text=final_sentence,
+                                        word_count_threshold=self.args.min_len):
                                         approved_sentences.append(1)
                                         line_hash = hashlib.md5(final_sentence.encode()).digest()
+                                        # add to unique sentences if not already exists
                                         if line_hash not in seen:
                                             seen.add(line_hash)
                                             unique_approved.append(1)
@@ -182,9 +178,10 @@ class RawScrapePreprocessing:
                                                          'text': final_sentence}
 
                                             if self.args.add_ppl:
-                                                ppl_score = score_gpt2(final_sentence, model,
-                                                                       tokenizer)
-                                                dump_data['ppl_score'] = str(ppl_score)
+                                                dump_data['ppl_score'] = \
+                                                    str(score_gpt2(text=final_sentence,
+                                                                   model=model,
+                                                                   tokenizer=tokenizer))
 
                                             json.dump(dump_data, outfile)
 
@@ -236,8 +233,41 @@ class RawScrapePreprocessing:
         :param train: List[str] where each element is a valid sentence for training
         :param val: List[str] where each element is a valid sentence for validation
         """
-        write_json_lines(out_dir=DATA_DIR, filename=self.train_output, data=train)
-        write_json_lines(out_dir=DATA_DIR, filename=self.val_output, data=val)
+        write_json_lines(out_dir=DATA_DIR, filename=self.args.train_output, data=train)
+        write_json_lines(out_dir=DATA_DIR, filename=self.args.val_output, data=val)
+
+    @staticmethod
+    def is_correct_danish(data: dict, confidence_threshold: int):
+        """
+        Detect correct danish text without raw html code
+        :param data: raw text from scraped url
+        :param confidence_threshold: confidence in which we filter danish prediction
+        :return: boolean whether to keep data
+        """
+        if "__label__da" not in data['detected_page_lang']:
+            return False
+        confidence = float(re.findall(r'\d+\.\d+', data['detected_page_lang'])[0])
+        discard_conditions = [confidence < confidence_threshold,
+                              '<div ' in data['page_filtered_text'],
+                              'endif' in data['page_filtered_text'],
+                              '<class' in data['page_filtered_text']]
+
+        for condition in discard_conditions:
+            if condition:
+                return False
+        return True
+
+    @staticmethod
+    def fix_utf8_encodings(data: dict):
+        data['page_filtered_text'] = fix_encoding(
+            data['page_filtered_text'])
+        wrong_encodings = [['Ã¥', 'å'], ['Ã¸', 'ø'], ['Ã¦', 'æ']]
+        for wrong_encoding in wrong_encodings:
+            if wrong_encoding[0] in data['page_filtered_text']:
+                data['page_filtered_text'] = data['page_filtered_text'].replace(wrong_encoding[0],
+                                                                                wrong_encoding[1])
+
+        return data
 
     @staticmethod
     def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
@@ -256,8 +286,8 @@ class RawScrapePreprocessing:
             open(os.path.join(PREP_DATA_DIR, 'disapproved_sentences_ppl.json'),
                  'w', encoding='utf-8') as disapproved_sentences:
 
-            for index, line in enumerate(tqdm(infile, total=total_lines,
-                                              desc=in_file_name, unit="line")):
+            for line in tqdm(infile, total=total_lines,
+                             desc=in_file_name, unit="line"):
                 data_dict = json.loads(line)
                 ppl_score = float(data_dict['ppl_score'])
                 if ppl_score < ppl_threshold:
@@ -270,26 +300,9 @@ class RawScrapePreprocessing:
 
 
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--save_data', type=lambda x: bool(strtobool(x)), default=False,
-                        help='whether or not to add ppl_score to unique sentences')
-    parser.add_argument('--train_outfile', type=str,
-                        default='train', help="Name of final training data file")
-    parser.add_argument('--val_outfile', type=str,
-                        default='validation', help="Name of final validation data file")
-    parser.add_argument('--min_len', type=int, default=8,
-                        help='Keep sentences with at least n words')
-    parser.add_argument('--split', type=float, default=0.98,
-                        help='training set size between 0 and 1')
-    parser.add_argument('--add_ppl', type=lambda x: bool(strtobool(x)), default=True,
-                        help='whether or not to add ppl_score to unique sentences')
-    parser.add_argument('--ppl_threshold', type=int, default=10000,
-                        help='ppl_threshold for approving sentences')
-
-    prep_args = parser.parse_args()
-
+    prep_parser = DataPrepArgParser()
+    prep_args = prep_parser.parser.parse_args()
+    # prep_args.add_ppl = False
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
     # data_preprocessor.split_to_sentences()
     data_preprocessor.from_raw_to_train_val()

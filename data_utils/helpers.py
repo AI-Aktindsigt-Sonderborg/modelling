@@ -95,10 +95,10 @@ def split_sentences(data_dict: dict, filename: str, sentence_splitter: object,
     return new_sentences, disapproved_sentences
 
 
-def score_gpt2(sentence, model, tokenizer, device = 'cuda'):
-    words = sentence.split(" ")
-    new_sentence = " ".join(words[0:200])
-    tensor_input = tokenizer.encode(sentence, return_tensors='pt').to(device)
+def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
+    words = text.split(" ")
+    new_text = " ".join(words[0:200])
+    tensor_input = tokenizer.encode(new_text, return_tensors='pt').to(device)
 
     if len(tensor_input[0]) > 1000:
         return 50000.0
@@ -118,4 +118,13 @@ def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2', device: str = 'cud
     model = model.to(device)
     model.eval()
     return model, tokenizer
+
+
+def find_letters_and_word_count(text: str, word_count_threshold: int):
+    search = any(c.isalpha() for c in text)
+    word_count = len(text.split(' '))
+    if search and word_count >= word_count_threshold:
+        return True
+    return False
+
 

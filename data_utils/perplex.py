@@ -12,8 +12,8 @@ from local_constants import FILTERED_SCRAPE_DIR, DATA_DIR
 
 def score_gpt2(sentence, model, tokenizer):
     words = sentence.split(" ")
-    new_sentence = " ".join(words[0:200])
-    tensor_input = tokenizer.encode(sentence, return_tensors='pt').to(device)
+    new_text = " ".join(words[0:200])
+    tensor_input = tokenizer.encode(new_text, return_tensors='pt').to(device)
 
     if len(tensor_input[0]) > 1000:
         return 50000.0
