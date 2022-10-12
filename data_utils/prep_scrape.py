@@ -122,7 +122,6 @@ class RawScrapePreprocessing:
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
-        :param word_count_threshold: Keep only sentences with word count above this threshold
         """
 
         timer = TimeCode()
@@ -219,22 +218,41 @@ class RawScrapePreprocessing:
         random.seed(seed)
         random.shuffle(sentences)
         train_idx = int(len(sentences) * self.args.split)
-        train = sentences[:train_idx]
-        train = [{'text': x} for x in train]
+        train_init = sentences[:train_idx]
 
         val = sentences[train_idx:]
         val = [{'text': x} for x in val]
-        self.save_datasets(train=train, val=val)
 
-    def save_datasets(self, train: List[dict], val: List[dict]):
+        if self.args.split_train_n_times > 0:
+            train_chunks = np.array_split(train_init, self.args.split_train_n_times)
+            for i, train_chunk in enumerate(train_chunks):
+                train = [{'text': x} for x in list(train_chunk)]
+                train_outfile = self.args.train_outfile + f'_{i}'
+                self.save_datasets(train=train, train_outfile=train_outfile)
+            self.save_datasets(val=val)
+        else:
+            train = [{'text': x} for x in train_init]
+            self.save_datasets(train=train, val=val, train_outfile=self.args.train_outfile)
+
+    @staticmethod
+    def chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
+    def save_datasets(self, train: List[dict] = None, val: List[dict] = None,
+                      train_outfile: str = None):
         """
         Take train and validation data as input and saves to json-lines files compatible with torch
         dataset
+        :param train_outfile: name of train file
         :param train: List[str] where each element is a valid sentence for training
         :param val: List[str] where each element is a valid sentence for validation
         """
-        write_json_lines(out_dir=DATA_DIR, filename=self.args.train_outfile, data=train)
-        write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile, data=val)
+        if train and train_outfile:
+            write_json_lines(out_dir=DATA_DIR, filename=train_outfile, data=train)
+        if val:
+            write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile, data=val)
 
     @staticmethod
     def is_correct_danish(data: dict, confidence_threshold: int):
@@ -259,6 +277,11 @@ class RawScrapePreprocessing:
 
     @staticmethod
     def fix_utf8_encodings(data: dict):
+        """
+
+        :param data:
+        :return:
+        """
         data['page_filtered_text'] = fix_encoding(
             data['page_filtered_text'])
         wrong_encodings = [['Ã¥', 'å'], ['Ã¸', 'ø'], ['Ã¦', 'æ']]
@@ -302,8 +325,5 @@ class RawScrapePreprocessing:
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    # prep_args.add_ppl = False
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    # data_preprocessor.split_to_sentences()
     data_preprocessor.from_raw_to_train_val()
-    # data_preprocessor.filter_ppl_scores()
