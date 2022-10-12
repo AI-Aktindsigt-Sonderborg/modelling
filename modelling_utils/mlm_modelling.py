@@ -689,7 +689,7 @@ class MLMUnsupervisedModelling:
                                     'freeze_layers_n_steps': args.freeze_layers_n_steps,
                                     'lr_freezed': args.lr_freezed,
                                     'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
-                                    'dp': args.dp,
+                                    'dp': args.differential_privacy,
                                     'epsilon': args.epsilon,
                                     'delta': args.delta,
                                     'lot_size': args.lot_size,

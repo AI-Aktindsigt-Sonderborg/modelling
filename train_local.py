@@ -54,7 +54,7 @@ if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_
     print('exiting - try again')
     mlm_parser.parser.exit()
 
-if args.dp:
+if args.differential_privacy:
     mlm_modelling = MLMUnsupervisedModellingDP(args=args)
 else:
     mlm_modelling = MLMUnsupervisedModelling(args=args)
