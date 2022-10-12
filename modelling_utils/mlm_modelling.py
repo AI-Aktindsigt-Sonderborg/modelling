@@ -210,7 +210,7 @@ class MLMUnsupervisedModelling:
         # eval_accuracies = []
         lrs = []
 
-        for batch in train_loader:
+        for batch in tqdm(train_loader, desc='Batch', unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -900,7 +900,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for i, batch in enumerate(memory_safe_data_loader):
+            for batch in tqdm(memory_safe_data_loader, desc='Batch', unit="batch"):
 
                 if self.args.freeze_layers and step == 0:
                     model = self.freeze_layers(model)

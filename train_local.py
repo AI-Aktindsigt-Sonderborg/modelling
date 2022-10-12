@@ -34,7 +34,7 @@ if args.local_testing:
     args.lr_start_decay = 20
     # args.lr = 0.01
 
-    args.epochs = 5
+    args.epochs = 10
     args.train_batch_size = 2
     args.max_length = 8
     # args.save_model_at_end = False
@@ -46,7 +46,7 @@ if args.local_testing:
     args.load_alvenir_pretrained = False
     # args.freeze_embeddings = False
     args.freeze_layers_n_steps = 2
-    # args.p = True
+    # args.differential_privacy = False
 
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
