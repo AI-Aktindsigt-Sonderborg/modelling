@@ -219,17 +219,17 @@ class MLMUnsupervisedModelling:
                 model = self.unfreeze_layers(model)
                 # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
                 self.scheduler = self.create_scheduler(optimizer,
-                                                       start_factor=(self.args.lr
+                                                       start_factor=(self.args.learning_rate
                                                                      / self.args.lr_freezed)
                                                                     / self.args.lr_warmup_steps,
-                                                       end_factor=self.args.lr
+                                                       end_factor=self.args.learning_rate
                                                                   / self.args.lr_freezed,
                                                        total_iters=self.args.lr_warmup_steps)
 
             if step == self.args.lr_start_decay:
                 self.scheduler = self.create_scheduler(optimizer,
                                                        start_factor=1,
-                                                       end_factor=self.args.lr / (
+                                                       end_factor=self.args.learning_rate / (
                                                            self.total_steps - step),
                                                        total_iters=self.total_steps - step
                                                        )
@@ -406,7 +406,7 @@ class MLMUnsupervisedModelling:
                                                    total_iters=self.args.lr_freezed_warmup_steps)
         else:
             self.scheduler = self.create_scheduler(optimizer,
-                                                   start_factor=self.args.lr /
+                                                   start_factor=self.args.learning_rate /
                                                                 self.args.lr_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_warmup_steps)
@@ -423,7 +423,7 @@ class MLMUnsupervisedModelling:
         if self.args.freeze_layers:
             learning_rate_init: float = self.args.lr_freezed
         else:
-            learning_rate_init: float = self.args.lr
+            learning_rate_init: float = self.args.learning_rate
 
         training_args = TrainingArguments(
             output_dir=self.output_dir,
@@ -679,7 +679,7 @@ class MLMUnsupervisedModelling:
         :return:
         """
         metrics = {'key_metrics': [{'output_name': args.output_name,
-                                    'lr': args.lr,
+                                    'lr': args.learning_rate,
                                     'epochs': args.epochs,
                                     'train_batch_size': args.train_batch_size,
                                     'eval_batch_size': args.eval_batch_size,
@@ -909,17 +909,17 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
                     self.scheduler = self.create_scheduler(optimizer,
-                                                           start_factor=(self.args.lr
+                                                           start_factor=(self.args.learning_rate
                                                                          / self.args.lr_freezed)
                                                                         / self.args.lr_warmup_steps,
-                                                           end_factor=self.args.lr
+                                                           end_factor=self.args.learning_rate
                                                                       / self.args.lr_freezed,
                                                            total_iters=self.args.lr_warmup_steps)
 
                 if step == self.args.lr_start_decay:
                     self.scheduler = self.create_scheduler(optimizer,
                                                            start_factor=1,
-                                                           end_factor=self.args.lr /
+                                                           end_factor=self.args.learning_rate /
                                                                       (self.total_steps - step),
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
@@ -1032,7 +1032,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                    total_iters=self.args.lr_freezed_warmup_steps)
         else:
             self.scheduler = self.create_scheduler(dp_optimizer,
-                                                   start_factor=self.args.lr /
+                                                   start_factor=self.args.learning_rate /
                                                                 self.args.lr_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_warmup_steps)

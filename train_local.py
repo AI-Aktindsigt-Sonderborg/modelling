@@ -29,7 +29,7 @@ if args.local_testing:
     args.freeze_layers_n_steps = 20
     args.lr_freezed_warmup_steps = 10
     args.lr_freezed = 0.001
-    args.lr = 0.001
+    args.learning_rate = 0.001
     args.lr_warmup_steps = 10
     args.lr_start_decay = 20
     # args.lr = 0.01

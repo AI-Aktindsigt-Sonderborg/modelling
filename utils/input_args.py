@@ -111,7 +111,7 @@ class MLMArgParser:
                                      help="number of steps to train head only")
         lr_params.add_argument("-lrfws", "--lr_freezed_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
-        lr_params.add_argument("--lr", type=float, default=0.00005,
+        lr_params.add_argument("-lr", "--learning_rate", type=float, default=0.00005,
                                      help="Learning rate")
         lr_params.add_argument("-lrws", "--lr_warmup_steps", type=int, default=6000,
                                      help="warmup learning rate - set to 1 if no warmup")
