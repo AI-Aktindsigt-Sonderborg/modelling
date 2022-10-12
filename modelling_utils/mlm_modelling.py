@@ -19,8 +19,9 @@ from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, \
-    Trainer, DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, AutoConfig, set_seed
+from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer,\
+        DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, ElectraForMaskedLM, AutoModelForMaskedLM
+
 
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
@@ -368,6 +369,9 @@ class MLMUnsupervisedModelling:
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+
+        # if self.args.elektra:
+        #     model = AutoModelForMaskedLM.from_pretrained(self.args.model_name)
 
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
@@ -992,6 +996,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+
+        # if self.args.elektra:
+        #     model = AutoModelForMaskedLM.from_pretrained(self.args.model_name)
+
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
             config = BertConfig.from_pretrained(self.local_alvenir_model_path)
@@ -1020,7 +1028,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                   collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader,
-                                                                      trainer=dummy_trainer,
                                                                       model=model)
 
         # ToDo: finish head warmup lr
@@ -1039,7 +1046,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         return dp_model, dp_optimizer, dp_train_loader
 
-    def set_up_privacy(self, train_loader: DataLoader, trainer, model):
+    def set_up_privacy(self, train_loader: DataLoader, model):
         """
         Set up privacy engine for private training
         :param train_loader: DataLoader for training
@@ -1053,7 +1060,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         self.validate_model(model, strict=True)
 
         # trainer.create_optimizer()
-        optimizer = torch.optim.AdamW(model.parameters(), lr=0.0005)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=model,
             optimizer=optimizer,
@@ -1067,7 +1074,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
-    def validate_model(model: BertForMaskedLM, strict: bool = False):
+    def validate_model(model, strict: bool = False):
         """
         Validate whether model is compatible with opacus
         :param model: pytorch model of type BertForMaskedLM

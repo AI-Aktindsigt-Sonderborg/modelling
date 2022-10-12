@@ -20,7 +20,7 @@ args.replace_head = True
 if args.local_testing:
     args.model_name = 'Geotrend/distilbert-base-da-cased'
     # args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
-    # args.model_name = 'NbAiLab/nb-bert-base'
+    # args.model_name = 'Maltehb/aelaectra-danish-electra-small-cased'
     args.train_data = 'train_10.json'
     args.eval_data = 'val_10.json'
     args.evaluate_steps = 2
@@ -39,15 +39,13 @@ if args.local_testing:
     args.max_length = 8
     # args.save_model_at_end = False
     args.make_plots = True
-    args.dp = False
     args.freeze_layers = True
-    # args.simulate_batches = True
-    # args.batch_multiplier = 2
     args.load_alvenir_pretrained = False
-    # args.freeze_embeddings = False
+    args.freeze_embeddings = True
     args.freeze_layers_n_steps = 2
+    args.replace_head = True
     # args.differential_privacy = False
-
+    # args.elektra = True
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(mlm_parser.parser._option_string_actions['--lot_size'].help)
