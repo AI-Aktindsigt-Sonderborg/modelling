@@ -642,7 +642,7 @@ class MLMUnsupervisedModelling:
                   encoding='utf-8') as outfile:
             json.dump(args.__dict__, outfile, indent=2)
 
-        if args.p:
+        if args.print_only_args:
             metrics_path = os.path.dirname(os.path.abspath(metrics_dir))
             print('Training arguments:\n')
             for arg in args.__dict__:
