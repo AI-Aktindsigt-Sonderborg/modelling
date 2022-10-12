@@ -234,12 +234,6 @@ class RawScrapePreprocessing:
             train = [{'text': x} for x in train_init]
             self.save_datasets(train=train, val=val, train_outfile=self.args.train_outfile)
 
-    @staticmethod
-    def chunks(lst, n):
-        """Yield successive n-sized chunks from lst."""
-        for i in range(0, len(lst), n):
-            yield lst[i:i + n]
-
     def save_datasets(self, train: List[dict] = None, val: List[dict] = None,
                       train_outfile: str = None):
         """
