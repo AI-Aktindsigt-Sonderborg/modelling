@@ -82,7 +82,7 @@ class MLMArgParser:
                                      help="Weight decay")
         training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
                                      help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("--train_batch_size", type=int, default=8,
+        training_params.add_argument("-tbs", "--train_batch_size", type=int, default=8,
                                      help="Batch size specifies the sample size of which the "
                                           "gradients are computed. Depends on memory available")
         training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)),
@@ -92,15 +92,15 @@ class MLMArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
-        training_params.add_argument("--freeze_layers", type=lambda x: bool(strtobool(x)),
+        training_params.add_argument("-fl", "--freeze_layers", type=lambda x: bool(strtobool(x)),
                                      default=False,
                                      help="whether to freeze all bert layers until "
                                           "freeze_layers_n_steps is reached")
-        training_params.add_argument("--freeze_layers_n_steps", type=int, default=20000,
+        training_params.add_argument("-flns", "--freeze_layers_n_steps", type=int, default=20000,
                                      help="number of steps to train head only")
 
         lr_params = self.parser.add_argument_group('learning rate')
-        lr_params.add_argument("--auto_lr_scheduling", type=lambda x: bool(strtobool(x)),
+        lr_params.add_argument("-alrs", "--auto_lr_scheduling", type=lambda x: bool(strtobool(x)),
                                      default=True,
                                      help="Whether to compute lr_warmup and decay automatically\n"
                                           "freeze_layers_n_steps = 10%% of total_steps\n"
@@ -109,13 +109,13 @@ class MLMArgParser:
                                           "lr_start_decay = 50%% of training full model")
         lr_params.add_argument("--lr_freezed", type=float, default=0.0005,
                                      help="number of steps to train head only")
-        lr_params.add_argument("--lr_freezed_warmup_steps", type=int, default=1000,
+        lr_params.add_argument("-lrfws", "--lr_freezed_warmup_steps", type=int, default=1000,
                                      help="number of steps to train head only")
         lr_params.add_argument("--lr", type=float, default=0.00005,
                                      help="Learning rate")
-        lr_params.add_argument("--lr_warmup_steps", type=int, default=6000,
+        lr_params.add_argument("-lrws", "--lr_warmup_steps", type=int, default=6000,
                                      help="warmup learning rate - set to 1 if no warmup")
-        lr_params.add_argument("--lr_start_decay", type=int, default=46000,
+        lr_params.add_argument("-lrsd", "--lr_start_decay", type=int, default=46000,
                                      help="after which step to start decaying learning rate")
 
 
@@ -125,16 +125,16 @@ class MLMArgParser:
         """
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("--evaluate_steps", type=int, default=50000,
+        eval_params.add_argument("-esteps", "--evaluate_steps", type=int, default=50000,
                                  help="evaluate model accuracy after number of steps")
-        eval_params.add_argument("--logging_steps", type=int, default=5000,
+        eval_params.add_argument("-lsteps", "--logging_steps", type=int, default=5000,
                                  help="Log model accuracy after number of steps")
-        eval_params.add_argument("--save_steps", type=int, default=50000,
+        eval_params.add_argument("-ssteps", "--save_steps", type=int, default=50000,
                                  help="save checkpoint after number of steps")
         eval_params.add_argument("--save_only_best_model", type=lambda x: bool(strtobool(x)),
                                  default=True,
                              help="Whether to only save best model - overwrites save_steps if True")
-        eval_params.add_argument("--eval_batch_size", type=int, default=6,
+        eval_params.add_argument("-ebs", "--eval_batch_size", type=int, default=6,
                                  help="Batch size for evaluation")
 
         eval_params.add_argument("--evaluate_during_training", type=bool, default=True,
