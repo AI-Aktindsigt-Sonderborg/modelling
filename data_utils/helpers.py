@@ -2,11 +2,25 @@ import json
 import os
 from typing import List, Tuple
 import re
-
+from torch.utils.data import Dataset
 import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModelWithLMHead
 
+class DatasetWrapper(Dataset):
+    """
+    Class to wrap dataset such that we can iterate through
+    """
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, item):
+        item = int(item)
+        return self.dataset[item]
+
+    def __len__(self):
+        return len(self.dataset)
 
 def write_json_lines(out_dir: str, filename: str, data: List[dict]):
     """

@@ -1,6 +1,5 @@
 # pylint: disable=protected-access
 import argparse
-import csv
 import json
 import os
 import sys
@@ -27,23 +26,7 @@ from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import TimeCode
 from utils.visualization import plot_running_results
-
-
-class DatasetWrapper(Dataset):
-    """
-    Class to wrap dataset such that we can iterate through
-    """
-
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __getitem__(self, item):
-        item = int(item)
-        return self.dataset[item]
-
-    def __len__(self):
-        return len(self.dataset)
-
+from data_utils.helpers import DatasetWrapper
 
 class MLMUnsupervisedModelling:
     """
@@ -147,13 +130,11 @@ class MLMUnsupervisedModelling:
                                                                               step=step,
                                                                               eval_losses=losses,
                                                                               eval_accuracies=accuracies)
-                # losses.extend(eval_loss)
-                # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
-            self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
-            self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
-            self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
+            # self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
+            # self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
+            # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
@@ -234,7 +215,8 @@ class MLMUnsupervisedModelling:
                                                            self.total_steps - step),
                                                        total_iters=self.total_steps - step
                                                        )
-
+            self.append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                            data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
             lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
@@ -274,7 +256,10 @@ class MLMUnsupervisedModelling:
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
-
+                self.append_json(output_dir=self.metrics_dir, filename='eval_losses',
+                                 data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                self.append_json(output_dir=self.metrics_dir, filename='accuracies',
+                                 data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
@@ -722,6 +707,19 @@ class MLMUnsupervisedModelling:
                 outfile.write('\n')
 
     @staticmethod
+    def append_json(output_dir: str, data: dict, filename: str):
+        """
+        append json line to jsonlines file
+        :param output_dir: directory to save to
+        :param data: List[dict]
+        :param filename: output file name
+        """
+        with open(os.path.join(output_dir, filename + '.json'), 'a',
+                  encoding='utf-8') as outfile:
+                json.dump(data, outfile)
+                outfile.write('\n')
+
+    @staticmethod
     def accuracy(preds: np.array, labels: np.array):
         """
         Compute accuracy on predictions and labels
@@ -839,9 +837,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
 
-            self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
-            self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
-            self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
+            # self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
+            # self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
+            # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
@@ -928,9 +926,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
 
+                self.append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                             data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
-                # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
-                # optimizer.zero_grad()
 
                 # compute models
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
@@ -941,9 +939,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 loss.backward()
 
                 train_losses.append(loss.item())
-                # self.scheduler.step()
 
                 optimizer.step()
+                # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
                 optimizer.zero_grad()
                 self.scheduler.step()
 
@@ -969,6 +967,11 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )
+                    self.append_json(output_dir=self.metrics_dir, filename='eval_losses',
+                                     data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                    self.append_json(output_dir=self.metrics_dir, filename='accuracies',
+                                     data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+
                     eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                     eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 

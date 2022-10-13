@@ -44,7 +44,7 @@ if args.local_testing:
     args.freeze_embeddings = True
     args.freeze_layers_n_steps = 2
     args.replace_head = True
-    # args.differential_privacy = False
+    args.differential_privacy = False
     # args.elektra = True
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):

@@ -84,7 +84,7 @@ class RawScrapePreprocessing:
             out_data = []
             filtered_filename = filename.split('_')[0] + '_filtered'
             false_lang_preds = []
-            if '_scrape_output.jsonl' in filename or 'kk' in filename:
+            if '_scrape_output.jsonl' in filename:
                 in_file_path = os.path.join(SCRAPED_DATA_DIR, filename)
                 total_lines = count_num_lines(file_path=in_file_path)
                 with open(in_file_path, 'rb') as file:
