@@ -1,21 +1,14 @@
-import argparse
 import os
 
-import numpy as np
 import torch
-from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, DataCollatorForWholeWordMask, \
-    DataCollatorForLanguageModeling, TrainingArguments, Trainer, \
-    AutoConfig, BertConfig, set_seed
+from transformers import BertConfig
 
-from local_constants import DATA_DIR, MODEL_DIR
-from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom, BertModel
+from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
-
 
 if __name__ == '__main__':
     mlm_parser = MLMArgParser()
@@ -32,13 +25,10 @@ if __name__ == '__main__':
     mlm_eval.model = BertForMaskedLM.from_pretrained(mlm_eval.local_alvenir_model_path)
     # model = torch.hub.load('huggingface/pytorch-transformers', 'model', 'NbAiLab/nb-bert-base')
 
-
     eval_data_wrapped = mlm_eval.tokenize_and_wrap_data(data=mlm_eval.eval_data)
     eval_loader = DataLoader(dataset=eval_data_wrapped,
                              collate_fn=mlm_eval.data_collator,
                              batch_size=mlm_eval.args.eval_batch_size)
-
-
 
     # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
     # print(f'eval_loss: {eval_loss}')
@@ -48,7 +38,6 @@ if __name__ == '__main__':
     #                     output_dir="models/test/",
     #                     tokenizer=mlm_eval.tokenizer)
     #
-
 
     config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
     new_head = BertOnlyMLMHeadCustom(config)
@@ -67,7 +56,6 @@ if __name__ == '__main__':
     # lm_head = lm_head.to(args.device)
     # mlm_eval.cls = lm_head
     # mlm_eval.cls.load_state_dict(torch.load(args.model_name + '/head_weights.json'))
-
 
     eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
     print(f'eval_loss: {eval_loss}')

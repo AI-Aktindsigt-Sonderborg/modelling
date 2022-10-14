@@ -2,11 +2,12 @@
 import argparse
 import json
 import os
+import shutil
 import sys
 from datetime import datetime
 from time import sleep
 from typing import List
-import shutil
+
 import numpy as np
 import torch
 from datasets import load_dataset
@@ -15,18 +16,19 @@ from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from opacus.validators import ModuleValidator
-from torch.optim.lr_scheduler import LinearLR
+
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer,\
-        DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, ElectraForMaskedLM, AutoModelForMaskedLM
+from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
+    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
 
-
+from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from utils.helpers import TimeCode
+from modelling_utils.helpers import create_scheduler
+from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
-from data_utils.helpers import DatasetWrapper
+
 
 class MLMUnsupervisedModelling:
     """
@@ -73,12 +75,6 @@ class MLMUnsupervisedModelling:
         Get current learning rate from optimizer
     save_key_metrics(output_dir, args, best_acc, best_loss, filename)
         Save important args and performance for benchmarking
-    save_json(output_dir, data, filename)
-        Save list of dicts to json dump
-    accuracy(preds, labels)
-        Compute accuracy on predictions and labels
-    create_scheduler(optimizer, start_factor, end_factor, total_iters)
-        Create scheduler for learning rate warmup and decay
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -94,7 +90,8 @@ class MLMUnsupervisedModelling:
         self.model = None
         self.local_alvenir_model_path = None
         if self.args.load_alvenir_pretrained:
-            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name, 'best_model')
+            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name,
+                                                         'best_model')
             self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
@@ -123,18 +120,14 @@ class MLMUnsupervisedModelling:
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, losses, accuracies, step, lrs = self.train_epoch(model=model,
-                                                                              train_loader=train_loader,
-                                                                              optimizer=optimizer,
-                                                                              val_loader=eval_loader,
-                                                                              epoch=epoch + 1,
-                                                                              step=step,
-                                                                              eval_losses=losses,
-                                                                              eval_accuracies=accuracies)
+                                                                        train_loader=train_loader,
+                                                                        optimizer=optimizer,
+                                                                        val_loader=eval_loader,
+                                                                        epoch=epoch + 1,
+                                                                        step=step,
+                                                                        eval_losses=losses,
+                                                                        eval_accuracies=accuracies)
                 all_lrs.extend(lrs)
-
-            # self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
-            # self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
-            # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
@@ -169,7 +162,8 @@ class MLMUnsupervisedModelling:
 
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None, eval_accuracies: List[dict] = None):
+                    step: int = 0, eval_losses: List[dict] = None,
+                    eval_accuracies: List[dict] = None):
         """
         Train one epoch
         :param eval_accuracies:
@@ -183,16 +177,12 @@ class MLMUnsupervisedModelling:
         :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
         else: return model, step, lrs
         """
-
         model.train()
         model = model.to(self.args.device)
-
         train_losses = []
-        # eval_losses = []
-        # eval_accuracies = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc='Batch', unit="batch"):
+        for batch in tqdm(train_loader, desc=f'Epoch {epoch} of {self.args.epoch}', unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -200,7 +190,7 @@ class MLMUnsupervisedModelling:
             if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                 model = self.unfreeze_layers(model)
                 # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                self.scheduler = self.create_scheduler(optimizer,
+                self.scheduler = create_scheduler(optimizer,
                                                        start_factor=(self.args.learning_rate
                                                                      / self.args.lr_freezed)
                                                                     / self.args.lr_warmup_steps,
@@ -209,35 +199,32 @@ class MLMUnsupervisedModelling:
                                                        total_iters=self.args.lr_warmup_steps)
 
             if step == self.args.lr_start_decay:
-                self.scheduler = self.create_scheduler(optimizer,
+                self.scheduler = create_scheduler(optimizer,
                                                        start_factor=1,
                                                        end_factor=self.args.learning_rate / (
                                                            self.total_steps - step),
                                                        total_iters=self.total_steps - step
                                                        )
-            self.append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                            data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
+            append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                             data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
             lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
 
-            # compute models
+            # compute model output
             output = model(input_ids=batch["input_ids"].to(self.args.device),
                            attention_mask=batch["attention_mask"].to(self.args.device),
                            labels=batch["labels"].to(self.args.device))
 
             loss = output.loss
             loss.backward()
-
             train_losses.append(loss.item())
-
             optimizer.step()
             self.scheduler.step()
 
             if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                 print(
-                    "\n"
-                    f"\tTrain Epoch: {epoch} \t"
+                    f"\n\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
@@ -256,9 +243,9 @@ class MLMUnsupervisedModelling:
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
                 )
-                self.append_json(output_dir=self.metrics_dir, filename='eval_losses',
+                append_json(output_dir=self.metrics_dir, filename='eval_losses',
                                  data={'epoch': epoch, 'step': step, 'loss': eval_loss})
-                self.append_json(output_dir=self.metrics_dir, filename='accuracies',
+                append_json(output_dir=self.metrics_dir, filename='accuracies',
                                  data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
@@ -327,7 +314,7 @@ class MLMUnsupervisedModelling:
             # See nn.CrossEntropyLoss(): ignore_index for more information
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
-            eval_acc = self.accuracy(np.array([x[1] for x in filtered]),
+            eval_acc = accuracy(np.array([x[1] for x in filtered]),
                                      np.array([x[0] for x in filtered]))
             eval_loss = output.loss.item()
 
@@ -351,18 +338,17 @@ class MLMUnsupervisedModelling:
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
+            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+                             args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-
-        # if self.args.elektra:
-        #     model = AutoModelForMaskedLM.from_pretrained(self.args.model_name)
 
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
             config = BertConfig.from_pretrained(self.local_alvenir_model_path)
             new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+            new_head.load_state_dict(
+                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
 
             lm_head = new_head.to(self.args.device)
             model.cls = lm_head
@@ -456,8 +442,8 @@ class MLMUnsupervisedModelling:
                 padding='max_length',
                 truncation=True,
                 max_length=self.args.max_length,
-                # We use this option because DataCollatorForLanguageModeling (see below) is more efficient when it
-                # receives the `special_tokens_mask`.
+                # We use this option because DataCollatorForLanguageModeling (see below)
+                # is more efficient when it receives the `special_tokens_mask`.
                 return_special_tokens_mask=True,
             )
 
@@ -499,11 +485,8 @@ class MLMUnsupervisedModelling:
         """
         Load BertForMaskedLM, replace head and freeze all params in embeddings layer
         """
-        # set_seed(42)
         model = BertForMaskedLM.from_pretrained(self.args.model_name)
-
         config = BertConfig.from_pretrained(self.args.model_name)
-        # config.save_pretrained(self.metrics_dir)
         lm_head = BertOnlyMLMHeadCustom(config)
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
@@ -513,16 +496,11 @@ class MLMUnsupervisedModelling:
         if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
-
-        # for name, param in model.named_parameters():
-        #     print(f'name: {name}, grads: {param.requires_grad}')
-
         return model
 
     def compute_lr_automatically(self):
 
         if self.args.freeze_layers:
-            # self.args.freeze_layers_n_steps = 20000
             self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
         self.args.lr_warmup_steps = int(
@@ -540,7 +518,6 @@ class MLMUnsupervisedModelling:
         :param freeze_layers_n_steps: only get best performance after model is un-freezed
         :return: Best metric for loss and accuracy
         """
-
         min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
                        key=lambda x: x['loss'])
         max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
@@ -569,7 +546,6 @@ class MLMUnsupervisedModelling:
         for name, param in model.named_parameters():
             if not name.startswith("cls."):
                 param.requires_grad = False
-
         model.train()
         return model
 
@@ -612,9 +588,8 @@ class MLMUnsupervisedModelling:
         torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
         # model.save_pretrained(save_directory=output_dir)
 
-
     @staticmethod
-    def save_config(output_dir: str, metrics_dir: str,  args: argparse.Namespace):
+    def save_config(output_dir: str, metrics_dir: str, args: argparse.Namespace):
         """
         Save config file with input arguments
         :param output_dir: model directory
@@ -691,57 +666,6 @@ class MLMUnsupervisedModelling:
         with open(os.path.join(output_dir, filename + '.json'), 'w',
                   encoding='utf-8') as outfile:
             json.dump(metrics, outfile)
-
-    @staticmethod
-    def save_json(output_dir: str, data: List[dict], filename: str):
-        """
-        Save list of dicts to json dump
-        :param output_dir:
-        :param data: List[dict]
-        :param filename: output file name
-        """
-        with open(os.path.join(output_dir, filename + '.json'), 'w',
-                  encoding='utf-8') as outfile:
-            for entry in data:
-                json.dump(entry, outfile)
-                outfile.write('\n')
-
-    @staticmethod
-    def append_json(output_dir: str, data: dict, filename: str):
-        """
-        append json line to jsonlines file
-        :param output_dir: directory to save to
-        :param data: List[dict]
-        :param filename: output file name
-        """
-        with open(os.path.join(output_dir, filename + '.json'), 'a',
-                  encoding='utf-8') as outfile:
-                json.dump(data, outfile)
-                outfile.write('\n')
-
-    @staticmethod
-    def accuracy(preds: np.array, labels: np.array):
-        """
-        Compute accuracy on predictions and labels
-        :param preds: Predicted token
-        :param labels: Input labelled token
-        :return: Mean accuracy
-        """
-        return (preds == labels).mean()
-
-    @staticmethod
-    def create_scheduler(optimizer, start_factor: float, end_factor: float, total_iters: int):
-        """
-        Create scheduler for learning rate warmup and decay
-        :param optimizer: optimizer - for DP training of type DPOPtimizer
-        :param start_factor: learning rate factor to start with
-        :param end_factor: learning rate factor to end at
-        :param total_iters: Number of steps to iterate
-        :return: learning rate scheduler of type LinearLR
-        """
-        return LinearLR(optimizer, start_factor=start_factor,
-                        end_factor=end_factor,
-                        total_iters=total_iters)
 
 
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
@@ -875,7 +799,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None, eval_accuracies: List[dict] = None):
+                    step: int = 0, eval_losses: List[dict] = None,
+                    eval_accuracies: List[dict] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
         :param eval_accuracies: list of evaluation accuracies
@@ -891,10 +816,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         """
         model.train()
         model = model.to(self.args.device)
-
         train_losses = []
-        # eval_losses = []
-        # eval_accuracies = []
         lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,
@@ -902,7 +824,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for batch in tqdm(memory_safe_data_loader, desc='Batch', unit="batch"):
+            for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epoch}',
+                              unit="batch"):
 
                 if self.args.freeze_layers and step == 0:
                     model = self.freeze_layers(model)
@@ -926,8 +849,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                            total_iters=self.total_steps -
                                                                        self.args.lr_start_decay)
 
-                self.append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                             data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
+                append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                                 data={'epoch': epoch, 'step': step,
+                                       'lr': self.get_lr(optimizer)[0]})
                 lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
 
                 # compute models
@@ -937,9 +861,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 loss = output.loss
                 loss.backward()
-
                 train_losses.append(loss.item())
-
                 optimizer.step()
                 # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
                 optimizer.zero_grad()
@@ -967,9 +889,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )
-                    self.append_json(output_dir=self.metrics_dir, filename='eval_losses',
+                    append_json(output_dir=self.metrics_dir, filename='eval_losses',
                                      data={'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    self.append_json(output_dir=self.metrics_dir, filename='accuracies',
+                    append_json(output_dir=self.metrics_dir, filename='accuracies',
                                      data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
                     eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
@@ -996,12 +918,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args)
+            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+                             args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-
-        # if self.args.elektra:
-        #     model = AutoModelForMaskedLM.from_pretrained(self.args.model_name)
 
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
@@ -1024,9 +944,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             else:
                 model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
-        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
-                                                  model=model)
-
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
@@ -1035,13 +952,13 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         # ToDo: finish head warmup lr
         if self.args.freeze_layers:
-            self.scheduler = self.create_scheduler(dp_optimizer,
+            self.scheduler = create_scheduler(dp_optimizer,
                                                    start_factor=self.args.lr_freezed /
                                                                 self.args.lr_freezed_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_freezed_warmup_steps)
         else:
-            self.scheduler = self.create_scheduler(dp_optimizer,
+            self.scheduler = create_scheduler(dp_optimizer,
                                                    start_factor=self.args.learning_rate /
                                                                 self.args.lr_warmup_steps,
                                                    end_factor=1,
@@ -1061,8 +978,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
         # validate if model works with opacus
         self.validate_model(model, strict=True)
-
-        # trainer.create_optimizer()
+        # new opacus version requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=model,
@@ -1073,7 +989,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             target_delta=self.args.delta,
             max_grad_norm=self.args.max_grad_norm
         )
-
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
@@ -1101,7 +1016,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         for name, param in model.named_parameters():
             if not name.startswith("_module.cls"):
                 param.requires_grad = False
-
         model.train()
         return model
 
@@ -1116,7 +1030,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             # ToDo: Fix this
             if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
-
         model.train()
         return model
 
@@ -1141,5 +1054,3 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model._module.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))
-
-        # model._module.save_pretrained(save_directory=output_dir)

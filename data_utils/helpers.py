@@ -140,5 +140,3 @@ def find_letters_and_word_count(text: str, word_count_threshold: int):
     if search and word_count >= word_count_threshold:
         return True
     return False
-
-

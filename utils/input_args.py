@@ -24,16 +24,11 @@ class MLMArgParser:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         self.parser.add_argument("-p", '--print_only_args', action='store_true',
                                  help="whether to only print args and exit")
-        # self.add_helper_params()
         self.add_data_params()
         self.add_model_params()
         self.add_training_params()
         self.add_eval_params()
         self.add_dp_params()
-
-    # def add_helper_params(self):
-    #     helper_params = self.parser.add_argument_group('helpers')
-    #     helper_params.add_argument("-p", '--print_only_args', action='store_true', help="whether to only print args and exit")
 
     def add_data_params(self):
         """
