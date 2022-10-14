@@ -182,7 +182,7 @@ class MLMUnsupervisedModelling:
         train_losses = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc=f'Epoch {epoch} of {self.args.epoch}', unit="batch"):
+        for batch in tqdm(train_loader, desc=f'Epoch {epoch} of {self.args.epochs}', unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -374,13 +374,13 @@ class MLMUnsupervisedModelling:
 
         optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
-            self.scheduler = self.create_scheduler(optimizer,
+            self.scheduler = create_scheduler(optimizer,
                                                    start_factor=self.args.lr_freezed /
                                                                 self.args.lr_freezed_warmup_steps,
                                                    end_factor=1,
                                                    total_iters=self.args.lr_freezed_warmup_steps)
         else:
-            self.scheduler = self.create_scheduler(optimizer,
+            self.scheduler = create_scheduler(optimizer,
                                                    start_factor=self.args.learning_rate /
                                                                 self.args.lr_warmup_steps,
                                                    end_factor=1,
@@ -824,7 +824,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epoch}',
+            for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
 
                 if self.args.freeze_layers and step == 0:
@@ -833,7 +833,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                    self.scheduler = self.create_scheduler(optimizer,
+                    self.scheduler = create_scheduler(optimizer,
                                                            start_factor=(self.args.learning_rate
                                                                          / self.args.lr_freezed)
                                                                         / self.args.lr_warmup_steps,
@@ -842,7 +842,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                                                            total_iters=self.args.lr_warmup_steps)
 
                 if step == self.args.lr_start_decay:
-                    self.scheduler = self.create_scheduler(optimizer,
+                    self.scheduler = create_scheduler(optimizer,
                                                            start_factor=1,
                                                            end_factor=self.args.learning_rate /
                                                                       (self.total_steps - step),

@@ -16,7 +16,7 @@ def blocks(files, size=65536):
 
 def count_num_lines(file_path):
     with open(file_path, "r", encoding="utf-8", errors='ignore') as file:
-        return sum(bl.count("\n") for bl in blocks(f))
+        return sum(bl.count("\n") for bl in blocks(file))
 
 def validate_model(model):
     errors = ModuleValidator.validate(model, strict=False)

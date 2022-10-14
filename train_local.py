@@ -58,8 +58,3 @@ else:
     mlm_modelling = MLMUnsupervisedModelling(args=args)
 
 mlm_modelling.train_model()
-
-
-# for name, param in model.named_parameters():
-#     if 'embed' in name:
-#         print(f'name: {name}, param: {param.requires_grad}')
