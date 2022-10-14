@@ -272,9 +272,9 @@ class RawScrapePreprocessing:
     @staticmethod
     def fix_utf8_encodings(data: dict):
         """
-
-        :param data:
-        :return:
+        Use fix_encoding and manually replace wrong danish letters
+        :param data: dictionary containing text from scrape url
+        :return: dictionary with correct encoded text
         """
         data['page_filtered_text'] = fix_encoding(
             data['page_filtered_text'])
@@ -283,7 +283,6 @@ class RawScrapePreprocessing:
             if wrong_encoding[0] in data['page_filtered_text']:
                 data['page_filtered_text'] = data['page_filtered_text'].replace(wrong_encoding[0],
                                                                                 wrong_encoding[1])
-
         return data
 
     @staticmethod
