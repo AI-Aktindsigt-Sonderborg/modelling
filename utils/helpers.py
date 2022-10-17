@@ -7,6 +7,7 @@ from typing import Optional, List
 import numpy as np
 from opacus.validators import ModuleValidator
 
+
 def blocks(files, size=65536):
     while True:
         bytes = files.read(size)
@@ -14,19 +15,10 @@ def blocks(files, size=65536):
             break
         yield bytes
 
+
 def count_num_lines(file_path):
     with open(file_path, "r", encoding="utf-8", errors='ignore') as file:
         return sum(bl.count("\n") for bl in blocks(file))
-
-def validate_model(model):
-    errors = ModuleValidator.validate(model, strict=False)
-    if errors:
-        print("Model is not compatible for DF with opacus. Please fix errors.")
-        print(errors)
-        sys.exit(0)
-    else:
-        print("Model is compatible for DP with opacus.")
-
 
 def fix_and_validate(model):
     model = ModuleValidator.fix_and_validate(model)
@@ -81,3 +73,4 @@ def save_json(output_dir: str, data: List[dict], filename: str):
         for entry in data:
             json.dump(entry, outfile)
             outfile.write('\n')
+

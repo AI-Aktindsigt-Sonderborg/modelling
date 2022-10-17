@@ -25,7 +25,7 @@ from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArg
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler
+from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss
 from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
@@ -61,7 +61,7 @@ class MLMUnsupervisedModelling:
     --------------
     get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps)
         Compute min loss and max accuracy based on all values from evaluation
-    get_data_collator()
+    get_data_collator
         Based on word mask load corresponding data collator
     freeze_layers(model)
         Freeze all bert layers in model, such that we can train only the head
@@ -71,8 +71,6 @@ class MLMUnsupervisedModelling:
         Wrap model in trainer class and save to pytorch object
     save_config(output_dir: str, args: argparse.Namespace)
         Save config file with input arguments
-    get_lr(optimizer: DPOptimizer)
-        Get current learning rate from optimizer
     save_key_metrics(output_dir, args, best_acc, best_loss, filename)
         Save important args and performance for benchmarking
     """
@@ -130,7 +128,7 @@ class MLMUnsupervisedModelling:
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+                min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
 
                 self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
@@ -206,8 +204,8 @@ class MLMUnsupervisedModelling:
                                                        total_iters=self.total_steps - step
                                                        )
             append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                             data={'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
-            lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
+                             data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+            lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
 
@@ -225,14 +223,14 @@ class MLMUnsupervisedModelling:
             if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                 print(
                     f"\n\tTrain Epoch: {epoch} \t"
-                    f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
+                    f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
                 print(
                     f"\tTrain Epoch: {epoch} \t"
-                    f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
+                    f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
@@ -274,7 +272,7 @@ class MLMUnsupervisedModelling:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
-            min_loss, max_acc = self.get_max_acc_min_loss(eval_losses, eval_accuracies,
+            min_loss, max_acc = get_max_acc_min_loss(eval_losses, eval_accuracies,
                                                           self.args.freeze_layers_n_steps)
             if min_loss['loss'] == eval_losses[-1]['loss'] \
                 and max_acc['acc'] == eval_accuracies[-1]['acc']:
@@ -509,21 +507,6 @@ class MLMUnsupervisedModelling:
             np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
                     0.5 + self.args.freeze_layers_n_steps))
 
-    @staticmethod
-    def get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps):
-        """
-        Compute min loss and max accuracy based on all values from evaluation
-        :param losses: List[dict] of all losses evaluate()
-        :param accuracies: List[dict] of all accuracies computed by evaluate()
-        :param freeze_layers_n_steps: only get best performance after model is un-freezed
-        :return: Best metric for loss and accuracy
-        """
-        min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
-                       key=lambda x: x['loss'])
-        max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
-                      key=lambda x: x['acc'])
-        return min_loss, max_acc
-
     @property
     def get_data_collator(self):
         """
@@ -617,18 +600,6 @@ class MLMUnsupervisedModelling:
 
             print('\nExiting.')
             sys.exit(0)
-
-    @staticmethod
-    def get_lr(optimizer: DPOptimizer):
-        """
-        Get current learning rate from optimizer
-        :param optimizer:
-        :return: list of learning rates in all groups
-        """
-        lrs = []
-        for param_group in optimizer.param_groups:
-            lrs.append(param_group['lr'])
-        return lrs
 
     @staticmethod
     def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
@@ -766,7 +737,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = self.get_max_acc_min_loss(losses, accuracies,
+                min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
                 self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                       best_acc=max_acc, best_loss=min_loss,
@@ -851,8 +822,8 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                 append_json(output_dir=self.metrics_dir, filename='learning_rates',
                                  data={'epoch': epoch, 'step': step,
-                                       'lr': self.get_lr(optimizer)[0]})
-                lrs.append({'epoch': epoch, 'step': step, 'lr': self.get_lr(optimizer)[0]})
+                                       'lr': get_lr(optimizer)[0]})
+                lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
                 # compute models
                 output = model(input_ids=batch["input_ids"].to(self.args.device),
@@ -870,7 +841,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                 if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
+                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
                         f"Loss: {np.mean(train_losses):.6f} "
                     )
 
@@ -878,7 +849,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
                     print(
                         f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {self.get_lr(optimizer)[0]}\t"
+                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
                         f"Loss: {np.mean(train_losses):.6f} "
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
@@ -977,7 +948,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         model = model.train()
 
         # validate if model works with opacus
-        self.validate_model(model, strict=True)
+        validate_model(model, strict=True)
         # new opacus version requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
@@ -990,21 +961,6 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             max_grad_norm=self.args.max_grad_norm
         )
         return dp_model, dp_optimizer, dp_train_loader
-
-    @staticmethod
-    def validate_model(model, strict: bool = False):
-        """
-        Validate whether model is compatible with opacus
-        :param model: pytorch model of type BertForMaskedLM
-        :param strict: Whether validation should be strict
-        """
-        errors = ModuleValidator.validate(model, strict=strict)
-        if errors:
-            print("Model is not compatible for DF with opacus. Please fix errors.")
-            print(errors)
-            sys.exit(0)
-        else:
-            print("Model is compatible for DP with opacus.")
 
     @staticmethod
     def freeze_layers(model):
