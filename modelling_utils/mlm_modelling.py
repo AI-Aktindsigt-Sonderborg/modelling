@@ -15,8 +15,6 @@ from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
-from opacus.validators import ModuleValidator
-
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
@@ -130,11 +128,11 @@ class MLMUnsupervisedModelling:
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
-                                                              self.args.freeze_layers_n_steps)
+                                                         self.args.freeze_layers_n_steps)
 
                 save_key_metrics(output_dir=self.metrics_dir, args=self.args,
-                                      best_acc=max_acc, best_loss=min_loss,
-                                      total_steps=self.total_steps)
+                                 best_acc=max_acc, best_loss=min_loss,
+                                 total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -190,22 +188,22 @@ class MLMUnsupervisedModelling:
                 model = self.unfreeze_layers(model)
                 # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
                 self.scheduler = create_scheduler(optimizer,
-                                                       start_factor=(self.args.learning_rate
-                                                                     / self.args.lr_freezed)
-                                                                    / self.args.lr_warmup_steps,
-                                                       end_factor=self.args.learning_rate
-                                                                  / self.args.lr_freezed,
-                                                       total_iters=self.args.lr_warmup_steps)
+                                                  start_factor=(self.args.learning_rate
+                                                                / self.args.lr_freezed)
+                                                               / self.args.lr_warmup_steps,
+                                                  end_factor=self.args.learning_rate
+                                                             / self.args.lr_freezed,
+                                                  total_iters=self.args.lr_warmup_steps)
 
             if step == self.args.lr_start_decay:
                 self.scheduler = create_scheduler(optimizer,
-                                                       start_factor=1,
-                                                       end_factor=self.args.learning_rate / (
-                                                           self.total_steps - step),
-                                                       total_iters=self.total_steps - step
-                                                       )
+                                                  start_factor=1,
+                                                  end_factor=self.args.learning_rate / (
+                                                      self.total_steps - step),
+                                                  total_iters=self.total_steps - step
+                                                  )
             append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                             data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+                        data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
             lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
@@ -243,9 +241,9 @@ class MLMUnsupervisedModelling:
                     f"eval acc: {eval_accuracy}"
                 )
                 append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                                 data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                            data={'epoch': epoch, 'step': step, 'loss': eval_loss})
                 append_json(output_dir=self.metrics_dir, filename='accuracies',
-                                 data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                            data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
@@ -274,7 +272,7 @@ class MLMUnsupervisedModelling:
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
             min_loss, max_acc = get_max_acc_min_loss(eval_losses, eval_accuracies,
-                                                          self.args.freeze_layers_n_steps)
+                                                     self.args.freeze_layers_n_steps)
             if min_loss['loss'] == eval_losses[-1]['loss'] \
                 and max_acc['acc'] == eval_accuracies[-1]['acc']:
                 self.save_model(model, output_dir=self.output_dir,
@@ -314,7 +312,7 @@ class MLMUnsupervisedModelling:
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
             eval_acc = accuracy(np.array([x[1] for x in filtered]),
-                                     np.array([x[0] for x in filtered]))
+                                np.array([x[0] for x in filtered]))
             eval_loss = output.loss.item()
 
             if not np.isnan(eval_loss):
@@ -374,16 +372,16 @@ class MLMUnsupervisedModelling:
         optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(optimizer,
-                                                   start_factor=self.args.lr_freezed /
-                                                                self.args.lr_freezed_warmup_steps,
-                                                   end_factor=1,
-                                                   total_iters=self.args.lr_freezed_warmup_steps)
+                                              start_factor=self.args.lr_freezed /
+                                                           self.args.lr_freezed_warmup_steps,
+                                              end_factor=1,
+                                              total_iters=self.args.lr_freezed_warmup_steps)
         else:
             self.scheduler = create_scheduler(optimizer,
-                                                   start_factor=self.args.learning_rate /
-                                                                self.args.lr_warmup_steps,
-                                                   end_factor=1,
-                                                   total_iters=self.args.lr_warmup_steps)
+                                              start_factor=self.args.learning_rate /
+                                                           self.args.lr_warmup_steps,
+                                              end_factor=1,
+                                              total_iters=self.args.lr_warmup_steps)
 
         return model, optimizer, train_loader
 
@@ -702,10 +700,10 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
-                                                              self.args.freeze_layers_n_steps)
+                                                         self.args.freeze_layers_n_steps)
                 save_key_metrics(output_dir=self.metrics_dir, args=self.args,
-                                      best_acc=max_acc, best_loss=min_loss,
-                                      total_steps=self.total_steps)
+                                 best_acc=max_acc, best_loss=min_loss,
+                                 total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -769,24 +767,24 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
                     self.scheduler = create_scheduler(optimizer,
-                                                           start_factor=(self.args.learning_rate
-                                                                         / self.args.lr_freezed)
-                                                                        / self.args.lr_warmup_steps,
-                                                           end_factor=self.args.learning_rate
-                                                                      / self.args.lr_freezed,
-                                                           total_iters=self.args.lr_warmup_steps)
+                                                      start_factor=(self.args.learning_rate
+                                                                    / self.args.lr_freezed)
+                                                                   / self.args.lr_warmup_steps,
+                                                      end_factor=self.args.learning_rate
+                                                                 / self.args.lr_freezed,
+                                                      total_iters=self.args.lr_warmup_steps)
 
                 if step == self.args.lr_start_decay:
                     self.scheduler = create_scheduler(optimizer,
-                                                           start_factor=1,
-                                                           end_factor=self.args.learning_rate /
-                                                                      (self.total_steps - step),
-                                                           total_iters=self.total_steps -
-                                                                       self.args.lr_start_decay)
+                                                      start_factor=1,
+                                                      end_factor=self.args.learning_rate /
+                                                                 (self.total_steps - step),
+                                                      total_iters=self.total_steps -
+                                                                  self.args.lr_start_decay)
 
                 append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                                 data={'epoch': epoch, 'step': step,
-                                       'lr': get_lr(optimizer)[0]})
+                            data={'epoch': epoch, 'step': step,
+                                  'lr': get_lr(optimizer)[0]})
                 lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
                 # compute models
@@ -825,9 +823,9 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
                         f"eval acc: {eval_accuracy}"
                     )
                     append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                                     data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                                data={'epoch': epoch, 'step': step, 'loss': eval_loss})
                     append_json(output_dir=self.metrics_dir, filename='accuracies',
-                                     data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                                data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
                     eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                     eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
@@ -888,16 +886,16 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         # ToDo: finish head warmup lr
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(dp_optimizer,
-                                                   start_factor=self.args.lr_freezed /
-                                                                self.args.lr_freezed_warmup_steps,
-                                                   end_factor=1,
-                                                   total_iters=self.args.lr_freezed_warmup_steps)
+                                              start_factor=self.args.lr_freezed /
+                                                           self.args.lr_freezed_warmup_steps,
+                                              end_factor=1,
+                                              total_iters=self.args.lr_freezed_warmup_steps)
         else:
             self.scheduler = create_scheduler(dp_optimizer,
-                                                   start_factor=self.args.learning_rate /
-                                                                self.args.lr_warmup_steps,
-                                                   end_factor=1,
-                                                   total_iters=self.args.lr_warmup_steps)
+                                              start_factor=self.args.learning_rate /
+                                                           self.args.lr_warmup_steps,
+                                              end_factor=1,
+                                              total_iters=self.args.lr_warmup_steps)
 
         return dp_model, dp_optimizer, dp_train_loader
 
