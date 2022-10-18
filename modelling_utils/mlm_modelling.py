@@ -294,7 +294,7 @@ class MLMUnsupervisedModelling:
         accuracy_arr = []
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
-        for batch in tqdm(val_loader, unit="batch", desc="Batch"):
+        for batch in tqdm(val_loader, unit="batch", desc="Eval"):
             # for batch in val_loader:
             output = model(input_ids=batch["input_ids"].to(self.args.device),
                            attention_mask=batch["attention_mask"].to(self.args.device),
