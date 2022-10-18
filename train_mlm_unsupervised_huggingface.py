@@ -11,7 +11,7 @@ from transformers import AutoTokenizer, Trainer, \
 
 from local_constants import MODEL_DIR
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
-from utils.input_args import MLMArgParser
+from modelling_utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
 from datasets import load_metric

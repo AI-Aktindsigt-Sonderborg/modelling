@@ -1,8 +1,7 @@
 # pylint: disable=protected-access
-import torch
 
 from modelling_utils.mlm_modelling import MLMUnsupervisedModellingDP, MLMUnsupervisedModelling
-from utils.input_args import MLMArgParser
+from modelling_utils.input_args import MLMArgParser
 
 # to check if cuda available - if not update pycharm fx
 # import torch
