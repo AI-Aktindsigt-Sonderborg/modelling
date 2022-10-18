@@ -34,7 +34,7 @@ if args.local_testing:
     args.lr_start_decay = 20
     # args.lr = 0.01
 
-    args.epochs = 10
+    args.epochs = 5
     args.train_batch_size = 2
     args.max_length = 8
     # args.save_model_at_end = False
@@ -44,7 +44,7 @@ if args.local_testing:
     args.freeze_embeddings = True
     args.freeze_layers_n_steps = 2
     args.replace_head = True
-    args.differential_privacy = False
+    # args.differential_privacy = False
     # args.elektra = True
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):

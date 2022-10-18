@@ -1,11 +1,13 @@
+import json
+import os
 import sys
 from typing import List
 
 from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 
-def validate_model(model):
-    errors = ModuleValidator.validate(model, strict=False)
+def validate_model(model, strict_validation: bool = False):
+    errors = ModuleValidator.validate(model, strict=strict_validation)
     if errors:
         print("Model is not compatible for DF with opacus. Please fix errors.")
         print(errors)
@@ -51,3 +53,40 @@ def get_max_acc_min_loss(losses: List[dict], accuracies: List[dict], freeze_laye
     max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
                   key=lambda x: x['acc'])
     return min_loss, max_acc
+
+
+def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
+                     total_steps: int, filename: str = 'key_metrics'):
+    """
+    Save important args and performance for benchmarking
+    :param output_dir:
+    :param args:
+    :param best_acc:
+    :param best_loss:
+    :param filename:
+    :return:
+    """
+    metrics = {'key_metrics': [{'output_name': args.output_name,
+                                'lr': args.learning_rate,
+                                'epochs': args.epochs,
+                                'train_batch_size': args.train_batch_size,
+                                'eval_batch_size': args.eval_batch_size,
+                                'max_length': args.max_length,
+                                'lr_warmup_steps': args.lr_warmup_steps,
+                                'replace_head': args.replace_head,
+                                'freeze_layers_n_steps': args.freeze_layers_n_steps,
+                                'lr_freezed': args.lr_freezed,
+                                'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
+                                'dp': args.differential_privacy,
+                                'epsilon': args.epsilon,
+                                'delta': args.delta,
+                                'lot_size': args.lot_size,
+                                'whole_word_mask': args.whole_word_mask,
+                                'train_data': args.train_data,
+                                'total_steps': total_steps},
+                               {'best_acc': best_acc},
+                               {'best_loss': best_loss}]}
+
+    with open(os.path.join(output_dir, filename + '.json'), 'w',
+              encoding='utf-8') as outfile:
+        json.dump(metrics, outfile)

@@ -25,7 +25,8 @@ from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArg
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss
+from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
+    save_key_metrics
 from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
@@ -131,7 +132,7 @@ class MLMUnsupervisedModelling:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
 
-                self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                       best_acc=max_acc, best_loss=min_loss,
                                       total_steps=self.total_steps)
 
@@ -601,43 +602,6 @@ class MLMUnsupervisedModelling:
             print('\nExiting.')
             sys.exit(0)
 
-    @staticmethod
-    def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
-                         total_steps: int, filename: str = 'key_metrics'):
-        """
-        Save important args and performance for benchmarking
-        :param output_dir:
-        :param args:
-        :param best_acc:
-        :param best_loss:
-        :param filename:
-        :return:
-        """
-        metrics = {'key_metrics': [{'output_name': args.output_name,
-                                    'lr': args.learning_rate,
-                                    'epochs': args.epochs,
-                                    'train_batch_size': args.train_batch_size,
-                                    'eval_batch_size': args.eval_batch_size,
-                                    'max_length': args.max_length,
-                                    'lr_warmup_steps': args.lr_warmup_steps,
-                                    'replace_head': args.replace_head,
-                                    'freeze_layers_n_steps': args.freeze_layers_n_steps,
-                                    'lr_freezed': args.lr_freezed,
-                                    'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
-                                    'dp': args.differential_privacy,
-                                    'epsilon': args.epsilon,
-                                    'delta': args.delta,
-                                    'lot_size': args.lot_size,
-                                    'whole_word_mask': args.whole_word_mask,
-                                    'train_data': args.train_data,
-                                    'total_steps': total_steps},
-                                   {'best_acc': best_acc},
-                                   {'best_loss': best_loss}]}
-
-        with open(os.path.join(output_dir, filename + '.json'), 'w',
-                  encoding='utf-8') as outfile:
-            json.dump(metrics, outfile)
-
 
 class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
     """
@@ -739,7 +703,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                               self.args.freeze_layers_n_steps)
-                self.save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                       best_acc=max_acc, best_loss=min_loss,
                                       total_steps=self.total_steps)
 
@@ -948,7 +912,7 @@ class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
         model = model.train()
 
         # validate if model works with opacus
-        validate_model(model, strict=True)
+        validate_model(model, strict_validation=True)
         # new opacus version requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
