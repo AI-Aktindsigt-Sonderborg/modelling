@@ -58,8 +58,6 @@ class MLMUnsupervisedModelling:
 
     Static methods
     --------------
-    get_max_acc_min_loss(losses, accuracies, freeze_layers_n_steps)
-        Compute min loss and max accuracy based on all values from evaluation
     get_data_collator
         Based on word mask load corresponding data collator
     freeze_layers(model)
@@ -70,8 +68,6 @@ class MLMUnsupervisedModelling:
         Wrap model in trainer class and save to pytorch object
     save_config(output_dir: str, args: argparse.Namespace)
         Save config file with input arguments
-    save_key_metrics(output_dir, args, best_acc, best_loss, filename)
-        Save important args and performance for benchmarking
     """
 
     def __init__(self, args: argparse.Namespace):

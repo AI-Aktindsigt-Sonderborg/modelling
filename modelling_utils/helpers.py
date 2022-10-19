@@ -59,11 +59,11 @@ def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
                      total_steps: int, filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
-    :param output_dir:
-    :param args:
-    :param best_acc:
-    :param best_loss:
-    :param filename:
+    :param output_dir: output directory
+    :param args: args parsed from ArgParser
+    :param best_acc: The best accuracy dict from list of dicts
+    :param best_loss: The best loss dict from list of dicts
+    :param filename: output filename
     :return:
     """
     metrics = {'key_metrics': [{'output_name': args.output_name,

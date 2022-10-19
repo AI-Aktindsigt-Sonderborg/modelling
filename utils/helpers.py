@@ -8,14 +8,25 @@ from opacus.validators import ModuleValidator
 
 
 def blocks(files, size=65536):
+    """
+    Read and yield block of lines in file
+    :param file: input file(s)
+    :param size: max number of lines to read at a time
+    :return: yield number of lines
+    """
     while True:
-        bytes = files.read(size)
-        if not bytes:
+        block = files.read(size)
+        if not block:
             break
-        yield bytes
+        yield block
 
 
 def count_num_lines(file_path):
+    """
+    Count number of lines in file using blocks
+    :param file_path: input file path
+    :return: number of lines
+    """
     with open(file_path, "r", encoding="utf-8", errors='ignore') as file:
         return sum(bl.count("\n") for bl in blocks(file))
 
