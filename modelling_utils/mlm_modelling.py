@@ -179,7 +179,7 @@ class MLMUnsupervisedModelling:
         train_losses = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc=f'Epoch {epoch} of {self.args.epochs}', unit="batch"):
+        for batch in tqdm(train_loader, desc=f'Train epoch {epoch} of {self.args.epochs}', unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
