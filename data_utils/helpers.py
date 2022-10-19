@@ -110,6 +110,14 @@ def split_sentences(data_dict: dict, filename: str, sentence_splitter: object,
 
 
 def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
+    """
+    Computes perplexity score on the first 200 words in a sentence
+    :param text: input string
+    :param model: model
+    :param tokenizer: tokenizer
+    :param device: should normally be cuda
+    :return: returns loss of sentence - the lower the better
+    """
     words = text.split(" ")
     new_text = " ".join(words[0:200])
     tensor_input = tokenizer.encode(new_text, return_tensors='pt').to(device)

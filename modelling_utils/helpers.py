@@ -11,7 +11,7 @@ def validate_model(model, strict_validation: bool = False):
     if errors:
         print("Model is not compatible for DF with opacus. Please fix errors.")
         print(errors)
-        sys.exit(0)
+        sys.exit(1)
     else:
         print("Model is compatible for DP with opacus.")
 

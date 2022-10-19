@@ -26,10 +26,19 @@ def fix_and_validate(model):
 
 
 class TimeCode:
+    """
+    Class to compute runtime
+    """
+
     def __init__(self):
         self.start_time = time.time()
 
     def how_long_since_start(self, prefix: Optional[str] = None):
+        """
+        Compute running time of code since class instantiation
+        :param prefix: Optional prefix to print_string
+        :return: string with running time in minutes and seconds
+        """
         time_end = time.time()
         final_time_seconds = round(time_end - self.start_time, 2)
         final_time_minutes = round(final_time_seconds / 60, 2)

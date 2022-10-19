@@ -108,8 +108,8 @@ class RawScrapePreprocessing:
                             false_lang_preds.append(1)
 
                     assert total_lines == index + 1, {'Total lines and index dont match'}
-                    print(
-                        f'Observations discarded in {filtered_filename}: {np.sum(false_lang_preds)}')
+                    print(f'Observations discarded in '
+                          f'{filtered_filename}: {np.sum(false_lang_preds)}')
                     print(f'Urls approved in {filtered_filename}: '
                           f'{index + 1 - np.sum(false_lang_preds)} of {index + 1}')
                 write_json_lines(out_dir=FILTERED_SCRAPE_DIR, filename=filtered_filename,
@@ -123,7 +123,7 @@ class RawScrapePreprocessing:
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
         """
-
+        # Init TimeCode
         timer = TimeCode()
         if self.args.add_ppl:
             print('Adding perplexity to each sentence')
@@ -194,7 +194,7 @@ class RawScrapePreprocessing:
                                                 f'{i} - {final_sentence}')
         write_text_lines(out_dir=DATA_DIR, filename='data_testing/disapproved_sentences',
                          data=disapproved_sentences)
-
+        # Print running time of code
         timer.how_long_since_start()
         print(f'Approved sentences: {np.sum(approved_sentences)}')
         print(f'Disapproved sentences: {len(disapproved_sentences)}')
