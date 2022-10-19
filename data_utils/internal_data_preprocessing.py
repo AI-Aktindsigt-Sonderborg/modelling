@@ -1,4 +1,4 @@
-import hashlib
+# pylint: skip-file
 import json
 import os
 import re
@@ -6,7 +6,9 @@ from typing import List
 
 import nltk
 import numpy as np
+
 from local_constants import PROJECT_ROOT, DATA_DIR
+
 
 class InternalDataPreprocessing:
     """

@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 import time
 from typing import Optional, List
 
@@ -19,6 +18,7 @@ def blocks(files, size=65536):
 def count_num_lines(file_path):
     with open(file_path, "r", encoding="utf-8", errors='ignore') as file:
         return sum(bl.count("\n") for bl in blocks(file))
+
 
 def fix_and_validate(model):
     model = ModuleValidator.fix_and_validate(model)
@@ -73,4 +73,3 @@ def save_json(output_dir: str, data: List[dict], filename: str):
         for entry in data:
             json.dump(entry, outfile)
             outfile.write('\n')
-
