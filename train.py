@@ -1,10 +1,10 @@
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling, MLMUnsupervisedModellingDP
-from utils.input_args import MLMArgParser
+from modelling_utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-if args.dp:
+if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):
         print(mlm_parser.parser._option_string_actions['--lot_size'].help)

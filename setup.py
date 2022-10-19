@@ -5,14 +5,12 @@ import os
 
 import nltk
 
-from local_constants import DATA_DIR, CONFIG_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR
+from local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, \
+    PREP_DATA_DIR, PLOTS_DIR
 
+# Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')
-
-if not os.path.exists(CONFIG_DIR):
-    # Create a new directory because it does not exist
-    os.makedirs(CONFIG_DIR)
-    print("Create config dir!")
+nltk.download('stopwords')
 
 if not os.path.exists(DATA_DIR):
     # Create a new directory because it does not exist
@@ -29,10 +27,20 @@ if not os.path.exists(FILTERED_SCRAPE_DIR):
     os.makedirs(FILTERED_SCRAPE_DIR)
     print("Create filtered data dir!")
 
-if not os.path.exists('data/scraped_data'):
+if not os.path.exists(SCRAPED_DATA_DIR):
     # Create a new directory because it does not exist
-    os.makedirs('data/scraped_data')
+    os.makedirs(SCRAPED_DATA_DIR)
     print("Create scrape data dir!")
+
+if not os.path.exists(PLOTS_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(PLOTS_DIR)
+    print("Create plots dir!")
+
+if not os.path.exists(PREP_DATA_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(PREP_DATA_DIR)
+    print("Create preprocessed data dir!")
 
 if not os.path.exists('data/internal_data'):
     # Create a new directory because it does not exist
