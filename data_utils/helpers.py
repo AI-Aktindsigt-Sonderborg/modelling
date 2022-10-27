@@ -6,6 +6,10 @@ from torch.utils.data import Dataset
 import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModelWithLMHead
+import pandas as pd
+
+from utils.helpers import save_json
+
 
 class DatasetWrapper(Dataset):
     """
@@ -148,3 +152,25 @@ def find_letters_and_word_count(text: str, word_count_threshold: int):
     if search and word_count >= word_count_threshold:
         return True
     return False
+
+def read_xls_save_json(file_dir: str = 'data/preprocessed_data',
+                       in_file_name: str = 'skrab_01.xlsx',
+                       ppl_filters: List[int] = None, drop_na: bool = True,
+                       out_file_name: str = 'classified_scrape'):
+
+    data = pd.read_excel(os.path.join(file_dir, in_file_name), sheet_name='Klassificering', header=1)
+
+    if drop_na:
+        data = data.dropna(subset=['klassifikation'])
+    if ppl_filters:
+        data = data[(data['ppl_score'] > ppl_filters[0]) & (data['ppl_score'] < ppl_filters[1])]
+
+    data_dicts = data.to_dict('records')
+    save_json(output_dir='data/preprocessed_data', data=data_dicts, filename=out_file_name)
+
+
+if __name__ == "__main__":
+
+
+    print()
+
