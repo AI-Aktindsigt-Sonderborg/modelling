@@ -156,10 +156,11 @@ def find_letters_and_word_count(text: str, word_count_threshold: int):
 def read_xls_save_json(file_dir: str = 'data/preprocessed_data',
                        in_file_name: str = 'skrab_01.xlsx',
                        ppl_filters: List[int] = None, drop_na: bool = True,
-                       out_file_name: str = 'classified_scrape'):
+                       out_file_name: str = 'classified_scrape1'):
 
     data = pd.read_excel(os.path.join(file_dir, in_file_name), sheet_name='Klassificering', header=1)
-
+    data['index'] = range(len(data))
+    data['text_len'] = len(data['text'])
     if drop_na:
         data = data.dropna(subset=['klassifikation'])
     if ppl_filters:
@@ -171,6 +172,7 @@ def read_xls_save_json(file_dir: str = 'data/preprocessed_data',
 
 if __name__ == "__main__":
 
+    read_xls_save_json()
 
     print()
 

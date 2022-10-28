@@ -93,3 +93,17 @@ def save_json(output_dir: str, data: List[dict], filename: str):
         for entry in data:
             json.dump(entry, outfile)
             outfile.write('\n')
+
+def read_jsonlines(input_dir: str, filename: str):
+    """
+    read json file to list of dicts
+    :param input_dir: directory to read file from
+    :param filename: input file name
+    """
+    data = []
+    with open(os.path.join(input_dir, filename + '.json'), 'r',
+              encoding='utf-8') as file:
+        for line in file:
+            data_dict = json.loads(line)
+            data.append(data_dict)
+    return data

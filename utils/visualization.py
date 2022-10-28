@@ -2,15 +2,15 @@ import os
 import time
 from os.path import exists
 from typing import List
-
+import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
-
-from utils.helpers import TimeCode
-
+import math
+from utils.helpers import TimeCode, read_jsonlines
+from local_constants import PREP_DATA_DIR
 
 class DataVisualisation:
 
@@ -21,12 +21,22 @@ class DataVisualisation:
         self.kmeans = kmeans
         self.corpus = corpus
         self.pca_result = None
-        self.X = self.vectorizer.fit_transform(corpus)
+        corpus_chunks = np.array_split(corpus, 10)
+        self.X_chunks = []
+        for chunk in corpus_chunks:
+            X = self.vectorizer.fit_transform(chunk)
+            self.X_chunks.append(X)
+
         self.names = self.vectorizer.get_feature_names_out()
         self.tsne = tsne
 
     def compute_pca(self):
-        self.pca_result = self.pca.fit_transform(self.X.toarray())
+        pca_chunks = []
+        for chunk in self.X_chunks:
+            pca_result = self.pca.fit_transform(chunk.toarray())
+            pca_chunks.extend(pca_result)
+
+        self.pca_result = np.array(pca_chunks)
         print(f'Cumulative explained variation for N principal components: '
               f'{np.sum(self.pca.explained_variance_ratio_)}')
 
@@ -164,8 +174,33 @@ def make_plots(corpus: List[str], clusters: List[int] = [3], dims: List[int] = [
 
 if __name__ == '__main__':
 
+    data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='classified_scrape1')
+    data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
 
-    code_timer = TimeCode()
-    make_plots(corpus=['a', 'b'], dims=[2, 3], pca_components=[10, 20, 30, 40],
-               tsne_components=[2, 3], clusters=[3, 4, 5, 6])
+    sentences = [x['text'] for x in data]
+
+    # for i, sentence in enumerate(sentences):
+    #     if type(sentence) == float:
+    #         print()
+
+    labels = [x['klassifikation'] for x in data]
+
+    label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
+                'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
+                'Sundhed og ældre': 6, 'Økonomi og administration': 7, 'Økonomi og budget': 8}
+
+    id2label = {v: k for k, v in label2id.items()}
+    label_ids = [label2id[x] for x in labels]
+
+
+
+    pca = PCA(n_components=2)
+    kmeans = KMeans(n_clusters=len(label2id), random_state=0)
+    data_viz = DataVisualisation(corpus=sentences, pca=pca, kmeans=kmeans)
+    data_viz.compute_pca()
+    data_viz.k_means_viz(d_type='pca', dim=2)
+    print()
+    # code_timer = TimeCode()
+    # make_plots(corpus=['a', 'b'], dims=[2, 3], pca_components=[10, 20, 30, 40],
+    #            tsne_components=[2, 3], clusters=[3, 4, 5, 6])
 
