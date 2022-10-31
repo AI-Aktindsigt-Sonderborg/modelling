@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from os.path import exists
@@ -9,8 +10,22 @@ from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import math
+
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
 from utils.helpers import TimeCode, read_jsonlines
 from local_constants import PREP_DATA_DIR
+
+from wordcloud import WordCloud, STOPWORDS
+
+stopwords_union = set.union(set(stopwords.words('danish')), STOPWORDS)
+
+# danish_stopwords = set(stopwords.words('danish'))
+stopwords_union.update(
+    ["ved", "kan", "samt", "så", "se", "får", "få", "f eks", "f", "eks", "Stk", "stk", "må", "der",
+     "for", "fx", "bl", ""])
+
+
 
 class DataVisualisation:
 
@@ -172,16 +187,61 @@ def make_plots(corpus: List[str], clusters: List[int] = [3], dims: List[int] = [
                     else:
                         data_viz.k_means_viz(d_type='tsne', dim=dim)
 
+
+def wordclouds_classified(data: List[dict] = None, max_words: int = 75,
+                      labels: List[str] = None):
+    if labels:
+        for label in labels:
+            label_data = [x for x in data if x['klassifikation'] == label]
+            all_text = ""
+            for i, line in enumerate(label_data):
+                all_text += line['text'] + " "
+
+
+            wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
+                                  background_color="white").generate(all_text)
+            plt.imshow(wordcloud, interpolation='bilinear')
+            plt.title(f'Mest benyttede ord i {label}')
+            plt.axis("off")
+            plt.savefig(f'plots/class_wordclouds/word_cloud-{label}.png', bbox_inches='tight')
+    else:
+        all_text = ""
+        for i, line in enumerate(data):
+            all_text += line['text'] + " "
+
+        wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
+                              background_color="white").generate(all_text)
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.title(f'Mest benyttede ord totalt')
+        plt.axis("off")
+        plt.savefig(f'plots/class_wordclouds/word_cloud-total.png', bbox_inches='tight')
+
+
+
+def barplot_muni_counts(data: List[dict] = None):
+
+    muni_list = np.unique([x['kommune'] for x in data])
+
+    splitted = [[y for y in data if y['kommune'] == x] for x in muni_list]
+
+    labels = [x[0]['kommune'] for x in splitted]
+    counts = [len(x) for x in splitted]
+
+    fig = plt.figure(figsize=(7, 3))
+    plt.bar(labels, counts)
+    plt.xticks(rotation=90)
+    plt.savefig(f'plots/class_wordclouds/class_sizes.png', bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == '__main__':
 
     data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='classified_scrape1')
     data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
 
-    sentences = [x['text'] for x in data]
+    barplot_muni_counts(data=data)
 
-    # for i, sentence in enumerate(sentences):
-    #     if type(sentence) == float:
-    #         print()
+    sentences = [x['text'] for x in data]
 
     labels = [x['klassifikation'] for x in data]
 
@@ -189,17 +249,22 @@ if __name__ == '__main__':
                 'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
                 'Sundhed og ældre': 6, 'Økonomi og administration': 7, 'Økonomi og budget': 8}
 
+    label_list = list(label2id)
+
     id2label = {v: k for k, v in label2id.items()}
     label_ids = [label2id[x] for x in labels]
 
-
-
+    # create word clouds
+    # create_wordclouds_classified(data=data, labels=label_list)
+    # wordclouds_classified(data=data)
     pca = PCA(n_components=2)
     kmeans = KMeans(n_clusters=len(label2id), random_state=0)
     data_viz = DataVisualisation(corpus=sentences, pca=pca, kmeans=kmeans)
     data_viz.compute_pca()
     data_viz.k_means_viz(d_type='pca', dim=2)
     print()
+
+
     # code_timer = TimeCode()
     # make_plots(corpus=['a', 'b'], dims=[2, 3], pca_components=[10, 20, 30, 40],
     #            tsne_components=[2, 3], clusters=[3, 4, 5, 6])
