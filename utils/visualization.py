@@ -4,13 +4,15 @@ import time
 from os.path import exists
 from typing import List
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 import math
-
+import seaborn as sn
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, f1_score
 from wordcloud import WordCloud
 from nltk.corpus import stopwords
 from utils.helpers import TimeCode, read_jsonlines
@@ -69,45 +71,45 @@ class DataVisualisation:
         self.compute_tsne(on_pca=True)
         print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
 
-    def k_means_viz(self, d_type: str='tsne', dim: int = 2, save_plot: bool = True):
+    def k_means_viz(self, d_type: str='tsne', dim: int = 2, save_plot: bool = True,
+                    labels: List[int] = None):
 
         if d_type == 'tsne':
-            label = self.kmeans.fit_predict(self.tsne_results)
-            u_labels = np.unique(label)
+            preds = self.kmeans.fit_predict(self.tsne_results)
 
             title = f'{dim}d_type-{d_type}_n_pca-{self.pca.n_components}_n_tsne-{self.tsne.n_components}_' \
                     f'n_clusters-{self.kmeans.n_clusters}'
             save_path = f'plots/{title}.png'
             if not exists(save_path):
                 if dim == 3:
-                    self.plot3d(title, save_path, label, u_labels, save_plot, d_type)
+                    self.plot3d(title, save_path, preds, labels, save_plot, d_type)
                 else:
-                    self.plot2d(title, save_path, label, u_labels, save_plot, d_type)
+                    self.plot2d(title, save_path, preds, labels, save_plot, d_type)
 
         elif d_type == 'pca':
-            label = self.kmeans.fit_predict(self.pca_result)
-            u_labels = np.unique(label)
+            preds = self.kmeans.fit_predict(self.pca_result)
+
             title = f'{dim}d_type-{d_type}_n_pca-{self.pca.n_components}_' \
                     f'n_clusters-{self.kmeans.n_clusters}'
             save_path = f'plots/{title}.png'
             if not exists(save_path):
                 if dim == 3:
-                    self.plot3d(title, save_path, label, u_labels, save_plot, d_type)
+                    self.plot3d(title, save_path, preds, labels, save_plot, d_type)
 
                 else:
-                    self.plot2d(title, save_path, label, u_labels, save_plot, d_type)
+                    self.plot2d(title, save_path, preds, labels, save_plot, d_type)
 
-    def plot3d(self, title, save_path, label, u_labels, save_plot, d_type):
+    def plot3d(self, title, save_path, pred, u_labels, save_plot, d_type):
         fig = plt.figure()
         ax = fig.add_subplot(projection='3d')
         if d_type == 'pca':
             for i in u_labels:
-                ax.scatter(self.pca_result[label == i, 0], self.pca_result[label == i, 1],
-                           self.pca_result[label == i, 2], label=i)
+                ax.scatter(self.pca_result[pred == i, 0], self.pca_result[pred == i, 1],
+                           self.pca_result[pred == i, 2], label=i)
         elif d_type == 'tsne':
             for i in u_labels:
-                ax.scatter(self.tsne_results[label == i, 0], self.tsne_results[label == i, 1],
-                           self.tsne_results[label == i, 2], label=i)
+                ax.scatter(self.tsne_results[pred == i, 0], self.tsne_results[pred == i, 1],
+                           self.tsne_results[pred == i, 2], label=i)
 
         if save_plot:
 
@@ -118,17 +120,18 @@ class DataVisualisation:
         else:
             plt.show()
 
-    def plot2d(self, title, save_path, label, u_labels, save_plot, d_type):
+    def plot2d(self, title, save_path, preds, labels, save_plot, d_type):
+        u_labels = np.unique(labels)
         for i in u_labels:
-            plt.scatter(self.pca_result[label == i, 0], self.pca_result[label == i, 1],
-                        label=i)
+            plt.scatter(labels[preds == i, 0], self.pca_result[preds == i, 1],
+                        label=i, )
         if d_type == 'pca':
             for i in u_labels:
-                plt.scatter(self.pca_result[label == i, 0], self.pca_result[label == i, 1],
+                plt.scatter(self.pca_result[preds == i, 0], self.pca_result[preds == i, 1],
                             label=i)
         elif d_type == 'tsne':
             for i in u_labels:
-                plt.scatter(self.tsne_results[label == i, 0], self.tsne_results[label == i, 1],
+                plt.scatter(self.tsne_results[preds == i, 0], self.tsne_results[preds == i, 1],
                             label=i)
         plt.legend()
         if save_plot:
@@ -234,16 +237,36 @@ def barplot_muni_counts(data: List[dict] = None):
     plt.close()
 
 
+def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
+
+
+    if conf_plot:
+        conf_matrix = confusion_matrix(y_list, preds, labels=labels,
+                                       normalize='true')
+        df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
+        plt.figure(figsize=(10, 7))
+        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g')
+        plt.show()
+
+
+    return precision_recall_fscore_support(y_list, preds, labels=labels, average='micro'), \
+           f1_score(y_true=y_list, y_pred=preds, labels=labels, average=None)
+
+
+
 if __name__ == '__main__':
 
-    data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='classified_scrape1')
-    data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
+    data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
+    # data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
 
-    barplot_muni_counts(data=data)
+
+    # barplot_muni_counts(data=data)
+
+
 
     sentences = [x['text'] for x in data]
 
-    labels = [x['klassifikation'] for x in data]
+    labels = [x['label'] for x in data]
 
     label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
                 'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
@@ -258,10 +281,17 @@ if __name__ == '__main__':
     # create_wordclouds_classified(data=data, labels=label_list)
     # wordclouds_classified(data=data)
     pca = PCA(n_components=2)
+    tsne = TSNE()
     kmeans = KMeans(n_clusters=len(label2id), random_state=0)
     data_viz = DataVisualisation(corpus=sentences, pca=pca, kmeans=kmeans)
-    data_viz.compute_pca()
-    data_viz.k_means_viz(d_type='pca', dim=2)
+    # data_viz.compute_pca()
+    # preds = data_viz.kmeans.fit_predict(data_viz.pca_result)
+    # data_viz.k_means_viz(d_type='pca', dim=2, labels=label_ids)
+
+    f_score, f1 = calc_f1_score(y_list=label_ids, prediction_list=preds, labels=label_list, conf_plot=True)
+
+
+
     print()
 
 

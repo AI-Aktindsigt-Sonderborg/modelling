@@ -1,4 +1,6 @@
+import itertools
 import json
+import math
 import os
 from typing import List, Tuple
 import re
@@ -7,8 +9,9 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModelWithLMHead
 import pandas as pd
-
-from utils.helpers import save_json
+from sklearn.model_selection import train_test_split
+from local_constants import PREP_DATA_DIR
+from utils.helpers import save_json, read_jsonlines
 
 
 class DatasetWrapper(Dataset):
@@ -170,9 +173,37 @@ def read_xls_save_json(file_dir: str = 'data/preprocessed_data',
     save_json(output_dir='data/preprocessed_data', data=data_dicts, filename=out_file_name)
 
 
+def group_data_by_class(data: List[dict]):
+
+    label_set = set(map(lambda x: x['klassifikation'], data))
+
+    new_data = [{'label': x['klassifikation'], 'text': x['text']} for x in data]
+
+    grouped = [[x for x in new_data if x['label'] == y] for y in label_set]
+    return grouped
+
+def train_test_to_json_split(data):
+
+    train_test = [train_test_split(x, test_size=10, random_state=1) for x in data]
+
+    train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
+    test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
+
+    save_json(PREP_DATA_DIR, data=train, filename='train_classified')
+    save_json(PREP_DATA_DIR, data=test, filename='test_classified')
+
+
 if __name__ == "__main__":
 
-    read_xls_save_json()
+    # read_xls_save_json()
+    data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='classified_scrape1')
+    data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
+
+    grouped = group_data_by_class(data=data)
+
+
+    train_test_to_json_split(data=grouped)
+
 
     print()
 
