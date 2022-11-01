@@ -4,7 +4,7 @@ from sklearn.model_selection import cross_val_score
 from local_constants import PREP_DATA_DIR
 from utils.helpers import read_jsonlines
 
-data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
+data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='train_classified')
 
 vectorizer = TfidfVectorizer()
 
