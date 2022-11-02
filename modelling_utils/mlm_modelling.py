@@ -442,7 +442,7 @@ class MLMUnsupervisedModelling:
             return self.tokenizer(
                 examples['text'],
                 # padding='max_length',
-                truncation=False,
+                truncation=True,
                 # max_length=self.args.max_length,
                 # We use this option because DataCollatorForLanguageModeling (see below)
                 # is more efficient when it receives the `special_tokens_mask`.
