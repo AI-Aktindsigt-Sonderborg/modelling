@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     mlm_parser = MLMArgParser()
     args = mlm_parser.parser.parse_args()
 
-    args.eval_batch_size = 90
+    args.eval_batch_size = 10
     args.load_alvenir_pretrained = False
     args.eval_data = 'test_classified.json'
     mlm_eval = MLMUnsupervisedModelling(args=args)
@@ -35,13 +36,19 @@ if __name__ == '__main__':
     model = mlm_eval.model.to('cuda')
 
     # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
+    all_logits = []
     for batch in tqdm(eval_loader, unit="batch", desc="Eval"):
         # for batch in val_loader:
         output = model(input_ids=batch["input_ids"].to(args.device),
                        attention_mask=batch["attention_mask"].to(args.device),
-                       labels=batch["labels"].to(args.device))
+                       labels=batch["labels"].to(args.device),
+                       output_hidden_states=True,
+                       return_dict=True)
 
-    logits = output.logits.detach().cpu().numpy()
+        logits = output.logits.detach().cpu().numpy()
+        all_logits.append(logits)
+        model.predictions()
+    all_embeddings = np.concatenate(all_logits)
 
 
     eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)

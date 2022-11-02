@@ -10,7 +10,7 @@ from utils.helpers import read_jsonlines
 
 if __name__ == '__main__':
 
-    model_filename = 'classifiers/svm_01.sav'
+    model_filename = 'classifiers/svm_02.sav'
 
     # handle labels
     label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
@@ -29,17 +29,17 @@ if __name__ == '__main__':
     test_sentences = [x['text'] for x in test_json]
     test_labels = [x['label'] for x in test_json]
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(max_features=919)
     X_train = vectorizer.fit_transform(train_sentences)
     y_train = [label2id[x] for x in train_labels]
 
     X_test = vectorizer.fit_transform(test_sentences)
     y_test = [label2id[x] for x in test_labels]
 
-    # classifier = svm.SVC(kernel='rbf', C=1)
-    # classifier.fit(X=X_train, y=y_train)
-    #
-    # pickle.dump(classifier, open(model_filename, 'wb'))
+    classifier = svm.SVC(kernel='rbf', C=1)
+    classifier.fit(X=X_train, y=y_train)
+
+    pickle.dump(classifier, open(model_filename, 'wb'))
 
     loaded_model = pickle.load(open(model_filename, 'rb'))
     result = loaded_model.score(X_test, y_test)
