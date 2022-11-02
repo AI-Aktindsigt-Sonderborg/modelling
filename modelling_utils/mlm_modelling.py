@@ -430,20 +430,11 @@ class MLMUnsupervisedModelling:
                 line for line in examples['text'] if len(line) > 0 and not line.isspace()
             ]
 
-            # return self.tokenizer(
-            #     examples['text'],
-            #     padding='max_length',
-            #     truncation=True,
-            #     max_length=self.args.max_length,
-            #     # We use this option because DataCollatorForLanguageModeling (see below)
-            #     # is more efficient when it receives the `special_tokens_mask`.
-            #     return_special_tokens_mask=True,
-            # )
             return self.tokenizer(
                 examples['text'],
-                # padding='max_length',
+                padding='max_length',
                 truncation=True,
-                # max_length=self.args.max_length,
+                max_length=self.args.max_length,
                 # We use this option because DataCollatorForLanguageModeling (see below)
                 # is more efficient when it receives the `special_tokens_mask`.
                 return_special_tokens_mask=True,
