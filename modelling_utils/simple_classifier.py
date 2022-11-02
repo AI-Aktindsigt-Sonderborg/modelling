@@ -28,6 +28,7 @@ if __name__ == '__main__':
 
     test_sentences = [x['text'] for x in test_json]
     test_labels = [x['label'] for x in test_json]
+    test_label_ids = [label2id[x] for x in test_labels]
 
     vectorizer = TfidfVectorizer(max_features=919)
     X_train = vectorizer.fit_transform(train_sentences)
@@ -38,12 +39,14 @@ if __name__ == '__main__':
 
     classifier = svm.SVC(kernel='rbf', C=1)
     classifier.fit(X=X_train, y=y_train)
-
-    pickle.dump(classifier, open(model_filename, 'wb'))
+    #
+    # pickle.dump(classifier, open(model_filename, 'wb'))
 
     loaded_model = pickle.load(open(model_filename, 'rb'))
     result = loaded_model.score(X_test, y_test)
-    print("score:" + result)
+    # print("score:" + result)
+
+
 
     predictions = loaded_model.predict(X_test)
     print(predictions)

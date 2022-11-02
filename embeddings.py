@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import BertConfig
+from transformers import BertConfig, DataCollatorForLanguageModeling
 
 from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
@@ -12,31 +12,31 @@ from modelling_utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
 
+
 if __name__ == '__main__':
     mlm_parser = MLMArgParser()
     args = mlm_parser.parser.parse_args()
 
     args.eval_batch_size = 10
     args.load_alvenir_pretrained = False
-    args.eval_data = 'test_classified.json'
+    args.eval_data = 'train_classified.json'
     mlm_eval = MLMUnsupervisedModelling(args=args)
     mlm_eval.load_data(train=False)
     mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
 
 
-
-
     eval_data_wrapped = mlm_eval.tokenize_and_wrap_data(data=mlm_eval.eval_data)
+
+    collator = DataCollatorForLanguageModeling(tokenizer=mlm_eval.tokenizer, mlm=False)
+
     eval_loader = DataLoader(dataset=eval_data_wrapped,
-                             collate_fn=mlm_eval.data_collator,
-                             batch_size=mlm_eval.args.eval_batch_size)
+                             batch_size=1, collate_fn=collator)
 
-
-
+    mlm_eval.model.eval()
     model = mlm_eval.model.to('cuda')
 
     # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
-    all_logits = []
+    list_embed = []
     for batch in tqdm(eval_loader, unit="batch", desc="Eval"):
         # for batch in val_loader:
         output = model(input_ids=batch["input_ids"].to(args.device),
@@ -44,24 +44,30 @@ if __name__ == '__main__':
                        labels=batch["labels"].to(args.device),
                        output_hidden_states=True,
                        return_dict=True)
+        embeddings = torch.mean(output.hidden_states[-2], dim=1).detach().cpu().numpy()
+        # torch.mean(output.hidden_states[-2], dim=1).detach().cpu().numpy()
+
 
         logits = output.logits.detach().cpu().numpy()
-        all_logits.append(logits)
-        model.predictions()
-    all_embeddings = np.concatenate(all_logits)
+        preds = np.argmax(logits, axis=-1)
+        # all_logits.append(logits)
+        list_embed.append(embeddings)
+    all_embeddings = np.concatenate(list_embed)
+
+    np.save(arr=all_embeddings, file='data/test_embeddings.npy')
 
 
-    eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
-
-
-
-    config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
-    new_head = BertOnlyMLMHeadCustom(config)
-    new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
-
-    lm_head = new_head.to(mlm_eval.args.device)
-    mlm_eval.model.cls = lm_head
-
-    eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
-    print(f'eval_loss: {eval_loss}')
-    print(f'eval_acc: {eval_accuracy}')
+    # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
+    #
+    # read_embed = np.load('data/test_embeddings.npy')
+    #
+    # config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
+    # new_head = BertOnlyMLMHeadCustom(config)
+    # new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
+    #
+    # lm_head = new_head.to(mlm_eval.args.device)
+    # mlm_eval.model.cls = lm_head
+    #
+    # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
+    # print(f'eval_loss: {eval_loss}')
+    # print(f'eval_acc: {eval_accuracy}')
