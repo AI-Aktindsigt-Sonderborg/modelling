@@ -1,6 +1,7 @@
 import os.path
 import pickle
 
+import numpy as np
 from sklearn import svm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import cross_val_score
@@ -31,7 +32,8 @@ if __name__ == '__main__':
     test_label_ids = [label2id[x] for x in test_labels]
 
     vectorizer = TfidfVectorizer(max_features=919)
-    X_train = vectorizer.fit_transform(train_sentences)
+    # X_train = vectorizer.fit_transform(train_sentences)
+    X_train = np.load('data/embeddings.npy')
     y_train = [label2id[x] for x in train_labels]
 
     X_test = vectorizer.fit_transform(test_sentences)
@@ -39,17 +41,17 @@ if __name__ == '__main__':
 
     classifier = svm.SVC(kernel='rbf', C=1)
     classifier.fit(X=X_train, y=y_train)
-    #
+
     # pickle.dump(classifier, open(model_filename, 'wb'))
 
     loaded_model = pickle.load(open(model_filename, 'rb'))
-    result = loaded_model.score(X_test, y_test)
-    # print("score:" + result)
-
-
-
-    predictions = loaded_model.predict(X_test)
-    print(predictions)
+    # result = loaded_model.score(X_test, y_test)
+    # # print("score:" + result)
+    #
+    #
+    #
+    # predictions = loaded_model.predict(X_test)
+    # print(predictions)
 
     # scores = cross_val_score(clf, X, y, cv=10)
     # print(scores)
