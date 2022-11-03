@@ -7,10 +7,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import cross_val_score
 from local_constants import PREP_DATA_DIR, MODEL_DIR
 from utils.helpers import read_jsonlines
-
+from utils.helpers import TimeCode
 
 if __name__ == '__main__':
 
+    code_timer = TimeCode()
     model_filename = 'classifiers/svm_03.sav'
 
     # handle labels
@@ -44,6 +45,7 @@ if __name__ == '__main__':
 
     pickle.dump(classifier, open(model_filename, 'wb'))
 
+    code_timer.how_long_since_start()
     # loaded_model = pickle.load(open(model_filename, 'rb'))
     # result = loaded_model.score(X_test, y_test)
     # # print("score:" + result)
