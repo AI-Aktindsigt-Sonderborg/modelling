@@ -13,7 +13,7 @@ from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHea
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from modelling_utils.input_args import MLMArgParser
 
-svm_filename = 'classifiers/svm_02.sav'
+svm_filename = 'classifiers/svm_03.sav'
 
 os.environ["WANDB_DISABLED"] = "true"
 mlm_parser = MLMArgParser()
