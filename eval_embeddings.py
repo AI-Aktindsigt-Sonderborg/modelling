@@ -2,16 +2,22 @@ import os
 import pickle
 
 import numpy as np
+import pandas as pd
 import torch
 from datasets import Dataset
+from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, DataCollatorForLanguageModeling, AutoTokenizer
 
 from data_utils.helpers import DatasetWrapper
+from local_constants import PREP_DATA_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from modelling_utils.input_args import MLMArgParser
+from utils.helpers import read_jsonlines
+import seaborn as sn
 
 svm_filename = 'classifiers/svm_03.sav'
 
@@ -26,7 +32,12 @@ mlm_eval = MLMUnsupervisedModelling(args=args)
 mlm_eval.load_data(train=False)
 mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
 
-
+# handle labels
+label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
+            'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
+            'Sundhed og ældre': 6, 'Økonomi og administration': 7, 'Økonomi og budget': 8}
+label_list = list(label2id)
+id2label = {v: k for k, v in label2id.items()}
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
@@ -81,9 +92,29 @@ def create_embeddings(data_loader: DataLoader, model):
         list_embed.append(embeddings)
     all_embeddings = np.concatenate(list_embed)
     return all_embeddings
+def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
 
+
+    if conf_plot:
+        conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
+                                       normalize='true')
+        df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
+        plt.figure(figsize=(10, 7))
+        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g')
+        plt.show()
+
+
+    return precision_recall_fscore_support(y_list, prediction_list, labels=labels, average='micro'), \
+           f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
 if __name__ == '__main__':
 
+
+    test_json = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
+
+    test_sentences = [x['text'] for x in test_json]
+    test_labels = [x['label'] for x in test_json]
+
+    y_test = [label2id[x] for x in test_labels]
 
 
     eval_data_wrapped = tokenize_and_wrap_data(data=mlm_eval.eval_data)
@@ -93,28 +124,22 @@ if __name__ == '__main__':
     eval_loader = DataLoader(dataset=eval_data_wrapped, batch_size=1,
                              collate_fn=collator)
 
-    embeddings = create_embeddings(data_loader=eval_loader, model=mlm_eval.model)
-
-    # np.save(arr=all_embeddings, file='data/embeddings.npy')
-
-
-    # classifier = svm.SVC(kernel='rbf', C=1)
-    # classifier.fit(X=X_train, y=y_train)
-
-    # pickle.dump(classifier, open(model_filename, 'wb'))
+    X_test = create_embeddings(data_loader=eval_loader, model=mlm_eval.model)
 
     classifier = pickle.load(open(svm_filename, 'rb'))
 
-    # loaded_model = pickle.load(open(model_filename, 'rb'))
-    # result = loaded_model.score(X_test, y_test)
+    result = classifier.score(X_test, y_test)
     # # print("score:" + result)
     #
     #
     #
-    # predictions = loaded_model.predict(X_test)
+    predictions = classifier.predict(X_test)
     # print(predictions)
 
+    f1, f12 = calc_f1_score(y_list=y_test, prediction_list=predictions, labels=range(9),
+                            conf_plot=True)
 
+    print()
 
     # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
     #

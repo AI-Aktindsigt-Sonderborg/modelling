@@ -445,7 +445,7 @@ class MLMUnsupervisedModelling:
             tokenize_function,
             batched=True,
             num_proc=1,
-            remove_columns=['text', 'label'],
+            remove_columns=['text'], #, 'label'],
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
         )

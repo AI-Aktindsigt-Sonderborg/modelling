@@ -38,7 +38,7 @@ if __name__ == '__main__':
     y_train = [label2id[x] for x in train_labels]
 
     X_test = vectorizer.fit_transform(test_sentences)
-    y_test = [label2id[x] for x in test_labels]
+
 
     classifier = svm.SVC(kernel='rbf', C=1)
     classifier.fit(X=X_train, y=y_train)
