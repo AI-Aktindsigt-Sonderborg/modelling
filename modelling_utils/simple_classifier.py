@@ -11,7 +11,7 @@ from utils.helpers import read_jsonlines
 
 if __name__ == '__main__':
 
-    model_filename = 'classifiers/svm_02.sav'
+    model_filename = 'classifiers/svm_03.sav'
 
     # handle labels
     label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
@@ -42,9 +42,9 @@ if __name__ == '__main__':
     classifier = svm.SVC(kernel='rbf', C=1)
     classifier.fit(X=X_train, y=y_train)
 
-    # pickle.dump(classifier, open(model_filename, 'wb'))
+    pickle.dump(classifier, open(model_filename, 'wb'))
 
-    loaded_model = pickle.load(open(model_filename, 'rb'))
+    # loaded_model = pickle.load(open(model_filename, 'rb'))
     # result = loaded_model.score(X_test, y_test)
     # # print("score:" + result)
     #

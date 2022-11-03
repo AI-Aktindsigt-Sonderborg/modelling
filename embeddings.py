@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 import torch
@@ -12,16 +13,20 @@ from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHea
 from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from modelling_utils.input_args import MLMArgParser
 
+svm_filename = 'classifiers/svm_02.sav'
+
 os.environ["WANDB_DISABLED"] = "true"
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
 args.eval_batch_size = 10
 args.load_alvenir_pretrained = False
-args.eval_data = 'train_classified.json'
+args.eval_data = 'test_classified.json'
 mlm_eval = MLMUnsupervisedModelling(args=args)
 mlm_eval.load_data(train=False)
 mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
+
+
 
 tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
@@ -87,7 +92,16 @@ if __name__ == '__main__':
         list_embed.append(embeddings)
     all_embeddings = np.concatenate(list_embed)
 
-    np.save(arr=all_embeddings, file='data/embeddings.npy')
+    # np.save(arr=all_embeddings, file='data/embeddings.npy')
+
+
+    # classifier = svm.SVC(kernel='rbf', C=1)
+    # classifier.fit(X=X_train, y=y_train)
+
+    # pickle.dump(classifier, open(model_filename, 'wb'))
+
+    classifier = pickle.load(open(model_filename, 'rb'))
+
 
 
     # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
