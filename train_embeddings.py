@@ -20,13 +20,14 @@ mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
 args.eval_batch_size = 10
-args.load_alvenir_pretrained = False
+args.load_alvenir_pretrained = True
 args.eval_data = 'train_classified.json'
+args.model_name = 'last_model'
 mlm_eval = MLMUnsupervisedModelling(args=args)
 mlm_eval.load_data(train=False)
-mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
+mlm_eval.model = BertForMaskedLM.from_pretrained(mlm_eval.local_alvenir_model_path)
 
-tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+tokenizer = AutoTokenizer.from_pretrained(mlm_eval.local_alvenir_model_path)
 
 def tokenize_and_wrap_data(data: Dataset):
     def tokenize_function(examples):
@@ -81,7 +82,6 @@ def create_embeddings(data_loader: DataLoader, model):
     return all_embeddings
 
 if __name__ == '__main__':
-
 
 
     eval_data_wrapped = tokenize_and_wrap_data(data=mlm_eval.eval_data)
