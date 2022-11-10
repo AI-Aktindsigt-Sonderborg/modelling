@@ -1,18 +1,16 @@
-import os.path
 import pickle
 
 import numpy as np
 from sklearn import svm
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import cross_val_score
-from local_constants import PREP_DATA_DIR, MODEL_DIR
-from utils.helpers import read_jsonlines
+
+from local_constants import PREP_DATA_DIR
 from utils.helpers import TimeCode
+from utils.helpers import read_jsonlines
 
 if __name__ == '__main__':
 
     code_timer = TimeCode()
-    model_filename = 'classifiers/svm_03.sav'
+    model_filename = 'classifiers/svm_alvenir.sav'
 
     # handle labels
     label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
@@ -22,22 +20,22 @@ if __name__ == '__main__':
     id2label = {v: k for k, v in label2id.items()}
 
     train_json = read_jsonlines(input_dir=PREP_DATA_DIR, filename='train_classified')
-    test_json = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
+    # test_json = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
 
 
     train_sentences = [x['text'] for x in train_json]
     train_labels = [x['label'] for x in train_json]
 
-    test_sentences = [x['text'] for x in test_json]
-    test_labels = [x['label'] for x in test_json]
-    test_label_ids = [label2id[x] for x in test_labels]
+    # test_sentences = [x['text'] for x in test_json]
+    # test_labels = [x['label'] for x in test_json]
+    # test_label_ids = [label2id[x] for x in test_labels]
 
-    vectorizer = TfidfVectorizer(max_features=919)
+    # vectorizer = TfidfVectorizer(max_features=919)
     # X_train = vectorizer.fit_transform(train_sentences)
     X_train = np.load('data/embeddings.npy')
     y_train = [label2id[x] for x in train_labels]
 
-    X_test = vectorizer.fit_transform(test_sentences)
+    # X_test = vectorizer.fit_transform(test_sentences)
 
 
     classifier = svm.SVC(kernel='rbf', C=1)
