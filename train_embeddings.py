@@ -27,6 +27,13 @@ mlm_eval = MLMUnsupervisedModelling(args=args)
 mlm_eval.load_data(train=False)
 mlm_eval.model = BertForMaskedLM.from_pretrained(mlm_eval.local_alvenir_model_path)
 
+config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
+new_head = BertOnlyMLMHeadCustom(config)
+new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
+
+lm_head = new_head.to(mlm_eval.args.device)
+mlm_eval.model.cls = lm_head
+
 tokenizer = AutoTokenizer.from_pretrained(mlm_eval.local_alvenir_model_path)
 
 def tokenize_and_wrap_data(data: Dataset):
@@ -95,36 +102,3 @@ if __name__ == '__main__':
 
     np.save(arr=embeddings, file='data/embeddings.npy')
 
-
-    # classifier = svm.SVC(kernel='rbf', C=1)
-    # classifier.fit(X=X_train, y=y_train)
-
-    # pickle.dump(classifier, open(model_filename, 'wb'))
-
-    # classifier = pickle.load(open(svm_filename, 'rb'))
-
-    # loaded_model = pickle.load(open(model_filename, 'rb'))
-    # result = loaded_model.score(X_test, y_test)
-    # # print("score:" + result)
-    #
-    #
-    #
-    # predictions = loaded_model.predict(X_test)
-    # print(predictions)
-
-
-
-    # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
-    #
-    # read_embed = np.load('data/test_embeddings.npy')
-    #
-    # config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
-    # new_head = BertOnlyMLMHeadCustom(config)
-    # new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
-    #
-    # lm_head = new_head.to(mlm_eval.args.device)
-    # mlm_eval.model.cls = lm_head
-    #
-    # eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
-    # print(f'eval_loss: {eval_loss}')
-    # print(f'eval_acc: {eval_accuracy}')

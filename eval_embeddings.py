@@ -19,7 +19,7 @@ from modelling_utils.input_args import MLMArgParser
 from utils.helpers import read_jsonlines
 import seaborn as sn
 
-svm_filename = 'classifiers/svm_03.sav'
+svm_filename = 'classifiers/svm_alvenir.sav'
 
 os.environ["WANDB_DISABLED"] = "true"
 mlm_parser = MLMArgParser()
@@ -96,13 +96,19 @@ def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
 
 
     if conf_plot:
+        y_list = [id2label[x] for x in y_list]
+        prediction_list = [id2label[x] for x in prediction_list]
         conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
                                        normalize='true')
         df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
+        # sn.set(font_scale=0.8)
         plt.figure(figsize=(10, 7))
-        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g')
+        plot_labels = ['Besk. og int.', 'Børn/unge', 'Erhverv', 'Klima/tek/miljø','Kultur/fritid',
+                       'Social', 'Sundhed/ældre', 'Øko./adm', 'Øko./budget']
+        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=plot_labels,
+                   yticklabels=plot_labels)
+        # plt.savefig('plots/svm_03_confplot.png')
         plt.show()
-
 
     return precision_recall_fscore_support(y_list, prediction_list, labels=labels, average='micro'), \
            f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
@@ -136,7 +142,7 @@ if __name__ == '__main__':
     predictions = classifier.predict(X_test)
     # print(predictions)
 
-    f1, f12 = calc_f1_score(y_list=y_test, prediction_list=predictions, labels=range(9),
+    f1, f12 = calc_f1_score(y_list=y_test, prediction_list=predictions, labels=label_list,
                             conf_plot=True)
 
     print()
