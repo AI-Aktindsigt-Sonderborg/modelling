@@ -27,8 +27,8 @@ if __name__ == '__main__':
     new_head = BertOnlyMLMHeadCustom(config)
     new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
 
-    lm_head = new_head.to(mlm_eval.args.device)
-    mlm_eval.model.cls = lm_head
+    LM_HEAD = new_head.to(mlm_eval.args.device)
+    mlm_eval.model.cls = LM_HEAD
 
     eval_loss, eval_accuracy = mlm_eval.evaluate(mlm_eval.model, eval_loader)
     print(f'eval_loss: {eval_loss}')

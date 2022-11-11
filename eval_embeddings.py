@@ -3,6 +3,7 @@ import pickle
 
 import numpy as np
 import pandas as pd
+import seaborn as sn
 import torch
 from datasets import Dataset
 from matplotlib import pyplot as plt
@@ -14,10 +15,9 @@ from transformers import BertConfig, DataCollatorForLanguageModeling, AutoTokeni
 from data_utils.helpers import DatasetWrapper
 from local_constants import PREP_DATA_DIR
 from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from modelling_utils.input_args import MLMArgParser
+from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
 from utils.helpers import read_jsonlines
-import seaborn as sn
 
 svm_filename = 'classifiers/svm_alvenir.sav'
 
@@ -26,11 +26,24 @@ mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
 args.eval_batch_size = 10
-args.load_alvenir_pretrained = False
+args.load_alvenir_pretrained = True
 args.eval_data = 'test_classified.json'
+args.model_name = 'last_model'
 mlm_eval = MLMUnsupervisedModelling(args=args)
 mlm_eval.load_data(train=False)
-mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
+# mlm_eval.model = BertForMaskedLM.from_pretrained(args.model_name)
+mlm_eval.model = BertForMaskedLM.from_pretrained(mlm_eval.local_alvenir_model_path)
+
+config = BertConfig.from_pretrained(mlm_eval.local_alvenir_model_path)
+new_head = BertOnlyMLMHeadCustom(config)
+new_head.load_state_dict(torch.load(mlm_eval.local_alvenir_model_path + '/head_weights.json'))
+
+LM_HEAD = new_head.to(mlm_eval.args.device)
+mlm_eval.model.cls = LM_HEAD
+
+tokenizer = AutoTokenizer.from_pretrained(mlm_eval.local_alvenir_model_path)
+
+
 
 # handle labels
 label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudvikling': 2,
@@ -39,7 +52,7 @@ label2id = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhvervsudv
 label_list = list(label2id)
 id2label = {v: k for k, v in label2id.items()}
 
-tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+# tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
 def tokenize_and_wrap_data(data: Dataset):
     def tokenize_function(examples):

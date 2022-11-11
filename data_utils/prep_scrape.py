@@ -1,12 +1,14 @@
 import hashlib
 import json
+import math
 import os.path
 import random
 import re
 from typing import List
-
+import itertools
 import nltk.data
 import numpy as np
+import pandas as pd
 from ftfy import fix_encoding
 from tqdm import tqdm
 
@@ -14,9 +16,9 @@ from data_utils.data_prep_input_args import DataPrepArgParser
 from data_utils.helpers import write_json_lines, split_sentences, write_text_lines, score_gpt2, \
     load_model_for_ppl, find_letters_and_word_count
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
-from utils.helpers import TimeCode
+from utils.helpers import TimeCode, read_jsonlines, save_json
 from utils.helpers import count_num_lines
-
+from sklearn.model_selection import train_test_split
 
 class RawScrapePreprocessing:
     """
@@ -314,9 +316,84 @@ class RawScrapePreprocessing:
                     disapproved_sentences.write('\n')
         print("Finished.")
 
+class ClassifiedScrapePreprocessing:
+    """
+    Class to read raw excel file with classified KL categories and split to train and validation data
+    """
+    def __init__(self, args):
+        self.args = args
+
+    def from_raw_to_train_val(self):
+        self.read_xls_save_json()
+        data = self.read_classified_json()
+        grouped = self.group_data_by_class(data)
+        self.train_test_to_json_split(grouped)
+
+    def read_xls_save_json(self, file_dir: str = PREP_DATA_DIR,
+                           ppl_filters: List[int] = None, drop_na: bool = True):
+        """
+        Read excel file with labelled data and save to json lines file
+        :param file_dir: directory to read file from
+        :param ppl_filters: filter data on perplexity scores
+        :param drop_na: drop not classified sentences
+        """
+        # ToDo: find original ppl_filter - between 40 and 3000?
+        data = pd.read_excel(os.path.join(file_dir, self.args.excel_classification_file),
+                             sheet_name='Klassificering',
+                             header=1)
+        data['index'] = range(len(data))
+        data['text_len'] = len(data['text'])
+        if drop_na:
+            data = data.dropna(subset=['klassifikation'])
+        if ppl_filters:
+            data = data[(data['ppl_score'] > ppl_filters[0]) & (data['ppl_score'] < ppl_filters[1])]
+
+        data_dicts = data.to_dict('records')
+        save_json(output_dir='data/preprocessed_data', data=data_dicts,
+                  filename=self.args.classified_scrape_file)
+
+    def read_classified_json(self):
+        return read_jsonlines(input_dir=PREP_DATA_DIR, filename=self.args.classified_scrape_file)
+
+    @staticmethod
+    def group_data_by_class(data: List[dict]):
+        """
+        Group data by class
+        :param data: list of dictionarys of sentences
+        :return: list of lists of dicts
+        """
+
+        label_set = set(map(lambda x: x['klassifikation'], data))
+
+        new_data = [{'label': x['klassifikation'], 'text': x['text']} for x in data]
+
+        grouped = [[x for x in new_data if x['label'] == y] for y in label_set]
+        return grouped
+
+    @staticmethod
+    def train_test_to_json_split(data):
+        """
+        Read grouped data, split to train and test and save json
+        :param data: grouped data as list og lists of dicts
+        """
+
+        train_test = [train_test_split(x, test_size=10, random_state=1) for x in data]
+
+        train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
+        test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
+
+        save_json(PREP_DATA_DIR, data=train, filename='train_classified1')
+        save_json(PREP_DATA_DIR, data=test, filename='test_classified1')
+
 
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
     data_preprocessor.from_raw_to_train_val()
+
+    prep_args.classified_scrape_file = 'test_classified_scrape'
+
+    class_prep = ClassifiedScrapePreprocessing(prep_args)
+
+    class_prep.from_raw_to_train_val()
