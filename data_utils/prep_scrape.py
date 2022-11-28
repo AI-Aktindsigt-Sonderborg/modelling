@@ -342,7 +342,7 @@ class ClassifiedScrapePreprocessing:
                              sheet_name='Klassificering',
                              header=1)
         data['index'] = range(len(data))
-        data['text_len'] = len(data['text'])
+        data['text_len'] = list(map(lambda x: len(str(x)), data['text']))
         if drop_na:
             data = data.dropna(subset=['klassifikation'])
         if ppl_filters:
@@ -389,11 +389,15 @@ class ClassifiedScrapePreprocessing:
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor = RawScrapePreprocessing(args=prep_args)
+    # data_preprocessor.from_raw_to_train_val()
 
-    prep_args.classified_scrape_file = 'test_classified_scrape'
+    # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
+    # prep_args.classified_scrape_file = 'aalborg_classified_scrape'
+
+    prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
+    prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
-
-    class_prep.from_raw_to_train_val()
+    class_prep.read_xls_save_json()
+    # class_prep.from_raw_to_train_val()
