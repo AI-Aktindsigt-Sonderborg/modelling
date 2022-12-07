@@ -4,6 +4,7 @@ import time
 from typing import Optional, List
 
 import numpy as np
+from datasets import load_metric
 from opacus.validators import ModuleValidator
 
 
@@ -107,3 +108,13 @@ def read_jsonlines(input_dir: str, filename: str):
             data_dict = json.loads(line)
             data.append(data_dict)
     return data
+
+def compute_metrics(eval_pred):
+    """
+    Computes accuracy on a batch of predictions
+    :param eval_pred:
+    :return:
+    """
+    metric = load_metric("accuracy")
+    predictions = np.argmax(eval_pred.predictions, axis=1)
+    return metric.compute(predictions=predictions, references=eval_pred.label_ids)

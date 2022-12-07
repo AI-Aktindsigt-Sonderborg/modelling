@@ -18,7 +18,7 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
-    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
+    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification
 
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
@@ -29,7 +29,7 @@ from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
 
-class MLMUnsupervisedModelling:
+class SequenceClassification:
     """
     Class to train an MLM unsupervised model
 

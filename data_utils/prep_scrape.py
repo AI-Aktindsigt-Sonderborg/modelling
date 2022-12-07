@@ -382,8 +382,8 @@ class ClassifiedScrapePreprocessing:
         train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
         test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
 
-        save_json(PREP_DATA_DIR, data=train, filename='train_classified1')
-        save_json(PREP_DATA_DIR, data=test, filename='test_classified1')
+        save_json(PREP_DATA_DIR, data=train, filename='train_classified_mixed')
+        save_json(PREP_DATA_DIR, data=test, filename='test_classified_mixed')
 
 
 if __name__ == '__main__':
@@ -399,5 +399,7 @@ if __name__ == '__main__':
     prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
-    class_prep.read_xls_save_json()
-    # class_prep.from_raw_to_train_val()
+    # class_prep.read_xls_save_json()
+    # data = class_prep.read_classified_json()
+    # grouped = class_prep.group_data_by_class()
+    class_prep.from_raw_to_train_val()
