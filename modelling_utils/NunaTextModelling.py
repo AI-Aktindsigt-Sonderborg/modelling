@@ -60,8 +60,8 @@ class NunaTextModelling:
             new_head.load_state_dict(
                 torch.load(self.local_alvenir_model_path + '/head_weights.json'))
 
-            # lm_head = new_head.to('cuda')
-            self.model.cls = new_head
+            lm_head = new_head.to('cuda')
+            self.model.cls = lm_head
 
             self.callbacks = EarlyStoppingCallback(early_stopping_patience=10,
                                                    early_stopping_threshold=0.0)
