@@ -29,7 +29,7 @@ os.environ["WANDB_DISABLED"] = "true"
 #         return (loss, outputs) if return_outputs else loss
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv og turisme': 2,
             'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
-            'Sundhed og ældre': 6, 'Økonomi og administration': 7, 'Økonomi og budget': 8}
+            'Sundhed og ældre': 6, 'Økonomi og administration': 7}
 
 LABELS = list(label_dict)
 

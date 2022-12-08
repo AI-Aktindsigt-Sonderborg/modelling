@@ -105,6 +105,7 @@ def create_embeddings(data_loader: DataLoader, model):
         list_embed.append(embeddings)
     all_embeddings = np.concatenate(list_embed)
     return all_embeddings
+
 def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
 
 
@@ -118,7 +119,7 @@ def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
         plt.figure(figsize=(10, 7))
         plot_labels = ['Besk. og int.', 'Børn/unge', 'Erhverv', 'Klima/tek/miljø','Kultur/fritid',
                        'Social', 'Sundhed/ældre', 'Øko./adm', 'Øko./budget']
-        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=plot_labels,
+        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
                    yticklabels=plot_labels)
         # plt.savefig('plots/svm_03_confplot.png')
         plt.show()
