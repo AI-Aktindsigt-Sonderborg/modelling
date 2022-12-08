@@ -15,7 +15,8 @@ from tqdm import tqdm
 from data_utils.data_prep_input_args import DataPrepArgParser
 from data_utils.helpers import write_json_lines, split_sentences, write_text_lines, score_gpt2, \
     load_model_for_ppl, find_letters_and_word_count
-from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR
+from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR, \
+    CLASS_DATA_DIR
 from utils.helpers import TimeCode, read_jsonlines, save_json
 from utils.helpers import count_num_lines
 from sklearn.model_selection import train_test_split
@@ -329,7 +330,7 @@ class ClassifiedScrapePreprocessing:
         grouped = self.group_data_by_class(data)
         self.train_test_to_json_split(grouped)
 
-    def read_xls_save_json(self, file_dir: str = PREP_DATA_DIR,
+    def read_xls_save_json(self, file_dir: str = CLASS_DATA_DIR,
                            ppl_filters: List[int] = None, drop_na: bool = True):
         """
         Read excel file with labelled data and save to json lines file
@@ -338,7 +339,7 @@ class ClassifiedScrapePreprocessing:
         :param drop_na: drop not classified sentences
         """
         # ToDo: find original ppl_filter - between 40 and 3000?
-        data = pd.read_excel(os.path.join(file_dir, self.args.excel_classification_file),
+        data = pd.read_excel(os.path.join(file_dir, 'raw', self.args.excel_classification_file),
                              sheet_name='Klassificering',
                              header=1)
         data['index'] = range(len(data))
@@ -349,11 +350,11 @@ class ClassifiedScrapePreprocessing:
             data = data[(data['ppl_score'] > ppl_filters[0]) & (data['ppl_score'] < ppl_filters[1])]
 
         data_dicts = data.to_dict('records')
-        save_json(output_dir='data/preprocessed_data', data=data_dicts,
+        save_json(output_dir=CLASS_DATA_DIR, data=data_dicts,
                   filename=self.args.classified_scrape_file)
 
     def read_classified_json(self):
-        return read_jsonlines(input_dir=PREP_DATA_DIR, filename=self.args.classified_scrape_file)
+        return read_jsonlines(input_dir=CLASS_DATA_DIR, filename=self.args.classified_scrape_file)
 
     @staticmethod
     def group_data_by_class(data: List[dict]):

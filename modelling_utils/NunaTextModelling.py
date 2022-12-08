@@ -63,7 +63,7 @@ class NunaTextModelling:
             # lm_head = new_head.to('cuda')
             self.model.cls = new_head
 
-            self.callbacks = EarlyStoppingCallback(early_stopping_patience=4,
+            self.callbacks = EarlyStoppingCallback(early_stopping_patience=10,
                                                    early_stopping_threshold=0.0)
         elif load_model_type.value in [2, 3]:
             self.data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)

@@ -6,7 +6,7 @@ import os
 import nltk
 
 from local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, \
-    PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR
+    PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, CLASS_DATA_DIR
 
 # Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')
@@ -47,7 +47,12 @@ if not os.path.exists('data/internal_data'):
     os.makedirs('data/internal_data')
     print("Create internal data dir!")
 
-if not os.path.exists('results'):
+if not os.path.exists(RESULTS_DIR):
     # Create a new directory because it does not exist
-    os.makedirs('results')
+    os.makedirs(RESULTS_DIR)
     print("Create results dir!")
+
+if not os.path.exists(CLASS_DATA_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(CLASS_DATA_DIR)
+    print("Create classified data dir!")
