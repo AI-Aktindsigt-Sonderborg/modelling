@@ -8,7 +8,7 @@ from modelling_utils.NunaTextModelling import NunaTextModelling, compute_metrics
 from data_utils.custom_dataclasses import LoadModelType
 from local_constants import DATA_DIR
 MODEL_NAME = 'last_model'
-OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised'
+OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised2'
 # nuna_text_processing = NunaTextPreprocessing(model_name=MODEL_NAME)
 # nuna_text_processing.preproces_data_for_train()
 os.environ["WANDB_DISABLED"] = "true"
@@ -57,13 +57,13 @@ training_args = TrainingArguments(
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
     per_device_eval_batch_size=32,
     save_steps=1000,
-    warmup_steps=500,
+    warmup_steps=1500,
     do_eval=True,
     do_predict=True,
     metric_for_best_model="accuracy",
     save_strategy="steps",
-    logging_steps=250,
-    eval_steps=250,
+    logging_steps=500,
+    eval_steps=500,
     load_best_model_at_end=True,
 )
 

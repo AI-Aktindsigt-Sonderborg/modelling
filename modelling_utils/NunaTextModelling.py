@@ -10,10 +10,11 @@ from datasets import load_dataset, ClassLabel, Dataset
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, f1_score
 from transformers import AutoTokenizer, DataCollatorWithPadding, AutoModelForSequenceClassification, \
-    Trainer, EarlyStoppingCallback, BertForSequenceClassification, DataCollatorForLanguageModeling
-
+    Trainer, EarlyStoppingCallback, BertForSequenceClassification, DataCollatorForLanguageModeling, \
+    BertConfig
 
 from local_constants import MODEL_DIR, RESULTS_DIR
+from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import compute_metrics
 from data_utils.custom_dataclasses import LoadModelType
 from data_utils.custom_dataclasses import PredictionOutput
@@ -53,6 +54,15 @@ class NunaTextModelling:
                 self.local_alvenir_model_path,
                 num_labels=len(self.labels),
                 local_files_only=True)
+
+            config = BertConfig.from_pretrained(self.local_alvenir_model_path, local_files_only=True)
+            new_head = BertOnlyMLMHeadCustom(config)
+            new_head.load_state_dict(
+                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+
+            # lm_head = new_head.to('cuda')
+            self.model.cls = new_head
+
             self.callbacks = EarlyStoppingCallback(early_stopping_patience=4,
                                                    early_stopping_threshold=0.0)
         elif load_model_type.value in [2, 3]:
@@ -154,12 +164,22 @@ class NunaTextModelling:
 
         if model_name:
             self.model_name = model_name
+
             self.model = BertForSequenceClassification.from_pretrained(self.local_alvenir_model_path,
                                                                             num_labels=len(
                                                                                 self.labels),
                                                                             label2id=self.label2id,
                                                                             id2label=self.id2label,
                                                                             local_files_only=True)
+
+            config = BertConfig.from_pretrained(self.local_alvenir_model_path, local_files_only=True)
+            new_head = BertOnlyMLMHeadCustom(config)
+            new_head.load_state_dict(
+                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+
+            # lm_head = new_head.to('cuda')
+            self.model.cls = new_head
+
         if labels:
             self.labels = labels
 
@@ -214,11 +234,11 @@ class NunaTextModelling:
                                 softmax=label_percentage)
 
     @staticmethod
-    def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
+    def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False, normalize: str = None):
 
         if conf_plot:
             conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
-                                           normalize=None)
+                                           normalize=normalize)
             df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
             plt.figure(figsize=(10, 7))
