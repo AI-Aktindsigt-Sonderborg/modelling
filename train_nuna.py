@@ -53,9 +53,9 @@ training_args = TrainingArguments(
     evaluation_strategy='steps',
     learning_rate=5e-5,
     # initial_learning_rate=0.0002,
-    per_device_train_batch_size=64,
+    per_device_train_batch_size=32,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
-    per_device_eval_batch_size=64,
+    per_device_eval_batch_size=32,
     save_steps=2000,
     warmup_steps=500,
     do_eval=True,
