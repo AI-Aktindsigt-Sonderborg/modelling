@@ -56,7 +56,7 @@ training_args = TrainingArguments(
     per_device_train_batch_size=64,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
     per_device_eval_batch_size=64,
-    save_steps=1000,
+    save_steps=2000,
     warmup_steps=500,
     do_eval=True,
     do_predict=True,
@@ -70,7 +70,7 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=nuna_text_modelling.model,
     args=training_args,
-    train_dataset=train_data_wrapped,
+    train_dataset=train_data_wrapped.shuffle(seed=1),
     eval_dataset=eval_data_wrapped,
     tokenizer=nuna_text_modelling.tokenizer,
     data_collator=nuna_text_modelling.data_collator,
