@@ -34,7 +34,7 @@ label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv o
 LABELS = list(label_dict)
 
 nuna_text_modelling = NunaTextModelling(labels=LABELS,
-                                        data_types=['train_10', 'val_10'],
+                                        # data_types=['train_10', 'val_10'],
                                         # data_types=['train_classified_mixed', 'test_classified_mixed'],
                                         data_path=DATA_DIR,
                                         model_name=MODEL_NAME, load_model_type=LoadModelType.TRAIN)
