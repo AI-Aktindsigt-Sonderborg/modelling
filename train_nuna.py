@@ -48,7 +48,7 @@ eval_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=eval_data)
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     # overwrite_output_dir=True,
-    num_train_epochs=10,
+    num_train_epochs=5,
     # weight_decay=0.01,
     evaluation_strategy='steps',
     learning_rate=5e-5,
@@ -56,14 +56,14 @@ training_args = TrainingArguments(
     per_device_train_batch_size=32,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
     per_device_eval_batch_size=32,
-    save_steps=2000,
+    save_steps=1000,
     warmup_steps=500,
     do_eval=True,
     do_predict=True,
     metric_for_best_model="accuracy",
     save_strategy="steps",
-    logging_steps=500,
-    eval_steps=500,
+    logging_steps=250,
+    eval_steps=250,
     load_best_model_at_end=True,
 )
 
