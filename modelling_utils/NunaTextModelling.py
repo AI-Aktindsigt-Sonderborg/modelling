@@ -32,7 +32,7 @@ class NunaTextModelling:
         """
         self.model_name = model_name
         self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.model_name,
-                                                     'checkpoint-300')
+                                                     'best_model')
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path,
                                                        local_files_only=True)
