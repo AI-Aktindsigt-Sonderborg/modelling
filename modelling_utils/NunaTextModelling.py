@@ -22,7 +22,8 @@ import seaborn as sn
 
 class NunaTextModelling:
     def __init__(self, model_name: str = None, labels: list = None, data_types: List[str] = None,
-                 data_path: str = None, load_model_type: LoadModelType = None):
+                 data_path: str = None, load_model_type: LoadModelType = None,
+                 alvenir_pretrained: bool = True):
         """
 
         :param model_name:
@@ -32,17 +33,17 @@ class NunaTextModelling:
         :param load_model_type:
         """
         self.model_name = model_name
-        self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.model_name,
+        self.alvenir_pretrained = alvenir_pretrained
+        if alvenir_pretrained:
+            self.model_name = os.path.join(MODEL_DIR, self.model_name,
                                                      'best_model')
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path,
-                                                       local_files_only=True)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
+                                                       local_files_only=self.alvenir_pretrained)
 
         self.data_path = data_path
         self.labels = labels
         self.data_types = data_types
-
-        self.model_path = 'models/' + model_name
 
         self.label2id, self.id2label = self.label2id2label()
 
@@ -51,14 +52,15 @@ class NunaTextModelling:
         if load_model_type.value == 1:
             self.data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
             self.model = BertForSequenceClassification.from_pretrained(
-                self.local_alvenir_model_path,
+                self.model_name,
                 num_labels=len(self.labels),
                 local_files_only=True)
 
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path, local_files_only=True)
+            config = BertConfig.from_pretrained(self.model_name,
+                                                local_files_only=self.alvenir_pretrained)
             new_head = BertOnlyMLMHeadCustom(config)
             new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+                torch.load(self.model_name + '/head_weights.json'))
 
             lm_head = new_head.to('cuda')
             self.model.cls = lm_head
@@ -68,11 +70,11 @@ class NunaTextModelling:
         elif load_model_type.value in [2, 3]:
             self.data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
             self.model = BertForSequenceClassification.from_pretrained(
-                self.local_alvenir_model_path,
+                self.model_name,
                 num_labels=len(self.labels),
                 label2id=self.label2id,
                 id2label=self.id2label,
-                local_files_only=True)
+                local_files_only=self.alvenir_pretrained)
 
     def load_data(self):
         """
@@ -187,7 +189,7 @@ class NunaTextModelling:
         # train_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=train_data)
         eval_data_wrapped = self.tokenize_and_wrap_data(data=eval_data)
 
-        prediction_path = os.path.join(RESULTS_DIR, self.model_name)
+        prediction_path = os.path.join(RESULTS_DIR, self.model_name.replace('/', '_'))
         if not os.path.exists(prediction_path):
             os.mkdir(prediction_path)
 

@@ -20,6 +20,7 @@ from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PRE
 from utils.helpers import TimeCode, read_jsonlines, save_json
 from utils.helpers import count_num_lines
 from sklearn.model_selection import train_test_split
+from utils.visualization import simple_barplot
 
 class RawScrapePreprocessing:
     """
@@ -364,27 +365,43 @@ class ClassifiedScrapePreprocessing:
         :return: list of lists of dicts
         """
 
-        label_set = set(map(lambda x: x['klassifikation'], data))
+        label_set = set(map(lambda x: x['label'], data))
 
-        new_data = [{'label': x['klassifikation'], 'text': x['text']} for x in data]
+        # new_data = [{'label': x['text'], 'text': x['text']} for x in data]
 
-        grouped = [[x for x in new_data if x['label'] == y] for y in label_set]
+        grouped = [[x for x in data if x['label'] == y] for y in label_set]
         return grouped
 
     @staticmethod
-    def train_test_to_json_split(data):
+    def train_test_to_json_split(grouped_data):
         """
         Read grouped data, split to train and test and save json
         :param data: grouped data as list og lists of dicts
         """
 
-        train_test = [train_test_split(x, test_size=10, random_state=1) for x in data]
+        train_test = [train_test_split(x, test_size=10, random_state=1) for x in grouped_data]
 
         train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
         test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
 
         save_json(PREP_DATA_DIR, data=train, filename='train_classified_mixed')
         save_json(PREP_DATA_DIR, data=test, filename='test_classified_mixed')
+
+    @staticmethod
+    def concat_all_classified_data(data_dir: str = CLASS_DATA_DIR):
+        data = []
+        for filename in os.listdir(data_dir):
+            f = os.path.join(data_dir, filename)
+            if os.path.isfile(f):
+                tmp_data = read_jsonlines(input_dir=data_dir, filename=filename.split('.')[0])
+                for line in tmp_data:
+                    if type(line['text']) is str:
+                        data.append({'label': line['klassifikation'], 'text': line['text']})
+                    else:
+                        print(f'line {line} is empty')
+
+        return data
+
 
 
 if __name__ == '__main__':
@@ -400,7 +417,16 @@ if __name__ == '__main__':
     prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
+    data = class_prep.concat_all_classified_data()
+    grouped = class_prep.group_data_by_class(data=data)
+
+    labels = [x[0]['label'] for x in grouped]
+    plot_data = [len(x) for x in grouped]
+
+    simple_barplot(labels, plot_data)
+
+    print()
     # class_prep.read_xls_save_json()
     # data = class_prep.read_classified_json()
-    # grouped = class_prep.group_data_by_class()
-    class_prep.from_raw_to_train_val()
+
+    # class_prep.from_raw_to_train_val()
