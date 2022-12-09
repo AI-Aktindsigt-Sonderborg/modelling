@@ -237,12 +237,22 @@ def barplot_muni_counts(data: List[dict] = None):
     plt.close()
 
 def simple_barplot(labels: List[str], data: List[float]):
+    # Create figure and plot
+    fig, ax = plt.subplots()
+    ax.bar(range(len(data)), data)
 
-    fig = plt.figure(figsize=(7, 3))
-    plt.bar(labels, data)
-    plt.xticks(rotation=90)
-    # plt.savefig(f'plots/labelled/class_sizes.png', bbox_inches='tight')
+    # Add xticks
+    ax.set_xticks(range(len(data)))
+    ax.set_xticklabels(labels, fontsize=14, rotation=90)
+
+    # Show plot
     plt.show()
+
+    # fig = plt.figure(figsize=(7, 3))
+    # plt.bar(labels, data)
+    # plt.xticks(rotation=90)
+    # # plt.savefig(f'plots/labelled/class_sizes.png', bbox_inches='tight')
+    # plt.show()
 
 
 def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
