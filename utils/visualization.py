@@ -244,7 +244,7 @@ def simple_barplot(labels: List[str], data: List[float]):
     # Add xticks
     ax.set_xticks(range(len(data)))
     ax.set_xticklabels(labels, fontsize=14, rotation=90)
-
+    plt.tight_layout()
     # Show plot
     plt.show()
 
@@ -259,7 +259,7 @@ def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
 
 
     if conf_plot:
-        conf_matrix = confusion_matrix(y_list, preds, labels=labels,
+        conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
                                        normalize='true')
         df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
         plt.figure(figsize=(10, 7))
@@ -267,8 +267,8 @@ def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
         plt.show()
 
 
-    return precision_recall_fscore_support(y_list, preds, labels=labels, average='micro'), \
-           f1_score(y_true=y_list, y_pred=preds, labels=labels, average=None)
+    return precision_recall_fscore_support(y_list, prediction_list, labels=labels, average='micro'), \
+           f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
 
 
 

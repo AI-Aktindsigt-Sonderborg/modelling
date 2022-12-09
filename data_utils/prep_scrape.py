@@ -22,6 +22,7 @@ from utils.helpers import count_num_lines
 from sklearn.model_selection import train_test_split
 from utils.visualization import simple_barplot
 
+
 class RawScrapePreprocessing:
     """
     Class to preprocess raw data to ML from web scraper
@@ -318,10 +319,12 @@ class RawScrapePreprocessing:
                     disapproved_sentences.write('\n')
         print("Finished.")
 
+
 class ClassifiedScrapePreprocessing:
     """
     Class to read raw excel file with classified KL categories and split to train and validation data
     """
+
     def __init__(self, args):
         self.args = args
 
@@ -329,7 +332,7 @@ class ClassifiedScrapePreprocessing:
         self.read_xls_save_json()
         data = self.read_classified_json()
         grouped = self.group_data_by_class(data)
-        self.train_test_to_json_split(grouped)
+        self.train_val_test_to_json_split(grouped)
 
     def read_xls_save_json(self, file_dir: str = CLASS_DATA_DIR,
                            ppl_filters: List[int] = None, drop_na: bool = True):
@@ -373,19 +376,55 @@ class ClassifiedScrapePreprocessing:
         return grouped
 
     @staticmethod
-    def train_test_to_json_split(grouped_data):
+    def train_val_test_to_json_split(grouped_data,
+                                     train_size: float = None,
+                                     test_size: int = None,
+                                     train_outfile: str = None,
+                                     val_outfile: str = None,
+                                     test_outfile: str = None):
         """
         Read grouped data, split to train and test and save json
-        :param data: grouped data as list og lists of dicts
+        :param grouped_data: grouped data as list og lists of dicts
+        :param n_sets: integer either 2 or 3. If 2 data will be split to train and test, if 3
+        data will be split to train, validation, test
+        :param train_size: float between 0 and 1 specifying the size of the train set where
+        1 is all data
+        :param test_size: int >= 1 specifying the number of sentences in each class
+        :return: creates jsonlines objects for datasets specified
         """
 
-        train_test = [train_test_split(x, test_size=10, random_state=1) for x in grouped_data]
+        if not (train_outfile and test_outfile):
+            print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
+            return print('At least train_outfile and test_outfile ')
 
-        train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
-        test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
+        if not train_size and not test_size:
+            print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
+            return print('Either train or test size must be specified')
 
-        save_json(PREP_DATA_DIR, data=train, filename='train_classified_mixed')
-        save_json(PREP_DATA_DIR, data=test, filename='test_classified_mixed')
+
+        if train_outfile and test_size and not val_outfile:
+            train_test = [train_test_split(x, test_size=test_size, random_state=1) for x in grouped_data]
+            train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
+            test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
+
+        if train_outfile and val_outfile and test_outfile and train_size and test_size:
+            train_val = [train_test_split(x, train_size=train_size, random_state=1) for x in grouped_data]
+            train = list(itertools.chain.from_iterable([x[0] for x in train_val]))
+            val_tmp = list(itertools.chain.from_iterable([x[1] for x in train_val]))
+
+            val_grouped = ClassifiedScrapePreprocessing.group_data_by_class(val_tmp)
+
+            val_test = [train_test_split(x, test_size=test_size, random_state=1) for x in val_grouped]
+
+            val = list(itertools.chain.from_iterable([x[0] for x in val_test]))
+            test = list(itertools.chain.from_iterable([x[1] for x in val_test]))
+
+        if train_outfile:
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=train, filename=train_outfile)
+        if val_outfile:
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=val, filename=val_outfile)
+        if test_outfile:
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=test, filename=test_outfile)
 
     @staticmethod
     def concat_all_classified_data(data_dir: str = CLASS_DATA_DIR):
@@ -401,7 +440,6 @@ class ClassifiedScrapePreprocessing:
                         print(f'line {line} is empty')
 
         return data
-
 
 
 if __name__ == '__main__':
@@ -420,10 +458,17 @@ if __name__ == '__main__':
     data = class_prep.concat_all_classified_data()
     grouped = class_prep.group_data_by_class(data=data)
 
-    labels = [x[0]['label'] for x in grouped]
-    plot_data = [len(x) for x in grouped]
+    class_prep.train_val_test_to_json_split(grouped_data=grouped,
+                                            train_outfile='train_classified',
+                                            val_outfile='eval_classified',
+                                            test_outfile='test_classified',
+                                            train_size=0.9,
+                                            test_size=30)
 
-    simple_barplot(labels, plot_data)
+    # labels = [x[0]['label'] for x in grouped]
+    # plot_data = [len(x) for x in grouped]
+
+    # simple_barplot(labels, plot_data)
 
     print()
     # class_prep.read_xls_save_json()

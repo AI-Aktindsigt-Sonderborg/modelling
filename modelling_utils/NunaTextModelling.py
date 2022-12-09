@@ -84,12 +84,12 @@ class NunaTextModelling:
 
         train_data = load_dataset('json',
                                        data_files=os.path.join(self.data_path,
-                                                               'train_classified_mixed.json'),
+                                                               'train_classified.json'),
                                        split='train')
 
         eval_data = load_dataset('json',
                                       data_files=os.path.join(self.data_path,
-                                                              'test_classified_mixed.json'),
+                                                              'eval_classified.json'),
                                       split='train')
         return train_data, eval_data
 
