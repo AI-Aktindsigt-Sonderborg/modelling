@@ -56,3 +56,13 @@ if not os.path.exists(CLASS_DATA_DIR):
     # Create a new directory because it does not exist
     os.makedirs(CLASS_DATA_DIR)
     print("Create classified data dir!")
+
+if not os.path.exists(os.path.join(CLASS_DATA_DIR, 'raw')):
+    # Create a new directory because it does not exist
+    os.makedirs(os.path.join(CLASS_DATA_DIR, 'raw'))
+    print("Create raw classified data dir!")
+
+if not os.path.exists(os.path.join(CLASS_DATA_DIR, 'processed')):
+    # Create a new directory because it does not exist
+    os.makedirs(os.path.join(CLASS_DATA_DIR, 'processed'))
+    print("Create processed classified data dir!")
