@@ -2,27 +2,27 @@ import json
 import os
 from typing import List
 
+import numpy as np
 import pandas as pd
+import seaborn as sn
 import torch
 import torch.nn.functional as F
-import numpy as np
 from datasets import load_dataset, ClassLabel, Dataset
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, f1_score
-from transformers import AutoTokenizer, DataCollatorWithPadding, AutoModelForSequenceClassification, \
-    Trainer, EarlyStoppingCallback, BertForSequenceClassification, DataCollatorForLanguageModeling, \
-    BertConfig
+from transformers import AutoTokenizer, DataCollatorWithPadding, Trainer, EarlyStoppingCallback, \
+    BertForSequenceClassification, BertConfig
 
+from data_utils.custom_dataclasses import LoadModelType
+from data_utils.custom_dataclasses import PredictionOutput
 from local_constants import MODEL_DIR, RESULTS_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import compute_metrics
-from data_utils.custom_dataclasses import LoadModelType
-from data_utils.custom_dataclasses import PredictionOutput
-import seaborn as sn
 
-class NunaTextModelling:
-    def __init__(self, model_name: str = None, labels: list = None, data_types: List[str] = None,
-                 data_path: str = None, load_model_type: LoadModelType = None,
+
+class SupervisedTextModelling:
+    def __init__(self, model_name: str = None, labels: list = None,
+                 data_dir: str = None, load_model_type: LoadModelType = None,
                  alvenir_pretrained: bool = True):
         """
 
@@ -35,15 +35,13 @@ class NunaTextModelling:
         self.model_name = model_name
         self.alvenir_pretrained = alvenir_pretrained
         if alvenir_pretrained:
-            self.model_name = os.path.join(MODEL_DIR, self.model_name,
-                                                     'best_model')
+            self.model_name = os.path.join(MODEL_DIR, self.model_name)
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name,
                                                        local_files_only=self.alvenir_pretrained)
 
-        self.data_path = data_path
+        self.data_dir = data_dir
         self.labels = labels
-        self.data_types = data_types
 
         self.label2id, self.id2label = self.label2id2label()
 
@@ -54,7 +52,7 @@ class NunaTextModelling:
             self.model = BertForSequenceClassification.from_pretrained(
                 self.model_name,
                 num_labels=len(self.labels),
-                local_files_only=True)
+                local_files_only=self.alvenir_pretrained)
 
             config = BertConfig.from_pretrained(self.model_name,
                                                 local_files_only=self.alvenir_pretrained)
@@ -83,15 +81,21 @@ class NunaTextModelling:
         """
 
         train_data = load_dataset('json',
-                                       data_files=os.path.join(self.data_path,
-                                                               'train_classified.json'),
-                                       split='train')
+                                  data_files=os.path.join(self.data_dir,
+                                                          'train_classified.json'),
+                                  split='train')
 
         eval_data = load_dataset('json',
-                                      data_files=os.path.join(self.data_path,
-                                                              'eval_classified.json'),
-                                      split='train')
-        return train_data, eval_data
+                                 data_files=os.path.join(self.data_dir,
+                                                         'eval_classified.json'),
+                                 split='train')
+
+        test_data = load_dataset('json',
+                                 data_files=os.path.join(self.data_dir,
+                                                         'test_classified.json'),
+                                 split='train')
+
+        return train_data, eval_data, test_data
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -121,7 +125,6 @@ class NunaTextModelling:
                 return_special_tokens_mask=True,
             )
 
-
         tokenized = data.map(
             self.tokenize,
             batched=True,
@@ -134,20 +137,6 @@ class NunaTextModelling:
         # wrapped = DatasetWrapper(tokenized)
         tokenized.set_format('torch', columns=['input_ids', 'attention_mask', 'labels'])
         return tokenized
-
-
-    def map_to_hf_dataset(self):
-
-        data_dict = {}
-        for data_type in self.data_types:
-            data_dict[data_type] = os.path.join(self.data_path, f'{data_type}.json')
-
-        data = load_dataset('json', data_files=data_dict)
-
-        data = data.map(self.tokenize, batched=True)
-        # data.set_format('torch', columns=['input_ids', 'attention_mask', 'labels'])
-        data.set_format('torch', columns=['input_ids', 'attention_mask', 'labels'])
-        return data
 
     def tokenize(self, batch):
         tokens = self.tokenizer(batch['text'], padding='max_length', max_length=64, truncation=True)
@@ -165,29 +154,21 @@ class NunaTextModelling:
     def eval_model(self, model_name: str = None, labels: list = None):
 
         if model_name:
-            self.model_name = model_name
+            self.model_name = os.path.join(MODEL_DIR, model_name)
 
-            self.model = BertForSequenceClassification.from_pretrained(self.local_alvenir_model_path,
-                                                                            num_labels=len(
-                                                                                self.labels),
-                                                                            label2id=self.label2id,
-                                                                            id2label=self.id2label,
-                                                                            local_files_only=True)
-
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path, local_files_only=True)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
-
-            # lm_head = new_head.to('cuda')
-            self.model.cls = new_head
+            self.model = BertForSequenceClassification.from_pretrained(
+                self.model_name,
+                num_labels=len(
+                    self.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
+                local_files_only=True)
 
         if labels:
             self.labels = labels
 
-        train_data, eval_data = self.load_data()
-        # train_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=train_data)
-        eval_data_wrapped = self.tokenize_and_wrap_data(data=eval_data)
+        train_data, eval_data, test_data = self.load_data()
+        test_data_wrapped = self.tokenize_and_wrap_data(data=test_data)
 
         prediction_path = os.path.join(RESULTS_DIR, self.model_name.replace('/', '_'))
         if not os.path.exists(prediction_path):
@@ -199,7 +180,7 @@ class NunaTextModelling:
                                data_collator=self.data_collator,
                                )
 
-        pred_logits, label_ids, eval_result = test_trainer.predict(eval_data_wrapped)
+        pred_logits, label_ids, eval_result = test_trainer.predict(test_data_wrapped)
 
         softmax_pred = F.softmax(torch.Tensor(pred_logits), dim=-1).numpy()
 
@@ -236,7 +217,8 @@ class NunaTextModelling:
                                 softmax=label_percentage)
 
     @staticmethod
-    def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False, normalize: str = None):
+    def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False,
+                      normalize: str = None):
 
         if conf_plot:
             conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
@@ -250,6 +232,7 @@ class NunaTextModelling:
             sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
                        yticklabels=labels)
             # plt.savefig('plots/svm_03_confplot.png')
+            plt.tight_layout()
             plt.show()
 
         return precision_recall_fscore_support(y_list, prediction_list, labels=labels,

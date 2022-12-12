@@ -1,15 +1,16 @@
 import hashlib
+import itertools
 import json
-import math
 import os.path
 import random
 import re
 from typing import List
-import itertools
+
 import nltk.data
 import numpy as np
 import pandas as pd
 from ftfy import fix_encoding
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from data_utils.data_prep_input_args import DataPrepArgParser
@@ -19,8 +20,6 @@ from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PRE
     CLASS_DATA_DIR
 from utils.helpers import TimeCode, read_jsonlines, save_json
 from utils.helpers import count_num_lines
-from sklearn.model_selection import train_test_split
-from utils.visualization import simple_barplot
 
 
 class RawScrapePreprocessing:
@@ -101,10 +100,10 @@ class RawScrapePreprocessing:
                         data_dict = json.loads(line)
 
                         if self.is_correct_danish(
-                            data=data_dict,
+                            data_dict=data_dict,
                             confidence_threshold=self.args.danish_threshold):
 
-                            data_dict = self.fix_utf8_encodings(data=data_dict)
+                            data_dict = self.fix_utf8_encodings(data_dict=data_dict)
                             out_data.append({'id': index, 'url': data_dict['redirected_to_url'],
                                              'sha512': data_dict['redirected_to_url_sha512'],
                                              'text': data_dict['page_filtered_text']})
@@ -254,20 +253,20 @@ class RawScrapePreprocessing:
             write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile, data=val)
 
     @staticmethod
-    def is_correct_danish(data: dict, confidence_threshold: int):
+    def is_correct_danish(data_dict: dict, confidence_threshold: int):
         """
         Detect correct danish text without raw html code
         :param data: raw text from scraped url
         :param confidence_threshold: confidence in which we filter danish prediction
         :return: boolean whether to keep data
         """
-        if "__label__da" not in data['detected_page_lang']:
+        if "__label__da" not in data_dict['detected_page_lang']:
             return False
-        confidence = float(re.findall(r'\d+\.\d+', data['detected_page_lang'])[0])
+        confidence = float(re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
         discard_conditions = [confidence < confidence_threshold,
-                              '<div ' in data['page_filtered_text'],
-                              'endif' in data['page_filtered_text'],
-                              '<class' in data['page_filtered_text']]
+                              '<div ' in data_dict['page_filtered_text'],
+                              'endif' in data_dict['page_filtered_text'],
+                              '<class' in data_dict['page_filtered_text']]
 
         for condition in discard_conditions:
             if condition:
@@ -275,20 +274,21 @@ class RawScrapePreprocessing:
         return True
 
     @staticmethod
-    def fix_utf8_encodings(data: dict):
+    def fix_utf8_encodings(data_dict: dict):
         """
         Use fix_encoding and manually replace wrong danish letters
         :param data: dictionary containing text from scrape url
         :return: dictionary with correct encoded text
         """
-        data['page_filtered_text'] = fix_encoding(
-            data['page_filtered_text'])
+        data_dict['page_filtered_text'] = fix_encoding(
+            data_dict['page_filtered_text'])
         wrong_encodings = [['Ã¥', 'å'], ['Ã¸', 'ø'], ['Ã¦', 'æ']]
         for wrong_encoding in wrong_encodings:
-            if wrong_encoding[0] in data['page_filtered_text']:
-                data['page_filtered_text'] = data['page_filtered_text'].replace(wrong_encoding[0],
-                                                                                wrong_encoding[1])
-        return data
+            if wrong_encoding[0] in data_dict['page_filtered_text']:
+                data_dict['page_filtered_text'] = data_dict['page_filtered_text'].replace(
+                    wrong_encoding[0],
+                    wrong_encoding[1])
+        return data_dict
 
     @staticmethod
     def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
@@ -328,12 +328,6 @@ class ClassifiedScrapePreprocessing:
     def __init__(self, args):
         self.args = args
 
-    def from_raw_to_train_val(self):
-        self.read_xls_save_json()
-        data = self.read_classified_json()
-        grouped = self.group_data_by_class(data)
-        self.train_val_test_to_json_split(grouped)
-
     def read_xls_save_json(self, file_dir: str = CLASS_DATA_DIR,
                            ppl_filters: List[int] = None, drop_na: bool = True):
         """
@@ -361,36 +355,35 @@ class ClassifiedScrapePreprocessing:
         return read_jsonlines(input_dir=CLASS_DATA_DIR, filename=self.args.classified_scrape_file)
 
     @staticmethod
-    def group_data_by_class(data: List[dict]):
+    def group_data_by_class(list_data: List[dict]):
         """
         Group data by class
         :param data: list of dictionarys of sentences
         :return: list of lists of dicts
         """
 
-        label_set = set(map(lambda x: x['label'], data))
+        label_set = set(map(lambda x: x['label'], list_data))
 
-        # new_data = [{'label': x['text'], 'text': x['text']} for x in data]
-
-        grouped = [[x for x in data if x['label'] == y] for y in label_set]
+        grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
 
     @staticmethod
-    def train_val_test_to_json_split(grouped_data,
+    def train_val_test_to_json_split(class_grouped_data,
                                      train_size: float = None,
                                      test_size: int = None,
                                      train_outfile: str = None,
                                      val_outfile: str = None,
                                      test_outfile: str = None):
         """
-        Read grouped data, split to train and test and save json
-        :param grouped_data: grouped data as list og lists of dicts
-        :param n_sets: integer either 2 or 3. If 2 data will be split to train and test, if 3
-        data will be split to train, validation, test
+         Read grouped data, split to train, val and test and save json
+        :param class_grouped_data: grouped data as list og lists of dicts
         :param train_size: float between 0 and 1 specifying the size of the train set where
         1 is all data
         :param test_size: int >= 1 specifying the number of sentences in each class
-        :return: creates jsonlines objects for datasets specified
+        :param train_outfile: if train_outfile specified generate train set
+        :param val_outfile: if val_outfile specified generate validation set
+        :param test_outfile: if test_outfile specified generate test set
+        :return:
         """
 
         if not (train_outfile and test_outfile):
@@ -401,20 +394,22 @@ class ClassifiedScrapePreprocessing:
             print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
             return print('Either train or test size must be specified')
 
-
         if train_outfile and test_size and not val_outfile:
-            train_test = [train_test_split(x, test_size=test_size, random_state=1) for x in grouped_data]
+            train_test = [train_test_split(x, test_size=test_size, random_state=1) for x in
+                          class_grouped_data]
             train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
             test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
 
         if train_outfile and val_outfile and test_outfile and train_size and test_size:
-            train_val = [train_test_split(x, train_size=train_size, random_state=1) for x in grouped_data]
+            train_val = [train_test_split(x, train_size=train_size, random_state=1) for x in
+                         class_grouped_data]
             train = list(itertools.chain.from_iterable([x[0] for x in train_val]))
             val_tmp = list(itertools.chain.from_iterable([x[1] for x in train_val]))
 
             val_grouped = ClassifiedScrapePreprocessing.group_data_by_class(val_tmp)
 
-            val_test = [train_test_split(x, test_size=test_size, random_state=1) for x in val_grouped]
+            val_test = [train_test_split(x, test_size=test_size, random_state=1) for x in
+                        val_grouped]
 
             val = list(itertools.chain.from_iterable([x[0] for x in val_test]))
             test = list(itertools.chain.from_iterable([x[1] for x in val_test]))
@@ -425,21 +420,22 @@ class ClassifiedScrapePreprocessing:
             save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=val, filename=val_outfile)
         if test_outfile:
             save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=test, filename=test_outfile)
+        return print('datasets generated')
 
     @staticmethod
     def concat_all_classified_data(data_dir: str = CLASS_DATA_DIR):
-        data = []
+        all_data = []
         for filename in os.listdir(data_dir):
-            f = os.path.join(data_dir, filename)
-            if os.path.isfile(f):
+            filepath = os.path.join(data_dir, filename)
+            if os.path.isfile(filepath):
                 tmp_data = read_jsonlines(input_dir=data_dir, filename=filename.split('.')[0])
                 for line in tmp_data:
-                    if type(line['text']) is str:
-                        data.append({'label': line['klassifikation'], 'text': line['text']})
+                    if isinstance(line['text'], str):
+                        all_data.append({'label': line['klassifikation'], 'text': line['text']})
                     else:
                         print(f'line {line} is empty')
 
-        return data
+        return all_data
 
 
 if __name__ == '__main__':
@@ -451,27 +447,18 @@ if __name__ == '__main__':
     # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
     # prep_args.classified_scrape_file = 'aalborg_classified_scrape'
 
-    prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
-    prep_args.classified_scrape_file = 'mixed_classified_scrape'
+    # prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
+    # prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
-    data = class_prep.concat_all_classified_data()
-    grouped = class_prep.group_data_by_class(data=data)
+    concat_data = class_prep.concat_all_classified_data()
+    grouped_data = class_prep.group_data_by_class(list_data=concat_data)
 
-    class_prep.train_val_test_to_json_split(grouped_data=grouped,
+    class_prep.train_val_test_to_json_split(class_grouped_data=grouped_data,
                                             train_outfile='train_classified',
                                             val_outfile='eval_classified',
                                             test_outfile='test_classified',
                                             train_size=0.9,
                                             test_size=30)
 
-    # labels = [x[0]['label'] for x in grouped]
-    # plot_data = [len(x) for x in grouped]
-
-    # simple_barplot(labels, plot_data)
-
     print()
-    # class_prep.read_xls_save_json()
-    # data = class_prep.read_classified_json()
-
-    # class_prep.from_raw_to_train_val()

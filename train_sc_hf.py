@@ -1,16 +1,17 @@
+"""Script to train a sequence-classification model with huggingface"""
+
 import os
-import torch
-from torch import nn
-from torch.utils.data import DataLoader
+
 from transformers import TrainingArguments, Trainer
-# from data_utils.preprocess_nuna_text import NunaTextPreprocessing
-from modelling_utils.NunaTextModelling import NunaTextModelling, compute_metrics
+
 from data_utils.custom_dataclasses import LoadModelType
 from local_constants import DATA_DIR
+
+from modelling_utils.supervised_text_modelling import SupervisedTextModelling, compute_metrics
+
 MODEL_NAME = 'last_model'
-OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised2'
-# nuna_text_processing = NunaTextPreprocessing(model_name=MODEL_NAME)
-# nuna_text_processing.preproces_data_for_train()
+OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised_new'
+
 os.environ["WANDB_DISABLED"] = "true"
 
 # LABELS = [x[0] for x in nuna_text_processing.class_weights]
@@ -28,22 +29,18 @@ os.environ["WANDB_DISABLED"] = "true"
 #         loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
 #         return (loss, outputs) if return_outputs else loss
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv og turisme': 2,
-            'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
-            'Sundhed og ældre': 6, 'Økonomi og administration': 7}
+              'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
+              'Sundhed og ældre': 6, 'Økonomi og administration': 7}
 
 LABELS = list(label_dict)
 
-nuna_text_modelling = NunaTextModelling(labels=LABELS,
-                                        # data_types=['train_10', 'val_10'],
-                                        # data_types=['train_classified_mixed', 'test_classified_mixed'],
-                                        data_path=DATA_DIR,
+nuna_text_modelling = SupervisedTextModelling(labels=LABELS,
+                                        data_dir=DATA_DIR,
                                         model_name=MODEL_NAME, load_model_type=LoadModelType.TRAIN)
 
-train_data, eval_data = nuna_text_modelling.load_data()
+train_data, eval_data, test_data = nuna_text_modelling.load_data()
 train_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=train_data)
 eval_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=eval_data)
-
-
 
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
@@ -75,7 +72,7 @@ trainer = Trainer(
     tokenizer=nuna_text_modelling.tokenizer,
     data_collator=nuna_text_modelling.data_collator,
     compute_metrics=compute_metrics,
-    callbacks=[nuna_text_modelling.callbacks],
+    # callbacks=[nuna_text_modelling.callbacks],
 )
 
 trainer.train()
@@ -84,7 +81,5 @@ trainer.save_model(OUTPUT_DIR)
 trainer.save_state()
 
 model_eval = trainer.evaluate()
-
-# y_true, y_pred, eval_result = nuna_text_modelling.eval_model(data_types=['test'], model_name=MODEL_NAME)
 
 print()
