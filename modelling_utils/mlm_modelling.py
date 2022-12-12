@@ -29,7 +29,7 @@ from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
 
-class MLMUnsupervisedModelling:
+class MLMModelling:
     """
     Class to train an MLM unsupervised model
 
@@ -598,7 +598,7 @@ class MLMUnsupervisedModelling:
             sys.exit(0)
 
 
-class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
+class MLMModellingDP(MLMModelling):
     """
         Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
         differential privacy

@@ -1,4 +1,5 @@
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling, MLMUnsupervisedModellingDP
+
+from modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
 from modelling_utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()
@@ -11,8 +12,8 @@ if args.differential_privacy:
         print('exiting - try again')
         mlm_parser.parser.exit()
 
-    mlm_modelling_dp = MLMUnsupervisedModellingDP(args=args)
+    mlm_modelling_dp = MLMModellingDP(args=args)
     mlm_modelling_dp.train_model()
 else:
-    mlm_modelling = MLMUnsupervisedModelling(args=args)
+    mlm_modelling = MLMModelling(args=args)
     mlm_modelling.train_model()
