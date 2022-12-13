@@ -17,7 +17,7 @@ os.environ["WANDB_DISABLED"] = "true"
 # LABELS = [x[0] for x in nuna_text_processing.class_weights]
 # WEIGHTS = [float(x[1]) for x in nuna_text_processing.class_weights]
 
-
+# ToDo: implement if labels should be weighted
 # class CustomTrainer(Trainer):
 #     def compute_loss(self, model, inputs, return_outputs=False):
 #         labels = inputs.get("labels")
@@ -28,6 +28,7 @@ os.environ["WANDB_DISABLED"] = "true"
 #         loss_fct = nn.CrossEntropyLoss(weight=torch.tensor(WEIGHTS).cuda())
 #         loss = loss_fct(logits.view(-1, self.model.config.num_labels), labels.view(-1))
 #         return (loss, outputs) if return_outputs else loss
+
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv og turisme': 2,
               'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
               'Sundhed og ældre': 6, 'Økonomi og administration': 7}
