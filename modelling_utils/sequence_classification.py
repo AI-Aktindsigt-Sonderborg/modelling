@@ -102,6 +102,7 @@ class SequenceClassification:
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
             self.args.lr_freezed_warmup_steps = 0
+            self.args.lr_freezed = 0
 
     def train_model(self):
         """

@@ -110,7 +110,8 @@ class MLMArgParser:
                                help="Whether to compute lr_warmup and decay automatically\n"
                                     "lr_warmup_steps = 10%% of steps training full model\n"
                                     "lr_start_decay = 50%% of training full model")
-        lr_params.add_argument("-lrf", "--lr_freezed", type=float, default=0.0005,
+        lr_params.add_argument("-lrf", "--lr_freezed",
+                               type=float, default=0.0005,
                                metavar='<float>', help="number of steps to train head only")
         lr_params.add_argument("-lrfws", "--lr_freezed_warmup_steps", type=int, default=1000,
                                help="number of steps to train head only", metavar='<int>')
@@ -129,7 +130,9 @@ class MLMArgParser:
         """
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("-esteps", "--evaluate_steps", type=int, default=50000,
+        eval_params.add_argument("-esteps", "--evaluate_steps",
+                                 type=int,
+                                 default=50000,
                                  metavar='<int>',
                                  help="evaluate model accuracy after number of steps")
         eval_params.add_argument("-lsteps", "--logging_steps", type=int, default=5000,
@@ -217,7 +220,9 @@ class SequenceModellingArgParser:
                                   metavar='<bool>',
                                   default=True,
                                   help="Whether to load local alvenir model")
-        model_params.add_argument("-mn", "--model_name", type=str, default='last_model',
+        model_params.add_argument("-mn", "--model_name",
+                                  type=str,
+                                  default='last_model',
                                   help="foundation model from huggingface", metavar='<str>', )
         model_params.add_argument("--save_config", type=lambda x: bool(strtobool(x)),
                                   default=True,
@@ -226,7 +231,8 @@ class SequenceModellingArgParser:
                                   type=lambda x: bool(strtobool(x)),
                                   default=True,
                                   help="Whether to freeze embeddings layer", metavar='<bool>')
-        model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)),
+        model_params.add_argument("--save_model_at_end",
+                                  type=lambda x: bool(strtobool(x)),
                                   default=True, metavar='<bool>',
                                   help="Whether to save final model after training.")
 
@@ -272,7 +278,8 @@ class SequenceModellingArgParser:
                                      help="number of steps to train head only", metavar='<int>')
 
         lr_params = self.parser.add_argument_group('learning rate')
-        lr_params.add_argument("-alrs", "--auto_lr_scheduling", type=lambda x: bool(strtobool(x)),
+        lr_params.add_argument("-alrs", "--auto_lr_scheduling",
+                               type=lambda x: bool(strtobool(x)),
                                default=True, metavar='<bool>',
                                help="Whether to compute lr_warmup and decay automatically\n"
                                     "freeze_layers_n_steps = 10%% of total_steps\n"
@@ -305,7 +312,8 @@ class SequenceModellingArgParser:
                                  metavar='<int>', help="Log model accuracy after number of steps")
         eval_params.add_argument("-ssteps", "--save_steps", type=int, default=50000,
                                  metavar='<int>', help="save checkpoint after number of steps")
-        eval_params.add_argument("--save_only_best_model", type=lambda x: bool(strtobool(x)),
+        eval_params.add_argument("--save_only_best_model",
+                                 type=lambda x: bool(strtobool(x)),
                                  metavar='<bool>', default=True,
                                  help="Whether to only save best model - overwrites save_steps if True")
         eval_params.add_argument("-ebs", "--eval_batch_size",
