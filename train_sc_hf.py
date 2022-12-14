@@ -35,6 +35,8 @@ label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv o
 
 LABELS = list(label_dict)
 
+
+
 nuna_text_modelling = SupervisedTextModelling(labels=LABELS,
                                         data_dir=DATA_DIR,
                                         model_name=MODEL_NAME, load_model_type=LoadModelType.TRAIN)

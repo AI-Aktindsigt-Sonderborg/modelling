@@ -10,7 +10,7 @@ from typing import List
 
 import numpy as np
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, ClassLabel
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -18,7 +18,8 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
-    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification
+    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification, \
+    DataCollatorWithPadding
 
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
@@ -82,16 +83,25 @@ class SequenceClassification:
         self.eval_data = None
         self.model = None
         self.local_alvenir_model_path = None
+        self.label2id, self.id2label = self.label2id2label()
+        self.class_labels = ClassLabel(num_classes=len(self.args.labels), names=self.args.labels)
+
         if self.args.load_alvenir_pretrained:
-            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name,
-                                                         'best_model')
-            self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
+            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.local_alvenir_model_path,
+                local_files_only=self.args.load_alvenir_pretrained)
         else:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.args.model_name,
+                local_files_only=self.args.load_alvenir_pretrained)
+
         self.data_collator = self.get_data_collator
         self.scheduler = None
+        # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
+            self.args.lr_freezed_warmup_steps = 0
 
     def train_model(self):
         """
@@ -175,7 +185,8 @@ class SequenceClassification:
         train_losses = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc=f'Train epoch {epoch} of {self.args.epochs}', unit="batch"):
+        for batch in tqdm(train_loader, desc=f'Train epoch {epoch} of {self.args.epochs}',
+                          unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -299,16 +310,7 @@ class SequenceClassification:
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
 
-            labels_flat = labels.flatten()
-
-            preds_flat = preds.flatten()
-
-            # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.
-            # See nn.CrossEntropyLoss(): ignore_index for more information
-            filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
-
-            eval_acc = accuracy(np.array([x[1] for x in filtered]),
-                                np.array([x[0] for x in filtered]))
+            eval_acc = accuracy(preds, labels)
             eval_loss = output.loss.item()
 
             if not np.isnan(eval_loss):
@@ -337,35 +339,30 @@ class SequenceClassification:
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.load_alvenir_pretrained:
-            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+            model = BertForSequenceClassification.from_pretrained(
+                self.local_alvenir_model_path,
+                num_labels=len(self.args.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
+        else:
+            model = BertForSequenceClassification.from_pretrained(
+                self.args.model_name,
+                num_labels=len(self.args.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
 
-            lm_head = new_head.to(self.args.device)
-            model.cls = lm_head
-
+        if self.args.freeze_embeddings:
             # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
             #  grad sampler - as this is not implemented in opacus
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
-        else:
-            if self.args.replace_head:
-                print('Replacing bert head')
-                model = self.load_model_and_replace_bert_head()
-
-            else:
-                model = BertForMaskedLM.from_pretrained(self.args.model_name)
-
-        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
-                                                  model=model)
-
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
                                   collate_fn=self.data_collator)
 
-        optimizer = dummy_trainer.create_optimizer()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(optimizer,
                                               start_factor=self.args.lr_freezed /
@@ -381,38 +378,29 @@ class SequenceClassification:
 
         return model, optimizer, train_loader
 
-    def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper, model):
-        """
-        Create dummy trainer, such that we get optimizer and can save model object
-        :param train_data_wrapped: Train data of type DatasetWrapper
-        :param model: initial model
-        :return: Trainer object
-        """
-        if self.args.freeze_layers:
-            learning_rate_init: float = self.args.lr_freezed
-        else:
-            learning_rate_init: float = self.args.learning_rate
-
-        training_args = TrainingArguments(
-            output_dir=self.output_dir,
-            learning_rate=learning_rate_init,
-            weight_decay=self.args.weight_decay,
-            fp16=self.args.use_fp16,
-            # do_train=True
-            # warmup_steps=self.args.lr_warmup_steps,
-            # lr_scheduler_type='polynomial' # bert use linear scheduling
-        )
-
-        # Dummy training for optimizer
-        return Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_data_wrapped,
-            data_collator=self.data_collator,
-            tokenizer=self.tokenizer
-        )
-
     def tokenize_and_wrap_data(self, data: Dataset):
+        tokenized = data.map(
+            self.tokenize,
+            batched=True,
+            # num_proc=1,
+            remove_columns=data.column_names,
+            load_from_cache_file=False,
+            desc="Running tokenizer on dataset line_by_line",
+        )
+
+        tokenized.set_format('torch')
+        wrapped = DatasetWrapper(tokenized)
+
+        return wrapped
+
+    def tokenize(self, batch):
+        tokens = self.tokenizer(batch['text'], padding='max_length',
+                                max_length=self.args.max_length,
+                                truncation=True)
+        tokens['labels'] = self.class_labels.str2int(batch['label'])
+        return tokens
+
+    def tokenize_and_wrap_data_old(self, data: Dataset):
         """
         Tokenize dataset with tokenize_function and wrap with DatasetWrapper
         :param data: Dataset
@@ -440,12 +428,11 @@ class SequenceClassification:
                 return_special_tokens_mask=True,
             )
 
-
         tokenized = data.map(
             tokenize_function,
             batched=True,
             num_proc=1,
-            remove_columns=['text'], #, 'label'],
+            remove_columns=['text'],  # , 'label'],
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
         )
@@ -492,6 +479,14 @@ class SequenceClassification:
                 param.requires_grad = False
         return model
 
+    def label2id2label(self):
+        label2id, id2label = dict(), dict()
+
+        for i, label in enumerate(self.args.labels):
+            label2id[label] = str(i)
+            id2label[i] = label
+        return label2id, id2label
+
     def compute_lr_automatically(self):
 
         if self.args.freeze_layers:
@@ -509,11 +504,8 @@ class SequenceClassification:
         Based on word mask load corresponding data collator
         :return: DataCollator
         """
-        if self.args.whole_word_mask:
-            return DataCollatorForWholeWordMask(tokenizer=self.tokenizer, mlm=True,
-                                                mlm_probability=self.args.mlm_prob)
-        return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
-                                               mlm_probability=self.args.mlm_prob)
+
+        return DataCollatorWithPadding(tokenizer=self.tokenizer)
 
     @staticmethod
     def freeze_layers(model):
@@ -543,7 +535,7 @@ class SequenceClassification:
         return model
 
     @staticmethod
-    def save_model(model: BertForMaskedLM, output_dir: str,
+    def save_model(model: BertForSequenceClassification, output_dir: str,
                    data_collator,
                    tokenizer,
                    step: str = ""):
@@ -598,7 +590,7 @@ class SequenceClassification:
             sys.exit(0)
 
 
-class MLMUnsupervisedModellingDP(MLMUnsupervisedModelling):
+class SequenceClassificationDP(SequenceClassification):
     """
         Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
         differential privacy

@@ -52,16 +52,19 @@ class SupervisedTextModelling:
             self.model = BertForSequenceClassification.from_pretrained(
                 self.model_name,
                 num_labels=len(self.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
                 local_files_only=self.alvenir_pretrained)
 
-            config = BertConfig.from_pretrained(self.model_name,
-                                                local_files_only=self.alvenir_pretrained)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.model_name + '/head_weights.json'))
-
-            lm_head = new_head.to('cuda')
-            self.model.cls = lm_head
+            # ToDo: is it correct we dont need the head here?
+            # config = BertConfig.from_pretrained(self.model_name,
+            #                                     local_files_only=self.alvenir_pretrained)
+            # new_head = BertOnlyMLMHeadCustom(config)
+            # new_head.load_state_dict(
+            #     torch.load(self.model_name + '/head_weights.json'))
+            #
+            # lm_head = new_head.to('cuda')
+            # self.model.cls = lm_head
 
             self.callbacks = EarlyStoppingCallback(early_stopping_patience=10,
                                                    early_stopping_threshold=0.0)
@@ -129,13 +132,13 @@ class SupervisedTextModelling:
             self.tokenize,
             batched=True,
             # num_proc=1,
-            # remove_columns=['text', 'label'],
+            remove_columns=data.column_names,
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
         )
 
         # wrapped = DatasetWrapper(tokenized)
-        tokenized.set_format('torch', columns=['input_ids', 'attention_mask', 'labels'])
+        tokenized.set_format('torch') #, columns=['input_ids', 'attention_mask', 'labels'])
         return tokenized
 
     def tokenize(self, batch):
