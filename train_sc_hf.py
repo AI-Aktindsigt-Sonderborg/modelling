@@ -48,7 +48,7 @@ eval_data_wrapped = nuna_text_modelling.tokenize_and_wrap_data(data=eval_data)
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
     # overwrite_output_dir=True,
-    num_train_epochs=10,
+    num_train_epochs=1,
     # weight_decay=0.01,
     evaluation_strategy='steps',
     learning_rate=5e-5,
