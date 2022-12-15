@@ -142,7 +142,8 @@ class SupervisedTextModelling:
         return tokenized
 
     def tokenize(self, batch):
-        tokens = self.tokenizer(batch['text'], padding='max_length', max_length=128, truncation=True)
+        tokens = self.tokenizer(batch['text'], padding='max_length',
+                                max_length=64, truncation=True)
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
 

@@ -15,12 +15,14 @@ args.labels = LABELS
 # args.load_alvenir_pretrained = False
 # args.model_name = 'NbAiLab/nb-bert-base'
 args.differential_privacy = False
-args.local_testing = False
+args.local_testing = True
 
 if args.local_testing:
     args.train_batch_size = 4
     args.eval_batch_size = 4
     args.evaluate_steps = 50
+    args.save_steps = 50
+    args.eval_data = 'test_classified.json'
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(sc_parser.parser._option_string_actions['--lot_size'].help)

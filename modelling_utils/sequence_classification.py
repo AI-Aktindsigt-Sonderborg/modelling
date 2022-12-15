@@ -556,7 +556,7 @@ class SequenceClassification:
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
-        torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
+        # torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
         # model.save_pretrained(save_directory=output_dir)
 
