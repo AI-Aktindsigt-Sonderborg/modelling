@@ -292,10 +292,10 @@ class SequenceModellingArgParser:
                                help="number of steps to train head only", metavar='<int>')
         lr_params.add_argument("-lr", "--learning_rate", type=float, default=0.00005,
                                help="Learning rate", metavar='<float>')
-        lr_params.add_argument("-lrws", "--lr_warmup_steps", type=int, default=6000,
+        lr_params.add_argument("-lrws", "--lr_warmup_steps", type=int, default=1000,
                                metavar='<int>',
                                help="warmup learning rate - set to 1 if no warmup")
-        lr_params.add_argument("-lrsd", "--lr_start_decay", type=int, default=46000,
+        lr_params.add_argument("-lrsd", "--lr_start_decay", type=int, default=4500,
                                metavar='<int>',
                                help="after which step to start decaying learning rate")
 
