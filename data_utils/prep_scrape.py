@@ -164,6 +164,12 @@ class RawScrapePreprocessing:
 
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and filter by word count
+                                    # ToDo: add function
+                                    # if self.create_dump_data(data=data_dict,sentence_counter=i,
+                                    #                          sentence=sentence, seen=seen,
+                                    #                          , unique_approved, filename, model, tokenizer)
+                                    #     approved_sentences.append(1)
+                                    #     unique_approved.append(1)
 
                                     final_sentence = sentence.strip()
                                     if find_letters_and_word_count(
@@ -214,12 +220,12 @@ class RawScrapePreprocessing:
         if find_letters_and_word_count(
             text=final_sentence,
             word_count_threshold=self.args.min_len):
-            approved_sentences.append(1)
+
             line_hash = hashlib.md5(final_sentence.encode()).digest()
             # add to unique sentences if not already exists
             if line_hash not in seen:
                 seen.add(line_hash)
-                unique_approved.append(1)
+
                 dump_data = {'id': data['id'], 'sentence': sentence_counter,
                              'kommune': filename.split('_')[0],
                              'url': data['url'],
