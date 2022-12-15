@@ -15,7 +15,7 @@ args.labels = LABELS
 # args.load_alvenir_pretrained = False
 # args.model_name = 'NbAiLab/nb-bert-base'
 args.differential_privacy = False
-args.local_testing = True
+args.local_testing = False
 
 if args.local_testing:
     args.train_batch_size = 4
