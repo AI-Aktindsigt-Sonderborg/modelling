@@ -74,7 +74,8 @@ class MLMArgParser:
                                      default=False, metavar='<bool>',
                                      help="Whether to test on local machine with small subset")
         training_params.add_argument("-dp", "--differential_privacy",
-                                     type=lambda x: bool(strtobool(x)), default=True,
+                                     type=lambda x: bool(strtobool(x)),
+                                     default=True,
                                      metavar='<bool>',
                                      help="Whether to train model with differential privacy")
         training_params.add_argument("--max_length", type=int, default=64, metavar='<int>',
@@ -245,7 +246,8 @@ class SequenceModellingArgParser:
                                      default=False, metavar='<bool>',
                                      help="Whether to test on local machine with small subset")
         training_params.add_argument("-dp", "--differential_privacy",
-                                     type=lambda x: bool(strtobool(x)), default=True,
+                                     type=lambda x: bool(strtobool(x)),
+                                     default=True,
                                      metavar='<bool>',
                                      help="Whether to train model with differential privacy")
         training_params.add_argument("--max_length", type=int, default=64, metavar='<int>',
