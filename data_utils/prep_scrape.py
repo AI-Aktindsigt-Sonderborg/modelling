@@ -132,6 +132,9 @@ class RawScrapePreprocessing:
         if self.args.add_ppl:
             print('Adding perplexity to each sentence')
             model, tokenizer = load_model_for_ppl(model_id=self.model_id)
+        else:
+            model = None
+            tokenizer = None
         approved_sentences = []
         disapproved_sentences = []
         unique_approved = []
@@ -165,11 +168,20 @@ class RawScrapePreprocessing:
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and filter by word count
                                     # ToDo: add function
-                                    # if self.create_dump_data(data=data_dict,sentence_counter=i,
-                                    #                          sentence=sentence, seen=seen,
-                                    #                          , unique_approved, filename, model, tokenizer)
-                                    #     approved_sentences.append(1)
-                                    #     unique_approved.append(1)
+                                    dump_data = self.create_dump_data(data=data_dict,
+                                                                      sentence_counter=i,
+                                                                      sentence=sentence, seen=seen,
+                                                                      filename=filename,
+                                                                      model=model,
+                                                                      tokenizer=tokenizer)
+                                    if dump_data:
+                                        approved_sentences.append(1)
+                                        unique_approved.append(1)
+                                    else:
+                                        if not len(final_sentence.strip()) == 0:
+                                            disapproved_sentences.append(
+                                                f'{filename.split("_")[0]} - {data_dict["id"]} - '
+                                                f'{i} - {final_sentence}')
 
                                     final_sentence = sentence.strip()
                                     if find_letters_and_word_count(
@@ -213,9 +225,8 @@ class RawScrapePreprocessing:
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
 
-    def create_dump_data(self, data: dict,sentence_counter: int, sentence: str, seen,
-                         approved_sentences, unique_approved, filename, model, tokenizer,
-                         disapproved_sentences):
+    def create_dump_data(self, data: dict, sentence_counter: int, sentence: str, seen,
+                         filename, model, tokenizer):
         final_sentence = sentence.strip()
         if find_letters_and_word_count(
             text=final_sentence,
@@ -223,27 +234,25 @@ class RawScrapePreprocessing:
 
             line_hash = hashlib.md5(final_sentence.encode()).digest()
             # add to unique sentences if not already exists
-            if line_hash not in seen:
-                seen.add(line_hash)
+            if line_hash in seen:
+                return None
 
-                dump_data = {'id': data['id'], 'sentence': sentence_counter,
-                             'kommune': filename.split('_')[0],
-                             'url': data['url'],
-                             'sha512': data['sha512'],
-                             'text': final_sentence}
+            seen.add(line_hash)
 
-                if self.args.add_ppl:
-                    dump_data['ppl_score'] = \
-                        str(score_gpt2(text=final_sentence,
-                                       model=model,
-                                       tokenizer=tokenizer))
-                return dump_data
-        else:
-            if not len(final_sentence.strip()) == 0:
-                disapproved_sentences.append(
-                    f'{filename.split("_")[0]} - {data["id"]} - '
-                    f'{sentence_counter} - {final_sentence}')
-            return None
+            dump_data = {'id': data['id'], 'sentence': sentence_counter,
+                         'kommune': filename.split('_')[0],
+                         'url': data['url'],
+                         'sha512': data['sha512'],
+                         'text': final_sentence}
+
+            if self.args.add_ppl:
+                dump_data['ppl_score'] = \
+                    str(score_gpt2(text=final_sentence,
+                                   model=model,
+                                   tokenizer=tokenizer))
+            return dump_data
+
+        return None
 
     def split_train_val(self,
                         in_file: str = 'unique_sentences.json',
@@ -266,7 +275,6 @@ class RawScrapePreprocessing:
 
         val = sentences[train_idx:]
         val = [{'text': x} for x in val]
-
         if self.args.split_train_n_times > 0:
             train_chunks = np.array_split(train_init, self.args.split_train_n_times)
             for i, train_chunk in enumerate(train_chunks):
@@ -481,6 +489,7 @@ class ClassifiedScrapePreprocessing:
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
+    prep_args.add_ppl = False
     # data_preprocessor = RawScrapePreprocessing(args=prep_args)
     # data_preprocessor.from_raw_to_train_val()
 

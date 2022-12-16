@@ -17,7 +17,7 @@ from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
+from transformers import BertConfig, AutoTokenizer, TrainingArguments, Trainer, \
     DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification, \
     DataCollatorWithPadding
 
@@ -164,7 +164,7 @@ class SequenceClassification:
             )
         self.model = model
 
-    def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
+    def train_epoch(self, model: BertForSequenceClassification, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
                     eval_accuracies: List[dict] = None):
@@ -220,6 +220,7 @@ class SequenceClassification:
             output = model(input_ids=batch["input_ids"].to(self.args.device),
                            attention_mask=batch["attention_mask"].to(self.args.device),
                            labels=batch["labels"].to(self.args.device))
+
 
             loss = output.loss
             loss.backward()
@@ -467,7 +468,7 @@ class SequenceClassification:
         """
         Load BertForMaskedLM, replace head and freeze all params in embeddings layer
         """
-        model = BertForMaskedLM.from_pretrained(self.args.model_name)
+        model = BertForSequenceClassification.from_pretrained(self.args.model_name)
         config = BertConfig.from_pretrained(self.args.model_name)
         lm_head = BertOnlyMLMHeadCustom(config)
         lm_head = lm_head.to(self.args.device)
@@ -512,11 +513,11 @@ class SequenceClassification:
     def freeze_layers(model):
         """
         Freeze all bert layers in model, such that we can train only the head
-        :param model: Model of type BertForMaskedLM
+        :param model: Model of type BertForSequenceClassification
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("cls."):
+            if not (name.startswith("bert.pooler") or name.startswith("classifier")):
                 param.requires_grad = False
         model.train()
         return model
@@ -525,7 +526,7 @@ class SequenceClassification:
     def unfreeze_layers(model):
         """
         Un-freeze all layers exept for embeddings in model, such that we can train full model
-        :param model: Model of type BertForMaskedLM
+        :param model: Model of type BertForSequenceClassification
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
@@ -542,7 +543,7 @@ class SequenceClassification:
                    step: str = ""):
         """
         Wrap model in trainer class and save to pytorch object
-        :param model: BertForMaskedLM to save
+        :param model: BertForSequenceClassification to save
         :param output_dir: model directory
         :param data_collator:
         :param tokenizer:
@@ -847,7 +848,7 @@ class SequenceClassificationDP(SequenceClassification):
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.load_alvenir_pretrained:
-            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
+            model = BertForSequenceClassification.from_pretrained(self.local_alvenir_model_path)
             config = BertConfig.from_pretrained(self.local_alvenir_model_path)
             new_head = BertOnlyMLMHeadCustom(config)
             new_head.load_state_dict(
@@ -865,7 +866,7 @@ class SequenceClassificationDP(SequenceClassification):
                 print('Replacing bert head')
                 model = self.load_model_and_replace_bert_head()
             else:
-                model = BertForMaskedLM.from_pretrained(self.args.model_name)
+                model = BertForSequenceClassification.from_pretrained(self.args.model_name)
 
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)

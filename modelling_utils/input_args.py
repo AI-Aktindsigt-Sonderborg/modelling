@@ -272,8 +272,10 @@ class SequenceModellingArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda', metavar='<str>',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
-        training_params.add_argument("-fl", "--freeze_layers", type=lambda x: bool(strtobool(x)),
-                                     default=False, metavar='<bool>',
+        training_params.add_argument("-fl", "--freeze_layers",
+                                     type=lambda x: bool(strtobool(x)),
+                                     default=False,
+                                     metavar='<bool>',
                                      help="whether to freeze all bert layers until "
                                           "freeze_layers_n_steps is reached")
         training_params.add_argument("-flns", "--freeze_layers_n_steps", type=int, default=20000,
