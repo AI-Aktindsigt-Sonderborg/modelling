@@ -20,13 +20,13 @@ from tqdm import tqdm
 from transformers import BertConfig, AutoTokenizer, TrainingArguments, Trainer, \
     DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification, \
     DataCollatorWithPadding
-
+import torch.nn.functional as F
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
     save_key_metrics
-from utils.helpers import TimeCode, append_json, accuracy
+from utils.helpers import TimeCode, append_json, accuracy, compute_metrics
 from utils.visualization import plot_running_results
 
 
@@ -89,12 +89,12 @@ class SequenceClassification:
         if self.args.load_alvenir_pretrained:
             self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name)
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.local_alvenir_model_path,
-                local_files_only=self.args.load_alvenir_pretrained)
+                self.local_alvenir_model_path,)
+                # local_files_only=self.args.load_alvenir_pretrained)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.args.model_name,
-                local_files_only=self.args.load_alvenir_pretrained)
+                self.args.model_name,)
+                # local_files_only=self.args.load_alvenir_pretrained)
 
         self.data_collator = self.get_data_collator
         self.scheduler = None
@@ -116,6 +116,8 @@ class SequenceClassification:
 
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
+            # self.eval_data_test = self.tokenize_eval_data(self.eval_data)
+
             eval_loader = DataLoader(dataset=eval_data_wrapped,
                                      collate_fn=self.data_collator,
                                      batch_size=self.args.eval_batch_size)
@@ -242,6 +244,7 @@ class SequenceClassification:
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
+                # y_true, y_pred, eval_result = self.eval_model(model)
                 eval_loss, eval_accuracy = self.evaluate(model, val_loader)
 
                 print(
@@ -289,6 +292,22 @@ class SequenceClassification:
                                 tokenizer=self.tokenizer,
                                 step='/best_model')
 
+    # def eval_model(self, model):
+    #
+    #     # data = self.map_to_hf_dataset()
+    #
+    #     test_trainer = Trainer(model, compute_metrics=compute_metrics,
+    #                            data_collator=self.data_collator,
+    #                            )
+    #
+    #     pred_logits, label_ids, eval_result = test_trainer.predict(self.eval_data_test)
+    #
+    #     softmax_pred = F.softmax(torch.Tensor(pred_logits), dim=-1).numpy()
+    #
+    #     y_true = list(map(lambda x: self.id2label[x], label_ids))
+    #     y_pred = list(map(lambda x: self.id2label[x], np.argmax(pred_logits, axis=1)))
+    #
+    #     return y_true, y_pred, eval_result
     def evaluate(self, model, val_loader: DataLoader):
         """
         Evaluate model at given step
@@ -346,15 +365,15 @@ class SequenceClassification:
                 self.local_alvenir_model_path,
                 num_labels=len(self.args.labels),
                 label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
+                id2label=self.id2label,)
+                # local_files_only=self.args.load_alvenir_pretrained)
         else:
             model = BertForSequenceClassification.from_pretrained(
                 self.args.model_name,
                 num_labels=len(self.args.labels),
                 label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
+                id2label=self.id2label,)
+                # local_files_only=self.args.load_alvenir_pretrained)
 
         if self.args.freeze_embeddings:
             # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
@@ -396,6 +415,22 @@ class SequenceClassification:
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
+
+    # def tokenize_eval_data(self, data: Dataset):
+    #     tokenized = data.map(
+    #         self.tokenize,
+    #         batched=True,
+    #         # num_proc=1,
+    #         remove_columns=data.column_names,
+    #         load_from_cache_file=False,
+    #         desc="Running tokenizer on dataset line_by_line",
+    #     )
+    #
+    #     tokenized.set_format('torch')
+    #
+    #     # wrapped = DatasetWrapper(tokenized)
+    #
+    #     return tokenized
 
     def tokenize(self, batch):
         tokens = self.tokenizer(batch['text'], padding='max_length',
