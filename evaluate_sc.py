@@ -2,7 +2,8 @@ from data_utils.custom_dataclasses import LoadModelType
 from local_constants import DATA_DIR
 from modelling_utils.supervised_text_modelling import SupervisedTextModelling
 
-MODEL_NAME = 'last_model_all_data'
+# MODEL_NAME = 'last_model_all_data'
+MODEL_NAME = 'last_model-2022-12-16_21-55-28'
 # MODEL_NAME = 'NbAiLab/nb-sbert-base'
 
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv og turisme': 2,

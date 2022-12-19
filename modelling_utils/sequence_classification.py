@@ -339,6 +339,7 @@ class SequenceClassification:
                              args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+        # train_data_wrapped.shuffle(seed=1)
 
         if self.args.load_alvenir_pretrained:
             model = BertForSequenceClassification.from_pretrained(
@@ -391,6 +392,7 @@ class SequenceClassification:
         )
 
         tokenized.set_format('torch')
+        tokenized.shuffle(seed=1)
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
