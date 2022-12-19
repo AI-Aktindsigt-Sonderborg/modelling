@@ -10,7 +10,7 @@ from local_constants import DATA_DIR
 from modelling_utils.supervised_text_modelling import SupervisedTextModelling, compute_metrics
 
 MODEL_NAME = 'last_model'
-OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised_128'
+OUTPUT_DIR = "models/" + MODEL_NAME + '_supervised_test'
 
 os.environ["WANDB_DISABLED"] = "true"
 
