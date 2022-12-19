@@ -59,7 +59,7 @@ class MLMArgParser:
                                   default=False,
                                   help="Whether to replace bert head", metavar='<bool>')
         model_params.add_argument("--freeze_embeddings", type=lambda x: bool(strtobool(x)),
-                                  default=True,
+                                  default=False,
                                   help="Whether to freeze embeddings layer", metavar='<bool>')
         model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)),
                                   default=True, metavar='<bool>',

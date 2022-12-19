@@ -16,6 +16,8 @@ args.labels = LABELS
 # args.model_name = 'NbAiLab/nb-bert-base'
 args.differential_privacy = False
 args.local_testing = False
+args.replace_head = False
+args.freeze_embeddings = False
 
 if args.local_testing:
     args.train_batch_size = 4
