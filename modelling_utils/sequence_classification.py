@@ -358,7 +358,7 @@ class SequenceClassification:
                              args=self.args)
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-        # train_data_wrapped.shuffle(seed=1)
+
 
         if self.args.load_alvenir_pretrained:
             model = BertForSequenceClassification.from_pretrained(
@@ -381,10 +381,17 @@ class SequenceClassification:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
-                                  collate_fn=self.data_collator)
+        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
+                                                  model=model)
 
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
+        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
+                                  collate_fn=self.data_collator,
+                                  shuffle=True)
+
+        # ToDo: Notice change of optimizer here
+        optimizer = dummy_trainer.create_optimizer()
+        # optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
+
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(optimizer,
                                               start_factor=self.args.lr_freezed /
@@ -411,7 +418,7 @@ class SequenceClassification:
         )
 
         tokenized.set_format('torch')
-        tokenized.shuffle(seed=1)
+        # tokenized.shuffle(seed=1)
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
@@ -536,6 +543,38 @@ class SequenceClassification:
         self.args.lr_start_decay = int(
             np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
                     0.5 + self.args.freeze_layers_n_steps))
+
+    def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper, model):
+        """
+        Create dummy trainer, such that we get optimizer and can save model object
+        :param train_data_wrapped: Train data of type DatasetWrapper
+        :param model: initial model
+        :return: Trainer object
+        """
+        if self.args.freeze_layers:
+            learning_rate_init: float = self.args.lr_freezed
+        else:
+            learning_rate_init: float = self.args.learning_rate
+
+        training_args = TrainingArguments(
+            output_dir=self.output_dir,
+            learning_rate=learning_rate_init,
+            weight_decay=self.args.weight_decay,
+            fp16=self.args.use_fp16,
+            # do_train=True
+            # warmup_steps=self.args.lr_warmup_steps,
+            # lr_scheduler_type='polynomial' # bert use linear scheduling
+        )
+
+        # Dummy training for optimizer
+        return Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_data_wrapped,
+            data_collator=self.data_collator,
+            tokenizer=self.tokenizer
+        )
+
 
     @property
     def get_data_collator(self):
