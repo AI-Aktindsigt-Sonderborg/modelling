@@ -58,13 +58,17 @@ class MLMArgParser:
         model_params.add_argument("--replace_head", type=lambda x: bool(strtobool(x)),
                                   default=False,
                                   help="Whether to replace bert head", metavar='<bool>')
-        model_params.add_argument("--freeze_embeddings",
-                                  type=lambda x: bool(strtobool(x)),
-                                  default=True,
-                                  help="Whether to freeze embeddings layer", metavar='<bool>')
-        model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)),
-                                  default=True, metavar='<bool>',
-                                  help="Whether to save final model after training.")
+        model_params.add_argument(
+            '-fe',
+            "--freeze_embeddings",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            help="Whether to freeze embeddings layer", metavar='<bool>')
+        model_params.add_argument(
+            "--save_model_at_end",
+            type=lambda x: bool(strtobool(x)),
+            default=True, metavar='<bool>',
+            help="Whether to save final model after training.")
 
     def add_training_params(self):
         """
@@ -218,60 +222,89 @@ class SequenceModellingArgParser:
         Add model parameters
         """
         model_params = self.parser.add_argument_group('modelling')
-        model_params.add_argument("-lap", "--load_alvenir_pretrained",
-                                  type=lambda x: bool(strtobool(x)),
-                                  metavar='<bool>',
-                                  default=True,
-                                  help="Whether to load local alvenir model")
-        model_params.add_argument("-mn", "--model_name",
-                                  type=str,
-                                  default='last_model',
-                                  help="foundation model from huggingface", metavar='<str>', )
-        model_params.add_argument("--save_config", type=lambda x: bool(strtobool(x)),
-                                  default=True,
-                                  help="Whether to save input args to file", metavar='<bool>')
-        model_params.add_argument("--freeze_embeddings",
-                                  type=lambda x: bool(strtobool(x)),
-                                  default=True,
-                                  help="Whether to freeze embeddings layer", metavar='<bool>')
-        model_params.add_argument("--save_model_at_end",
-                                  type=lambda x: bool(strtobool(x)),
-                                  default=True, metavar='<bool>',
-                                  help="Whether to save final model after training.")
+        model_params.add_argument(
+            "-lap", "--load_alvenir_pretrained",
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=True,
+            help="Whether to load local alvenir model")
+        model_params.add_argument(
+            "-mn", "--model_name",
+            type=str,
+            default='last_model',
+            help="foundation model from huggingface", metavar='<str>', )
+        model_params.add_argument(
+            "--save_config",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            help="Whether to save input args to file", metavar='<bool>')
+        model_params.add_argument(
+            "--freeze_embeddings",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            help="Whether to freeze embeddings layer",
+            metavar='<bool>')
+        model_params.add_argument(
+            "--save_model_at_end",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to save final model after training.")
 
     def add_training_params(self):
         """
         Add parameters relevant for training - including learning rate scheduling
         """
         training_params = self.parser.add_argument_group('training')
-        training_params.add_argument("--local_testing", type=lambda x: bool(strtobool(x)),
-                                     default=False, metavar='<bool>',
-                                     help="Whether to test on local machine with small subset")
-        training_params.add_argument("-dp", "--differential_privacy",
-                                     type=lambda x: bool(strtobool(x)),
-                                     default=True,
-                                     metavar='<bool>',
-                                     help="Whether to train model with differential privacy")
-        training_params.add_argument("--max_length", type=int, default=64, metavar='<int>',
-                                     help="Max length for a text input")
-        training_params.add_argument("--epochs", type=int, default=20, metavar='<int>',
-                                     help="Number of epochs to train model")
-        training_params.add_argument("--weight_decay", type=float, default=0.01,
-                                     help="Weight decay", metavar='<float>')
-        training_params.add_argument("--use_fp16", type=lambda x: bool(strtobool(x)), default=False,
-                                     metavar='<bool>',
-                                     help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument("-tbs", "--train_batch_size",
-                                     type=int,
-                                     default=8,
-                                     metavar='<int>',
-                                     help="Batch size specifies the sample size of which the "
-                                          "gradients are computed. Depends on memory available")
-        training_params.add_argument("--whole_word_mask", type=lambda x: bool(strtobool(x)),
-                                     default=False, metavar='<bool>',
-                                     help="If set to true, whole words are masked")
-        training_params.add_argument("--mlm_prob", type=float, default=0.15, metavar='<float>',
-                                     help="Probability that a word is replaced by a [MASK] token")
+        training_params.add_argument(
+            "--local_testing",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<bool>',
+            help="Whether to test on local machine with small subset")
+        training_params.add_argument(
+            "-dp", "--differential_privacy",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to train model with differential privacy")
+        training_params.add_argument(
+            "--max_length",
+            type=int,
+            default=64,
+            metavar='<int>',
+            help="Max length for a text input")
+        training_params.add_argument(
+            "--epochs",
+            type=int,
+            default=20,
+            metavar='<int>',
+            help="Number of epochs to train model")
+        training_params.add_argument(
+            "--weight_decay",
+            type=float,
+            default=0.01,
+            help="Weight decay",
+            metavar='<float>')
+        training_params.add_argument(
+            "--use_fp16",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<bool>',
+            help="Set to True, if your GPU supports FP16 operations")
+        training_params.add_argument(
+            "-tbs", "--train_batch_size",
+            type=int,
+            default=8,
+            metavar='<int>',
+            help="Batch size specifies the sample size of which the "
+                 "gradients are computed. Depends on memory available")
+        training_params.add_argument(
+            "--whole_word_mask",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<bool>',
+            help="If set to true, whole words are masked")
         training_params.add_argument("--device", type=str, default='cuda', metavar='<str>',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument("-fl", "--freeze_layers",
@@ -346,8 +379,12 @@ class SequenceModellingArgParser:
         dp_params.add_argument("--compute_delta", type=lambda x: bool(strtobool(x)),
                                default=True, metavar='<bool>',
                                help="Whether to compute delta such that delta=1/len(train)")
-        dp_params.add_argument("--max_grad_norm", type=float, default=1.2, metavar='<float>',
+        dp_params.add_argument("--max_grad_norm",
+                               type=float, default=1.2, metavar='<float>',
                                help="maximum norm to clip gradient")
-        dp_params.add_argument("--lot_size", type=int, default=64, metavar='<int>',
+        dp_params.add_argument("--lot_size",
+                               type=int,
+                               default=64,
+                               metavar='<int>',
                                help="Lot size specifies the sample size of which noise is "
                                     "injected into. Must be larger and multiple of batch size")

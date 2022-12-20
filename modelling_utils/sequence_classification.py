@@ -17,16 +17,15 @@ from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, AutoTokenizer, TrainingArguments, Trainer, \
-    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling, BertForSequenceClassification, \
+from transformers import AutoTokenizer, TrainingArguments, Trainer, \
+    BertForSequenceClassification, \
     DataCollatorWithPadding
-import torch.nn.functional as F
+
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
-from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
-    save_key_metrics
-from utils.helpers import TimeCode, append_json, accuracy, compute_metrics
+    save_key_metrics_sc
+from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
 
@@ -139,7 +138,7 @@ class SequenceClassification:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
 
-                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,
                                  total_steps=self.total_steps)
 
@@ -328,7 +327,7 @@ class SequenceClassification:
 
     def set_up_training(self):
         """
-        Load data and set up for training an MLM unsupervised model
+        Load data and set up for training an Sequence classification model
         :return: model, optimizer and train_loader for training
         """
         self.load_data()
@@ -580,9 +579,7 @@ class SequenceClassification:
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
-        # torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
-        # model.save_pretrained(save_directory=output_dir)
 
     @staticmethod
     def save_config(output_dir: str, metrics_dir: str, args: argparse.Namespace):
@@ -709,7 +706,7 @@ class SequenceClassificationDP(SequenceClassification):
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
-                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,
                                  total_steps=self.total_steps)
 
@@ -993,22 +990,4 @@ class SequenceClassificationDP(SequenceClassification):
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
-        torch.save(model._module.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))
-
-    def load_model_and_replace_bert_head(self):
-        """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
-        """
-        model = BertForSequenceClassification.from_pretrained(self.args.model_name)
-        config = BertConfig.from_pretrained(self.args.model_name)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        model.cls = lm_head
-
-        # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-        #  grad sampler - as this is not implemented in opacus
-        if self.args.freeze_embeddings:
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-        return model

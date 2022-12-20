@@ -55,7 +55,7 @@ def get_max_acc_min_loss(losses: List[dict], accuracies: List[dict], freeze_laye
     return min_loss, max_acc
 
 
-def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
+def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
                      total_steps: int, filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
@@ -82,6 +82,40 @@ def save_key_metrics(output_dir: str, args, best_acc: dict, best_loss: dict,
                                 'delta': args.delta,
                                 'lot_size': args.lot_size,
                                 'whole_word_mask': args.whole_word_mask,
+                                'train_data': args.train_data,
+                                'total_steps': total_steps},
+                               {'best_acc': best_acc},
+                               {'best_loss': best_loss}]}
+
+    with open(os.path.join(output_dir, filename + '.json'), 'w',
+              encoding='utf-8') as outfile:
+        json.dump(metrics, outfile)
+
+def save_key_metrics_sc(output_dir: str, args, best_acc: dict, best_loss: dict,
+                     total_steps: int, filename: str = 'key_metrics'):
+    """
+    Save important args and performance for benchmarking
+    :param output_dir: output directory
+    :param args: args parsed from ArgParser
+    :param best_acc: The best accuracy dict from list of dicts
+    :param best_loss: The best loss dict from list of dicts
+    :param filename: output filename
+    :return:
+    """
+    metrics = {'key_metrics': [{'output_name': args.output_name,
+                                'lr': args.learning_rate,
+                                'epochs': args.epochs,
+                                'train_batch_size': args.train_batch_size,
+                                'eval_batch_size': args.eval_batch_size,
+                                'max_length': args.max_length,
+                                'lr_warmup_steps': args.lr_warmup_steps,
+                                'freeze_layers_n_steps': args.freeze_layers_n_steps,
+                                'lr_freezed': args.lr_freezed,
+                                'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
+                                'dp': args.differential_privacy,
+                                'epsilon': args.epsilon,
+                                'delta': args.delta,
+                                'lot_size': args.lot_size,
                                 'train_data': args.train_data,
                                 'total_steps': total_steps},
                                {'best_acc': best_acc},
