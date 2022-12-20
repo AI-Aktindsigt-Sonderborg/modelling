@@ -89,12 +89,12 @@ class SequenceClassification:
         if self.args.load_alvenir_pretrained:
             self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name)
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.local_alvenir_model_path,)
-                # local_files_only=self.args.load_alvenir_pretrained)
+                self.local_alvenir_model_path,
+                local_files_only=self.args.load_alvenir_pretrained)
         else:
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.args.model_name,)
-                # local_files_only=self.args.load_alvenir_pretrained)
+                self.args.model_name,
+                local_files_only=self.args.load_alvenir_pretrained)
 
         self.data_collator = self.get_data_collator
         self.scheduler = None
@@ -223,7 +223,6 @@ class SequenceClassification:
                            attention_mask=batch["attention_mask"].to(self.args.device),
                            labels=batch["labels"].to(self.args.device))
 
-
             loss = output.loss
             loss.backward()
             train_losses.append(loss.item())
@@ -292,22 +291,6 @@ class SequenceClassification:
                                 tokenizer=self.tokenizer,
                                 step='/best_model')
 
-    # def eval_model(self, model):
-    #
-    #     # data = self.map_to_hf_dataset()
-    #
-    #     test_trainer = Trainer(model, compute_metrics=compute_metrics,
-    #                            data_collator=self.data_collator,
-    #                            )
-    #
-    #     pred_logits, label_ids, eval_result = test_trainer.predict(self.eval_data_test)
-    #
-    #     softmax_pred = F.softmax(torch.Tensor(pred_logits), dim=-1).numpy()
-    #
-    #     y_true = list(map(lambda x: self.id2label[x], label_ids))
-    #     y_pred = list(map(lambda x: self.id2label[x], np.argmax(pred_logits, axis=1)))
-    #
-    #     return y_true, y_pred, eval_result
     def evaluate(self, model, val_loader: DataLoader):
         """
         Evaluate model at given step
@@ -359,21 +342,20 @@ class SequenceClassification:
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
-
         if self.args.load_alvenir_pretrained:
             model = BertForSequenceClassification.from_pretrained(
                 self.local_alvenir_model_path,
                 num_labels=len(self.args.labels),
                 label2id=self.label2id,
-                id2label=self.id2label,)
-                # local_files_only=self.args.load_alvenir_pretrained)
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
         else:
             model = BertForSequenceClassification.from_pretrained(
                 self.args.model_name,
                 num_labels=len(self.args.labels),
                 label2id=self.label2id,
-                id2label=self.id2label,)
-                # local_files_only=self.args.load_alvenir_pretrained)
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
 
         if self.args.freeze_embeddings:
             # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
@@ -418,26 +400,9 @@ class SequenceClassification:
         )
 
         tokenized.set_format('torch')
-        # tokenized.shuffle(seed=1)
         wrapped = DatasetWrapper(tokenized)
 
         return wrapped
-
-    # def tokenize_eval_data(self, data: Dataset):
-    #     tokenized = data.map(
-    #         self.tokenize,
-    #         batched=True,
-    #         # num_proc=1,
-    #         remove_columns=data.column_names,
-    #         load_from_cache_file=False,
-    #         desc="Running tokenizer on dataset line_by_line",
-    #     )
-    #
-    #     tokenized.set_format('torch')
-    #
-    #     # wrapped = DatasetWrapper(tokenized)
-    #
-    #     return tokenized
 
     def tokenize(self, batch):
         tokens = self.tokenizer(batch['text'], padding='max_length',
@@ -508,23 +473,6 @@ class SequenceClassification:
                                           data_files=os.path.join(DATA_DIR, self.args.eval_data),
                                           split='train')
 
-    def load_model_and_replace_bert_head(self):
-        """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
-        """
-        model = BertForSequenceClassification.from_pretrained(self.args.model_name)
-        config = BertConfig.from_pretrained(self.args.model_name)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        model.cls = lm_head
-
-        # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-        #  grad sampler - as this is not implemented in opacus
-        if self.args.freeze_embeddings:
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-        return model
-
     def label2id2label(self):
         label2id, id2label = dict(), dict()
 
@@ -574,7 +522,6 @@ class SequenceClassification:
             data_collator=self.data_collator,
             tokenizer=self.tokenizer
         )
-
 
     @property
     def get_data_collator(self):
@@ -757,13 +704,7 @@ class SequenceClassificationDP(SequenceClassification):
                                      eval_losses=losses,
                                      eval_accuracies=accuracies)
 
-                # losses.extend(eval_loss)
-                # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
-
-            # self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
-            # self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
-            # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
@@ -924,41 +865,56 @@ class SequenceClassificationDP(SequenceClassification):
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.load_alvenir_pretrained:
-            model = BertForSequenceClassification.from_pretrained(self.local_alvenir_model_path)
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+            model = BertForSequenceClassification.from_pretrained(
+                self.local_alvenir_model_path,
+                num_labels=len(self.args.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
+            # config = BertConfig.from_pretrained(self.local_alvenir_model_path)
+            # new_head = BertOnlyMLMHeadCustom(config)
+            # new_head.load_state_dict(
+            #     torch.load(self.local_alvenir_model_path + '/head_weights.json'))
 
-            lm_head = new_head.to(self.args.device)
-            model.cls = lm_head
-            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-            #  grad sampler - as this is not implemented in opacus
+            # lm_head = new_head.to(self.args.device)
+            # model.cls = lm_head
+
+
+        else:
+            model = BertForSequenceClassification.from_pretrained(
+                self.args.model_name,
+                num_labels=len(self.args.labels),
+                label2id=self.label2id,
+                id2label=self.id2label,
+                local_files_only=self.args.load_alvenir_pretrained)
+        # ToDo: For now we are freezing embedding layer until (maybe)
+        #  we have implemented grad sampler -
+        #  as this is not implemented in opacus
+        if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
-        else:
-            model = BertForSequenceClassification.from_pretrained(self.args.model_name)
-
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
+        train_loader = DataLoader(dataset=train_data_wrapped,
+                                  batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader,
-                                                                      model=model)
+        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
+            train_loader=train_loader,
+            model=model)
 
         # ToDo: finish head warmup lr
         if self.args.freeze_layers:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.lr_freezed /
-                                                           self.args.lr_freezed_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_freezed_warmup_steps)
+            self.scheduler = create_scheduler(
+                dp_optimizer,
+                start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_freezed_warmup_steps)
         else:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.learning_rate /
-                                                           self.args.lr_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_warmup_steps)
+            self.scheduler = create_scheduler(
+                dp_optimizer,
+                start_factor=self.args.learning_rate / self.args.lr_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_warmup_steps)
 
         return dp_model, dp_optimizer, dp_train_loader
 
@@ -975,7 +931,10 @@ class SequenceClassificationDP(SequenceClassification):
         # validate if model works with opacus
         validate_model(model, strict_validation=True)
         # new opacus version requires to generate optimizer from model.parameters()
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=self.args.learning_rate)
+
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=model,
             optimizer=optimizer,
@@ -985,6 +944,7 @@ class SequenceClassificationDP(SequenceClassification):
             target_delta=self.args.delta,
             max_grad_norm=self.args.max_grad_norm
         )
+
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
@@ -1035,3 +995,20 @@ class SequenceClassificationDP(SequenceClassification):
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model._module.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))
+
+    def load_model_and_replace_bert_head(self):
+        """
+        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+        """
+        model = BertForSequenceClassification.from_pretrained(self.args.model_name)
+        config = BertConfig.from_pretrained(self.args.model_name)
+        lm_head = BertOnlyMLMHeadCustom(config)
+        lm_head = lm_head.to(self.args.device)
+        model.cls = lm_head
+
+        # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
+        #  grad sampler - as this is not implemented in opacus
+        if self.args.freeze_embeddings:
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
+        return model
