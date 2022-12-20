@@ -58,8 +58,9 @@ class MLMArgParser:
         model_params.add_argument("--replace_head", type=lambda x: bool(strtobool(x)),
                                   default=False,
                                   help="Whether to replace bert head", metavar='<bool>')
-        model_params.add_argument("--freeze_embeddings", type=lambda x: bool(strtobool(x)),
-                                  default=False,
+        model_params.add_argument("--freeze_embeddings",
+                                  type=lambda x: bool(strtobool(x)),
+                                  default=True,
                                   help="Whether to freeze embeddings layer", metavar='<bool>')
         model_params.add_argument("--save_model_at_end", type=lambda x: bool(strtobool(x)),
                                   default=True, metavar='<bool>',
@@ -98,7 +99,8 @@ class MLMArgParser:
                                      help="Probability that a word is replaced by a [MASK] token")
         training_params.add_argument("--device", type=str, default='cuda', metavar='<str>',
                                      help="device to train on, can be either 'cuda' or 'cpu'")
-        training_params.add_argument("-fl", "--freeze_layers", type=lambda x: bool(strtobool(x)),
+        training_params.add_argument("-fl", "--freeze_layers",
+                                     type=lambda x: bool(strtobool(x)),
                                      default=False, metavar='<bool>',
                                      help="whether to freeze all bert layers until "
                                           "freeze_layers_n_steps is reached")

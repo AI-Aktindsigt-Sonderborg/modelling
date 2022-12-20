@@ -938,11 +938,7 @@ class SequenceClassificationDP(SequenceClassification):
                 param.requires_grad = False
 
         else:
-            if self.args.replace_head:
-                print('Replacing bert head')
-                model = self.load_model_and_replace_bert_head()
-            else:
-                model = BertForSequenceClassification.from_pretrained(self.args.model_name)
+            model = BertForSequenceClassification.from_pretrained(self.args.model_name)
 
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
