@@ -274,12 +274,18 @@ class SequenceModellingArgParser:
         Add data parameters
         """
         data_params = self.parser.add_argument_group('data')
-        data_params.add_argument("--train_data", type=str,
-                                 default='train_classified.json',
-                                 help="training data file name", metavar='<str>')
-        data_params.add_argument("--eval_data", type=str,
-                                 default='eval_classified.json',
-                                 help="validation data file name", metavar='<str>')
+        data_params.add_argument(
+            "--train_data",
+            type=str,
+            default='train_classified.json',
+            metavar='<str>',
+            help="training data file name")
+        data_params.add_argument(
+            "--eval_data",
+            type=str,
+            default='eval_classified.json',
+            metavar='<str>',
+            help="validation data file name")
 
     def add_model_params(self):
         """
@@ -369,8 +375,12 @@ class SequenceModellingArgParser:
             default=False,
             metavar='<bool>',
             help="If set to true, whole words are masked")
-        training_params.add_argument("--device", type=str, default='cuda', metavar='<str>',
-                                     help="device to train on, can be either 'cuda' or 'cpu'")
+        training_params.add_argument(
+            "--device",
+            type=str,
+            default='cuda',
+            metavar='<str>',
+            help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument(
             "-fl", "--freeze_layers",
             type=lambda x: bool(strtobool(x)),
@@ -385,19 +395,28 @@ class SequenceModellingArgParser:
             help="number of steps to train head only", metavar='<int>')
 
         lr_params = self.parser.add_argument_group('learning rate')
-        lr_params.add_argument("-alrs", "--auto_lr_scheduling",
-                               type=lambda x: bool(strtobool(x)),
-                               default=True, metavar='<bool>',
-                               help="Whether to compute lr_warmup and decay automatically\n"
-                                    "freeze_layers_n_steps = 10%% of total_steps\n"
-                                    "lr_freezed_warmup_steps = 10%% of freeze_layers_n_steps\n"
-                                    "lr_warmup_steps = 10%% of steps training full model\n"
-                                    "lr_start_decay = 50%% of training full model")
         lr_params.add_argument(
-            "-lrf", "--lr_freezed", type=float, default=0.0005,
-            metavar='<float>', help="number of steps to train head only")
-        lr_params.add_argument("-lrfws", "--lr_freezed_warmup_steps", type=int, default=1000,
-                               help="number of steps to train head only", metavar='<int>')
+            "-alrs", "--auto_lr_scheduling",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to compute lr_warmup and decay automatically\n"
+                 "freeze_layers_n_steps = 10%% of total_steps\n"
+                 "lr_freezed_warmup_steps = 10%% of freeze_layers_n_steps\n"
+                 "lr_warmup_steps = 10%% of steps training full model\n"
+                 "lr_start_decay = 50%% of training full model")
+        lr_params.add_argument(
+            "-lrf", "--lr_freezed",
+            type=float,
+            default=0.0005,
+            metavar='<float>',
+            help="number of steps to train head only")
+        lr_params.add_argument(
+            "-lrfws", "--lr_freezed_warmup_steps",
+            type=int,
+            default=1000,
+            help="number of steps to train head only",
+            metavar='<int>')
         lr_params.add_argument(
             "-lr", "--learning_rate",
             type=float,
@@ -422,46 +441,82 @@ class SequenceModellingArgParser:
         """
         eval_params = self.parser.add_argument_group('evaluation')
         # ToDo: evaluate steps must be smaller than number of steps in each epoch
-        eval_params.add_argument("-esteps", "--evaluate_steps", type=int, default=50000,
-                                 metavar='<int>',
-                                 help="evaluate model accuracy after number of steps")
-        eval_params.add_argument("-lsteps", "--logging_steps", type=int, default=5000,
-                                 metavar='<int>', help="Log model accuracy after number of steps")
-        eval_params.add_argument("-ssteps", "--save_steps", type=int, default=50000,
-                                 metavar='<int>', help="save checkpoint after number of steps")
-        eval_params.add_argument("--save_only_best_model",
-                                 type=lambda x: bool(strtobool(x)),
-                                 metavar='<bool>', default=True,
-                                 help="Whether to only save best model - overwrites save_steps if True")
-        eval_params.add_argument("-ebs", "--eval_batch_size",
-                                 type=int,
-                                 default=6,
-                                 metavar='<int>', help="Batch size for evaluation")
-        eval_params.add_argument("--evaluate_during_training", type=lambda x: bool(strtobool(x)),
-                                 default=True, metavar='<bool>',
-                                 help="Whether to evaluate model during training")
-        eval_params.add_argument("--make_plots", type=lambda x: bool(strtobool(x)),
-                                 default=True, metavar='<bool>',
-                                 help="Whether to plot running learning rate, loss and accuracies")
+        eval_params.add_argument(
+            "-esteps", "--evaluate_steps",
+            type=int,
+            default=50000,
+            metavar='<int>',
+            help="evaluate model accuracy after number of steps")
+        eval_params.add_argument(
+            "-lsteps", "--logging_steps",
+            type=int,
+            default=5000,
+            metavar='<int>',
+            help="Log model accuracy after number of steps")
+        eval_params.add_argument(
+            "-ssteps", "--save_steps",
+            type=int,
+            default=50000,
+            metavar='<int>',
+            help="save checkpoint after number of steps")
+        eval_params.add_argument(
+            "--save_only_best_model",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to only save best model - overwrites save_steps if True")
+        eval_params.add_argument(
+            "-ebs", "--eval_batch_size",
+            type=int,
+            default=6,
+            metavar='<int>',
+            help="Batch size for evaluation")
+        eval_params.add_argument(
+            "--evaluate_during_training",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to evaluate model during training")
+        eval_params.add_argument(
+            "--make_plots",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to plot running learning rate, loss and accuracies")
 
     def add_dp_params(self):
         """
         Add parameters relevant for differential privacy
         """
         dp_params = self.parser.add_argument_group('dp')
-        dp_params.add_argument("--epsilon", type=float, default=1, metavar='<float>',
-                               help="privacy parameter epsilon")
-        dp_params.add_argument("--delta", type=float, default=4.6e-05, metavar='<float>',
-                               help="privacy parameter delta. Usually a good delta is 1/len(train)")
-        dp_params.add_argument("--compute_delta", type=lambda x: bool(strtobool(x)),
-                               default=True, metavar='<bool>',
-                               help="Whether to compute delta such that delta=1/len(train)")
-        dp_params.add_argument("--max_grad_norm",
-                               type=float, default=1.2, metavar='<float>',
-                               help="maximum norm to clip gradient")
-        dp_params.add_argument("--lot_size",
-                               type=int,
-                               default=64,
-                               metavar='<int>',
-                               help="Lot size specifies the sample size of which noise is "
-                                    "injected into. Must be larger and multiple of batch size")
+        dp_params.add_argument(
+            "--epsilon",
+            type=float,
+            default=1,
+            metavar='<float>',
+            help="privacy parameter epsilon")
+        dp_params.add_argument(
+            "--delta",
+            type=float,
+            default=4.6e-05,
+            metavar='<float>',
+            help="privacy parameter delta. Usually a good delta is 1/len(train)")
+        dp_params.add_argument(
+            "--compute_delta",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether to compute delta such that delta=1/len(train)")
+        dp_params.add_argument(
+            "--max_grad_norm",
+            type=float,
+            default=1.2,
+            metavar='<float>',
+            help="maximum norm to clip gradient")
+        dp_params.add_argument(
+            "--lot_size",
+            type=int,
+            default=64,
+            metavar='<int>',
+            help="Lot size specifies the sample size of which noise is "
+                 "injected into. Must be larger and multiple of batch size")
