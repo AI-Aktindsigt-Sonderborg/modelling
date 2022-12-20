@@ -139,8 +139,8 @@ class SequenceClassification:
                                                          self.args.freeze_layers_n_steps)
 
                 save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
-                                 best_acc=max_acc, best_loss=min_loss,
-                                 total_steps=self.total_steps)
+                                    best_acc=max_acc, best_loss=min_loss,
+                                    total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -707,8 +707,8 @@ class SequenceClassificationDP(SequenceClassification):
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
                 save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
-                                 best_acc=max_acc, best_loss=min_loss,
-                                 total_steps=self.total_steps)
+                                    best_acc=max_acc, best_loss=min_loss,
+                                    total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
