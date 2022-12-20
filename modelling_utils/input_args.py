@@ -239,11 +239,11 @@ class SequenceModellingArgParser:
             default=True,
             help="Whether to save input args to file", metavar='<bool>')
         model_params.add_argument(
+            '-fe',
             "--freeze_embeddings",
             type=lambda x: bool(strtobool(x)),
             default=True,
-            help="Whether to freeze embeddings layer",
-            metavar='<bool>')
+            help="Whether to freeze embeddings layer", metavar='<bool>')
         model_params.add_argument(
             "--save_model_at_end",
             type=lambda x: bool(strtobool(x)),
