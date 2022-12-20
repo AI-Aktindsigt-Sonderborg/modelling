@@ -516,9 +516,6 @@ class SequenceClassification:
             learning_rate=learning_rate_init,
             weight_decay=self.args.weight_decay,
             fp16=self.args.use_fp16,
-            # do_train=True
-            # warmup_steps=self.args.lr_warmup_steps,
-            # lr_scheduler_type='polynomial' # bert use linear scheduling
         )
 
         # Dummy training for optimizer
@@ -892,11 +889,13 @@ class SequenceClassificationDP(SequenceClassification):
 
         train_loader = DataLoader(dataset=train_data_wrapped,
                                   batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator)
+                                  collate_fn=self.data_collator,
+                                  shuffle=True)
 
         dummy_trainer = self.create_dummy_trainer(
             train_data_wrapped=train_data_wrapped,
             model=model)
+
 
         optimizer = dummy_trainer.create_optimizer()
 
@@ -929,12 +928,12 @@ class SequenceClassificationDP(SequenceClassification):
         """
         self.privacy_engine = PrivacyEngine()
 
-        # model = model.train()
+        model = model.train()
 
         # validate if model works with opacus
-        # validate_model(model, strict_validation=True)
+        validate_model(model, strict_validation=True)
         # new opacus version requires to generate optimizer from model.parameters()
-        optimizer2 = torch.optim.AdamW(
+        optimizer = torch.optim.AdamW(
             model.parameters(),
             lr=self.args.learning_rate)
 
