@@ -9,3 +9,4 @@ wordcloud
 openpyxl
 pandas
 seaborn
+numpy==1.22.3

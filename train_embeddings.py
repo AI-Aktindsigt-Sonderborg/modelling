@@ -10,7 +10,7 @@ from transformers import BertConfig, DataCollatorForLanguageModeling, AutoTokeni
 
 from data_utils.helpers import DatasetWrapper
 from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
-from modelling_utils.mlm_modelling import MLMUnsupervisedModelling
+from modelling_utils.mlm_modelling import MLMModelling
 from modelling_utils.input_args import MLMArgParser
 
 os.environ["WANDB_DISABLED"] = "true"
@@ -21,7 +21,7 @@ args.eval_batch_size = 10
 args.load_alvenir_pretrained = True
 args.eval_data = 'train_classified.json'
 args.model_name = 'last_model'
-mlm_eval = MLMUnsupervisedModelling(args=args)
+mlm_eval = MLMModelling(args=args)
 mlm_eval.load_data(train=False)
 mlm_eval.model = BertForMaskedLM.from_pretrained(mlm_eval.local_alvenir_model_path)
 

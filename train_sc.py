@@ -12,11 +12,6 @@ label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv o
 
 LABELS = list(label_dict)
 args.labels = LABELS
-# args.load_alvenir_pretrained = False
-# args.model_name = 'NbAiLab/nb-bert-base'
-args.differential_privacy = False
-args.local_testing = False
-args.freeze_embeddings = False
 
 if not ((args.lot_size > args.train_batch_size) and (args.lot_size % args.train_batch_size == 0)):
     print(sc_parser.parser._option_string_actions['--lot_size'].help)

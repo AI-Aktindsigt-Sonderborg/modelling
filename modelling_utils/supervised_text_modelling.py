@@ -18,6 +18,7 @@ from data_utils.custom_dataclasses import PredictionOutput
 from local_constants import MODEL_DIR, RESULTS_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from utils.helpers import compute_metrics
+from utils.helpers import accuracy
 
 
 class SupervisedTextModelling:
@@ -138,7 +139,7 @@ class SupervisedTextModelling:
         )
 
         # wrapped = DatasetWrapper(tokenized)
-        tokenized.set_format('torch') #, columns=['input_ids', 'attention_mask', 'labels'])
+        tokenized.set_format('torch')  # , columns=['input_ids', 'attention_mask', 'labels'])
         return tokenized
 
     def tokenize(self, batch):
@@ -239,6 +240,16 @@ class SupervisedTextModelling:
             plt.tight_layout()
             plt.show()
 
-        return precision_recall_fscore_support(y_list, prediction_list, labels=labels,
-                                               average='micro'), \
-               f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
+        return accuracy(
+            np.array(prediction_list),
+            np.array(y_list)), \
+            precision_recall_fscore_support(
+                y_list,
+                prediction_list,
+                labels=labels,
+                average='micro'), \
+            f1_score(
+                y_true=y_list,
+                y_pred=prediction_list,
+                labels=labels,
+                average=None)

@@ -24,7 +24,7 @@ from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
-    save_key_metrics
+    save_key_metrics_mlm
 from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
 
@@ -126,7 +126,7 @@ class MLMModelling:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
 
-                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,
                                  total_steps=self.total_steps)
 
@@ -687,18 +687,12 @@ class MLMModellingDP(MLMModelling):
                                      eval_losses=losses,
                                      eval_accuracies=accuracies)
 
-                # losses.extend(eval_loss)
-                # accuracies.extend(eval_accuracy)
                 all_lrs.extend(lrs)
-
-            # self.save_json(output_dir=self.metrics_dir, data=all_lrs, filename='learning_rates')
-            # self.save_json(output_dir=self.metrics_dir, data=losses, filename='eval_losses')
-            # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
-                save_key_metrics(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,
                                  total_steps=self.total_steps)
 
@@ -877,22 +871,24 @@ class MLMModellingDP(MLMModelling):
         train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(train_loader=train_loader,
-                                                                      model=model)
+        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
+            train_loader=train_loader,
+            model=model)
 
         # ToDo: finish head warmup lr
         if self.args.freeze_layers:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.lr_freezed /
-                                                           self.args.lr_freezed_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_freezed_warmup_steps)
+            self.scheduler = create_scheduler(
+                dp_optimizer,
+                start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_freezed_warmup_steps)
+            self.scheduler = create_scheduler(
+                dp_optimizer,
+                start_factor=self.args.learning_rate / self.args.lr_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_warmup_steps)
         else:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.learning_rate /
-                                                           self.args.lr_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_warmup_steps)
+            pass
 
         return dp_model, dp_optimizer, dp_train_loader
 
@@ -910,6 +906,7 @@ class MLMModellingDP(MLMModelling):
         validate_model(model, strict_validation=True)
         # new opacus version requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
+
         dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
             module=model,
             optimizer=optimizer,
@@ -919,6 +916,7 @@ class MLMModellingDP(MLMModelling):
             target_delta=self.args.delta,
             max_grad_norm=self.args.max_grad_norm
         )
+
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
