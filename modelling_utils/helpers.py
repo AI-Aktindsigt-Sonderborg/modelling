@@ -29,6 +29,7 @@ def create_scheduler(optimizer, start_factor: float, end_factor: float, total_it
                     end_factor=end_factor,
                     total_iters=total_iters)
 
+
 def get_lr(optimizer):
     """
     Get current learning rate from optimizer
@@ -40,7 +41,9 @@ def get_lr(optimizer):
         lrs.append(param_group['lr'])
     return lrs
 
-def get_max_acc_min_loss(losses: List[dict], accuracies: List[dict], freeze_layers_n_steps):
+
+def get_metrics(freeze_layers_n_steps, losses: List[dict] = None,
+                accuracies: List[dict] = None, f1s: List[dict] = None):
     """
     Compute min loss and max accuracy based on all values from evaluation
     :param losses: List[dict] of all losses evaluate()
@@ -48,11 +51,18 @@ def get_max_acc_min_loss(losses: List[dict], accuracies: List[dict], freeze_laye
     :param freeze_layers_n_steps: only get best performance after model is un-freezed
     :return: Best metric for loss and accuracy
     """
-    min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
-                   key=lambda x: x['loss'])
-    max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
-                  key=lambda x: x['acc'])
-    return min_loss, max_acc
+
+    if losses is not None:
+        min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
+                       key=lambda x: x['loss'])
+    if accuracies is not None:
+        max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
+                      key=lambda x: x['acc'])
+    if f1s is not None:
+        max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps],
+                     key=lambda x: x['f1'])
+
+    return min_loss, max_acc, max_f1
 
 
 def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
