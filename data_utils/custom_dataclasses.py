@@ -5,11 +5,6 @@ import torch
 
 
 @dataclass
-class AsrInput:
-    audio: np.ndarray
-    reference: str
-
-@dataclass
 class PredictionOutput:
     prediction: str = None
     logits: torch.Tensor = None
@@ -21,7 +16,6 @@ class DataType(Enum):
     TRAIN = 'train.json'
     VAL = 'validation.json'
     TEST = 'test.json'
-    FULL = 'one_row_per_video_clip.json'
 
 
 class LoadModelType(Enum):
