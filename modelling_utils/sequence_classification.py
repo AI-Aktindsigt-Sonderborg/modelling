@@ -137,7 +137,8 @@ class SequenceClassification:
                     epoch=epoch + 1,
                     step=step,
                     eval_losses=losses,
-                    eval_accuracies=accuracies)
+                    eval_accuracies=accuracies,
+                    eval_f1s=f1s)
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
