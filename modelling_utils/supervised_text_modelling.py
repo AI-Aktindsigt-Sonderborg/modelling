@@ -222,8 +222,12 @@ class SupervisedTextModelling:
                                 softmax=label_percentage)
 
     @staticmethod
-    def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False,
-                      normalize: str = None):
+    def calc_f1_score(
+        y_list, prediction_list, labels,
+        model_name: str,
+        conf_plot: bool = False,
+        normalize: str = None, save_fig: bool = True,
+    ):
 
         if conf_plot:
             conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
@@ -236,9 +240,12 @@ class SupervisedTextModelling:
             #                'Social', 'Sundhed/ældre', 'Øko./adm', 'Øko./budget']
             sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
                        yticklabels=labels)
-            # plt.savefig('plots/svm_03_confplot.png')
+
             plt.tight_layout()
-            plt.show()
+            if save_fig:
+                plt.savefig(f'plots/conf_plot_{model_name}')
+            else:
+                plt.show()
 
         return accuracy(
             np.array(prediction_list),

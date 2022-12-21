@@ -6,6 +6,7 @@ from typing import List
 from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 
+
 def validate_model(model, strict_validation: bool = False):
     errors = ModuleValidator.validate(model, strict=strict_validation)
     if errors:
@@ -42,15 +43,21 @@ def get_lr(optimizer):
     return lrs
 
 
-def get_metrics(freeze_layers_n_steps, losses: List[dict] = None,
-                accuracies: List[dict] = None, f1s: List[dict] = None):
+def get_metrics(freeze_layers_n_steps,
+                losses: List[dict] = None,
+                accuracies: List[dict] = None,
+                f1s: List[dict] = None):
     """
     Compute min loss and max accuracy based on all values from evaluation
-    :param losses: List[dict] of all losses evaluate()
+    :param f1s: List[dict] of all f1 scores computed by evaluate()
+    :param losses: List[dict] of all losses computed by evaluate()
     :param accuracies: List[dict] of all accuracies computed by evaluate()
     :param freeze_layers_n_steps: only get best performance after model is un-freezed
-    :return: Best metric for loss and accuracy
+    :return: Best metric for loss, accuracy and f1
     """
+    min_loss = None
+    max_acc = None
+    max_f1 = None
 
     if losses is not None:
         min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
@@ -66,7 +73,7 @@ def get_metrics(freeze_layers_n_steps, losses: List[dict] = None,
 
 
 def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
-                     total_steps: int, filename: str = 'key_metrics'):
+                         total_steps: int, filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
     :param output_dir: output directory
@@ -101,8 +108,15 @@ def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
               encoding='utf-8') as outfile:
         json.dump(metrics, outfile)
 
-def save_key_metrics_sc(output_dir: str, args, best_acc: dict, best_loss: dict,
-                     total_steps: int, filename: str = 'key_metrics'):
+
+def save_key_metrics_sc(
+    output_dir: str,
+    args,
+    best_acc: dict,
+    best_loss: dict,
+    best_f1: dict,
+    total_steps: int,
+    filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
     :param output_dir: output directory
@@ -129,7 +143,8 @@ def save_key_metrics_sc(output_dir: str, args, best_acc: dict, best_loss: dict,
                                 'train_data': args.train_data,
                                 'total_steps': total_steps},
                                {'best_acc': best_acc},
-                               {'best_loss': best_loss}]}
+                               {'best_loss': best_loss},
+                               {'best_f1': best_f1}]}
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:

@@ -23,7 +23,7 @@ from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArg
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
+from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_metrics, \
     save_key_metrics_mlm
 from utils.helpers import TimeCode, append_json, accuracy
 from utils.visualization import plot_running_results
@@ -123,7 +123,7 @@ class MLMModelling:
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
+                min_loss, max_acc = get_metrics(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
 
                 save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
@@ -267,7 +267,7 @@ class MLMModelling:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
-            min_loss, max_acc = get_max_acc_min_loss(eval_losses, eval_accuracies,
+            min_loss, max_acc = get_metrics(eval_losses, eval_accuracies,
                                                      self.args.freeze_layers_n_steps)
             if min_loss['loss'] == eval_losses[-1]['loss'] \
                 and max_acc['acc'] == eval_accuracies[-1]['acc']:
@@ -690,7 +690,7 @@ class MLMModellingDP(MLMModelling):
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
+                min_loss, max_acc = get_metrics(losses, accuracies,
                                                          self.args.freeze_layers_n_steps)
                 save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,

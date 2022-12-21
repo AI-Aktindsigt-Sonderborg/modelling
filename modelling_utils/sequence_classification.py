@@ -302,9 +302,10 @@ class SequenceClassification:
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
             min_loss, max_acc, max_f1 = get_metrics(
-                self.args.freeze_layers_n_steps,
-                eval_losses, eval_accuracies,
-                eval_f1s
+                freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                losses=eval_losses,
+                accuracies=eval_accuracies,
+                f1s=eval_f1s
             )
             if min_loss['loss'] == eval_losses[-1]['loss'] \
                 and max_acc['acc'] == eval_accuracies[-1]['acc']:
@@ -438,49 +439,6 @@ class SequenceClassification:
                                 truncation=True)
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
-
-    def tokenize_and_wrap_data_old(self, data: Dataset):
-        """
-        Tokenize dataset with tokenize_function and wrap with DatasetWrapper
-        :param data: Dataset
-        :return: DatasetWrapper(Dataset)
-        """
-
-        def tokenize_function(examples):
-            """
-            Using .map to tokenize each sentence examples['text'] in dataset
-            :param examples: data
-            :return: tokenized examples
-            """
-            # Remove empty lines
-            examples['text'] = [
-                line for line in examples['text'] if len(line) > 0 and not line.isspace()
-            ]
-
-            examples['labels'] = self.class_labels.str2int(examples['label'])
-
-            return self.tokenizer(
-                examples['text'],
-                padding='max_length',
-                truncation=True,
-                max_length=self.args.max_length,
-                # We use this option because DataCollatorForLanguageModeling (see below)
-                # is more efficient when it receives the `special_tokens_mask`.
-                return_special_tokens_mask=True,
-            )
-
-        tokenized = data.map(
-            tokenize_function,
-            batched=True,
-            num_proc=1,
-            remove_columns=['text'],  # , 'label'],
-            load_from_cache_file=False,
-            desc="Running tokenizer on dataset line_by_line",
-        )
-
-        wrapped = DatasetWrapper(tokenized)
-
-        return wrapped
 
     def load_data(self, train: bool = True):
         """
@@ -718,27 +676,33 @@ class SequenceClassificationDP(SequenceClassification):
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
+            f1s = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, losses, accuracies, step, lrs = \
-                    self.train_epoch(model=model,
-                                     train_loader=dp_train_loader,
-                                     optimizer=dp_optimizer,
-                                     val_loader=eval_loader,
-                                     epoch=epoch + 1,
-                                     step=step,
-                                     eval_losses=losses,
-                                     eval_accuracies=accuracies)
+                model, losses, accuracies, step, lrs = self.train_epoch(
+                        model=model,
+                        train_loader=dp_train_loader,
+                        optimizer=dp_optimizer,
+                        val_loader=eval_loader,
+                        epoch=epoch + 1,
+                        step=step,
+                        eval_losses=losses,
+                        eval_accuracies=accuracies,
+                        eval_f1s=f1s)
 
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
                 min_loss, max_acc, _ = get_metrics(
-                    self.args.freeze_layers_n_steps,
-                    losses, accuracies,
+                    freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                    losses=losses,
+                    accuracies=accuracies,
+                    f1s=f1s
                 )
-                save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
-                                 best_acc=max_acc, best_loss=min_loss,
-                                 total_steps=self.total_steps)
+                save_key_metrics_sc(output_dir=self.metrics_dir,
+                                    args=self.args,
+                                    best_acc=max_acc,
+                                    best_loss=min_loss,
+                                    total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -758,7 +722,7 @@ class SequenceClassificationDP(SequenceClassification):
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=model,
+                model=model._module,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
@@ -766,9 +730,11 @@ class SequenceClassificationDP(SequenceClassification):
         self.model = model
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-                    optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
+                    optimizer: DPOptimizer, epoch: int = None,
+                    val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None):
+                    eval_accuracies: List[dict] = None,
+                    eval_f1s: List[dict] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
         :param eval_accuracies: list of evaluation accuracies
@@ -851,23 +817,38 @@ class SequenceClassificationDP(SequenceClassification):
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
                     )
-                    eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+                    eval_loss, eval_f1, eval_accuracy = self.evaluate(model, val_loader)
                     print(
                         f"\n"
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
                     )
-                    append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                                data={'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    append_json(output_dir=self.metrics_dir, filename='accuracies',
-                                data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='eval_losses',
+                        data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='accuracies',
+                        data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='f1s',
+                        data={'epoch': epoch, 'step': step, 'f1': eval_f1})
 
                     eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                     eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                    eval_f1s.append({'epoch': epoch, 'step': step, 'f1': eval_f1})
 
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
-                        self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+                        self.save_model_at_step(
+                            model=model,
+                            epoch=epoch,
+                            step=step,
+                            eval_losses=eval_losses,
+                            eval_accuracies=eval_accuracies,
+                            eval_f1s=eval_f1s)
                     model.train()
                 step += 1
 
@@ -920,7 +901,6 @@ class SequenceClassificationDP(SequenceClassification):
         dummy_trainer = self.create_dummy_trainer(
             train_data_wrapped=train_data_wrapped,
             model=model)
-
 
         optimizer = dummy_trainer.create_optimizer()
 
@@ -1000,24 +980,3 @@ class SequenceClassificationDP(SequenceClassification):
                 param.requires_grad = True
         model.train()
         return model
-
-    @staticmethod
-    def save_model(model: GradSampleModule, output_dir: str, data_collator, tokenizer,
-                   step: str = ""):
-        """
-        Wrap model in trainer class and save to pytorch object
-        :param model: GradSampleModule to save
-        :param output_dir: model directory
-        :param data_collator:
-        :param tokenizer:
-        :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
-        """
-        output_dir = output_dir + step
-        trainer_test = Trainer(
-            model=model._module,
-            args=TrainingArguments(output_dir=output_dir),
-            data_collator=data_collator,
-            tokenizer=tokenizer
-        )
-        trainer_test.save_model(output_dir=output_dir)
-        torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))
