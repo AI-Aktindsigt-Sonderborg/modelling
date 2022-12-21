@@ -10,6 +10,7 @@ from typing import List
 
 import numpy as np
 import torch
+from sklearn.metrics import f1_score, accuracy_score
 from datasets import load_dataset, ClassLabel
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
@@ -24,8 +25,8 @@ import torch.nn.functional as F
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_max_acc_min_loss, \
-    save_key_metrics
+from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
+    get_metrics, save_key_metrics
 from utils.helpers import TimeCode, append_json, accuracy, compute_metrics
 from utils.visualization import plot_running_results
 
@@ -123,6 +124,7 @@ class SequenceClassification:
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
+            f1s = []
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, losses, accuracies, step, lrs = self.train_epoch(model=model,
@@ -132,7 +134,8 @@ class SequenceClassification:
                                                                         epoch=epoch + 1,
                                                                         step=step,
                                                                         eval_losses=losses,
-                                                                        eval_accuracies=accuracies)
+                                                                        eval_accuracies=accuracies,
+                                                                        eval_f1s=f1s)
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
@@ -169,18 +172,18 @@ class SequenceClassification:
     def train_epoch(self, model: BertForSequenceClassification, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None):
+                    eval_accuracies: List[dict] = None,
+                    eval_f1s: List[dict] = None):
         """
         Train one epoch
-        :param eval_accuracies:
-        :param eval_losses:
         :param model: Model of type BertForMaskedLM
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
         :param epoch: Given epoch: int
         :param val_loader: If evaluate_during_training: DataLoader containing validation data
         :param step: Given step
-        :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
+        :return: if self.eval_data:
+            return model, eval_accuracies, eval_f1s, eval_losses, step, lrs
         else: return model, step, lrs
         """
         model.train()
@@ -245,37 +248,50 @@ class SequenceClassification:
                 )
 
                 # y_true, y_pred, eval_result = self.eval_model(model)
-                eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+                eval_accuracy, eval_f1, eval_loss = self.evaluate(
+                    model, val_loader
+                )
 
                 print(
                     f"\n"
                     f"eval loss: {eval_loss} \t"
                     f"eval acc: {eval_accuracy}"
+                    f"eval f1: {eval_f1}"
                 )
                 append_json(output_dir=self.metrics_dir, filename='eval_losses',
                             data={'epoch': epoch, 'step': step, 'loss': eval_loss})
                 append_json(output_dir=self.metrics_dir, filename='accuracies',
                             data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                append_json(output_dir=self.metrics_dir, filename='f1s',
+                            data={'epoch': epoch, 'step': step, 'f1': eval_f1})
                 eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                eval_f1s.append({'epoch': epoch, 'step': step, 'f1': eval_f1})
 
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
-                    self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+                    self.save_model_at_step(
+                        model, epoch, step, eval_losses,
+                        eval_accuracies, eval_f1s
+                    )
                 model.train()
             step += 1
         if self.eval_data:
             return model, eval_losses, eval_accuracies, step, lrs
         return model, step, lrs
 
-    def save_model_at_step(self, model, epoch, step, eval_losses, eval_accuracies):
+    def save_model_at_step(self, model, epoch, step, eval_losses,
+                           eval_accuracies, eval_f1s):
         """
-        Save model at step and overwrite best_model if loss is lowest and acc is highest
+        TODO: make generic
+        Save model at step and overwrite best_model if the model
+        have improved evaluation performance.
         :param model: Current model
         :param epoch: Current epoch
         :param step: Current step
         :param eval_losses: Current list of losses
         :param eval_accuracies: Current list of accuracies
+        :param eval_f1s: Current list of f1 scores
         """
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
@@ -283,8 +299,11 @@ class SequenceClassification:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
-            min_loss, max_acc = get_max_acc_min_loss(eval_losses, eval_accuracies,
-                                                     self.args.freeze_layers_n_steps)
+            min_loss, max_acc, max_f1 = get_metrics(
+                self.args.freeze_layers_n_steps,
+                eval_losses, eval_accuracies,
+                eval_f1s
+            )
             if min_loss['loss'] == eval_losses[-1]['loss'] \
                 and max_acc['acc'] == eval_accuracies[-1]['acc']:
                 self.save_model(model, output_dir=self.output_dir,
@@ -292,56 +311,42 @@ class SequenceClassification:
                                 tokenizer=self.tokenizer,
                                 step='/best_model')
 
-    # def eval_model(self, model):
-    #
-    #     # data = self.map_to_hf_dataset()
-    #
-    #     test_trainer = Trainer(model, compute_metrics=compute_metrics,
-    #                            data_collator=self.data_collator,
-    #                            )
-    #
-    #     pred_logits, label_ids, eval_result = test_trainer.predict(self.eval_data_test)
-    #
-    #     softmax_pred = F.softmax(torch.Tensor(pred_logits), dim=-1).numpy()
-    #
-    #     y_true = list(map(lambda x: self.id2label[x], label_ids))
-    #     y_pred = list(map(lambda x: self.id2label[x], np.argmax(pred_logits, axis=1)))
-    #
-    #     return y_true, y_pred, eval_result
-    def evaluate(self, model, val_loader: DataLoader):
+    def evaluate(self, model, val_loader: DataLoader) -> tuple:
         """
-        Evaluate model at given step
         :param model:
         :param val_loader:
-        :return: mean eval loss and mean accuracy
+        :return: mean loss, accuracy-score, f1-score
         """
+
+        # set up preliminaries
         model.eval()
-        if not next(model.parameters()).is_cuda:
-            model = model.to(self.args.device)
-        loss_arr = []
-        accuracy_arr = []
+        model.to(self.args.device)
+        y_true, y_pred, loss = np.empty([]), np.empty([]), np.empty([])
 
-        # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
-        for batch in tqdm(val_loader, unit="batch", desc="Eval"):
-            # for batch in val_loader:
-            output = model(input_ids=batch["input_ids"].to(self.args.device),
-                           attention_mask=batch["attention_mask"].to(self.args.device),
-                           labels=batch["labels"].to(self.args.device))
+        # get model predictions and labels
+        for batch in tqdm(val_loader, unit="batch", desc="val"):
+            output = model(
+                input_ids=batch["input_ids"].to(self.args.device),
+                attention_mask=batch["attention_mask"].to(self.args.device),
+                labels=batch["labels"].to(self.args.device)
+            )
 
-            preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
-            labels = batch["labels"].cpu().numpy()
+            batch_preds = np.argmax(
+                output.logits.detach().cpu().numpy(), axis=-1
+            )
+            batch_labels = batch["labels"].cpu().numpy()
+            batch_loss = output.loss.item()
 
-            eval_acc = accuracy(preds, labels)
-            eval_loss = output.loss.item()
+            y_true = np.append(y_true, batch_labels)
+            y_pred = np.append(y_pred, batch_preds)
+            loss = np.append(loss, batch_loss)
 
-            if not np.isnan(eval_loss):
-                loss_arr.append(eval_loss)
-            if not np.isnan(eval_acc):
-                accuracy_arr.append(eval_acc)
+        # calculate metrics of interest
+        acc = accuracy_score(y_true.astype(int), y_pred.astype(int))
+        f_1 = f1_score(y_true.astype(int), y_pred.astype(int), average='macro')
+        loss = np.mean(loss)
 
-            sleep(0.001)
-
-        return np.mean(loss_arr), np.mean(accuracy_arr)
+        return (acc, f_1, loss)
 
     def set_up_training(self):
         """
@@ -766,8 +771,10 @@ class SequenceClassificationDP(SequenceClassification):
             # self.save_json(output_dir=self.metrics_dir, data=accuracies, filename='accuracies')
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = get_max_acc_min_loss(losses, accuracies,
-                                                         self.args.freeze_layers_n_steps)
+                min_loss, max_acc, _ = get_metrics(
+                    self.args.freeze_layers_n_steps,
+                    losses, accuracies,
+                )
                 save_key_metrics(output_dir=self.metrics_dir, args=self.args,
                                  best_acc=max_acc, best_loss=min_loss,
                                  total_steps=self.total_steps)
