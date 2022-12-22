@@ -1,5 +1,6 @@
 import argparse
 from distutils.util import strtobool
+from typing import List
 
 
 class MLMArgParser:
@@ -483,6 +484,13 @@ class SequenceModellingArgParser:
             default=True,
             metavar='<bool>',
             help="Whether to plot running learning rate, loss and accuracies")
+        eval_params.add_argument(
+            "--eval_metrics",
+            type=str,
+            nargs='*',
+            default=['loss', 'acc'],
+            metavar='<str>',
+            help="define eval metrics to evaluate best model")
 
     def add_dp_params(self):
         """
