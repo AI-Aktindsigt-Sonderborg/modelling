@@ -935,7 +935,7 @@ class SequenceClassificationDP(SequenceClassification):
 
         return dp_model, dp_optimizer, dp_train_loader
 
-    def set_up_privacy(self, train_loader: DataLoader, model, optimizer):
+    def set_up_privacy(self, train_loader: DataLoader, model):
         """
         Set up privacy engine for private training
         :param train_loader: DataLoader for training
