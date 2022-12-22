@@ -837,19 +837,19 @@ class SequenceClassificationDP(SequenceClassification):
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='eval_losses',
-                        data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                        data={'epoch': epoch, 'step': step, 'score': eval_loss})
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='accuracies',
-                        data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                        data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='f1s',
-                        data={'epoch': epoch, 'step': step, 'f1': eval_f1})
+                        data={'epoch': epoch, 'step': step, 'score': eval_f1})
 
-                    eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
-                    eval_f1s.append({'epoch': epoch, 'step': step, 'f1': eval_f1})
+                    eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
+                    eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                    eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
@@ -915,16 +915,9 @@ class SequenceClassificationDP(SequenceClassification):
                                   collate_fn=self.data_collator,
                                   shuffle=True)
 
-        dummy_trainer = self.create_dummy_trainer(
-            train_data_wrapped=train_data_wrapped,
-            model=model)
-
-        optimizer = dummy_trainer.create_optimizer()
-
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
             train_loader=train_loader,
-            model=model,
-            optimizer=optimizer)
+            model=model)
 
         # ToDo: finish head warmup lr
         if self.args.freeze_layers:
