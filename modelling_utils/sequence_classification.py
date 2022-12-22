@@ -142,12 +142,14 @@ class SequenceClassification:
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc, max_f1 = get_metrics(losses, accuracies,
-                                                self.args.freeze_layers_n_steps)
+                best_metrics = get_metrics(
+                    losses=losses,
+                    accuracies=accuracies,
+                    f1s=f1s,
+                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
 
                 save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
-                                    best_acc=max_acc, best_loss=min_loss,
-                                    best_f1=max_f1,
+                                    metrics=best_metrics,
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
@@ -264,14 +266,14 @@ class SequenceClassification:
 
                 current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
                 append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                            data={'epoch': epoch, 'step': step, 'loss': eval_loss})
+                            data={'epoch': epoch, 'step': step, 'score': eval_loss})
                 append_json(output_dir=self.metrics_dir, filename='accuracies',
-                            data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                            data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
                 append_json(output_dir=self.metrics_dir, filename='f1s',
-                            data={'epoch': epoch, 'step': step, 'f1': eval_f1})
-                eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
-                eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
-                eval_f1s.append({'epoch': epoch, 'step': step, 'f1': eval_f1})
+                            data={'epoch': epoch, 'step': step, 'score': eval_f1})
+                eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
+                eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
@@ -313,7 +315,7 @@ class SequenceClassification:
         if step > self.args.freeze_layers_n_steps:
             save_best_model = True
             for metric in self.args.eval_metrics:
-                if best_metrics[metric] != current_metrics[metric]:
+                if best_metrics[metric]['score'] != current_metrics[metric]:
                     save_best_model = False
                     break
 
@@ -688,20 +690,20 @@ class SequenceClassificationDP(SequenceClassification):
             f1s = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, losses, accuracies, step, lrs = self.train_epoch(
-                        model=model,
-                        train_loader=dp_train_loader,
-                        optimizer=dp_optimizer,
-                        val_loader=eval_loader,
-                        epoch=epoch + 1,
-                        step=step,
-                        eval_losses=losses,
-                        eval_accuracies=accuracies,
-                        eval_f1s=f1s)
+                    model=model,
+                    train_loader=dp_train_loader,
+                    optimizer=dp_optimizer,
+                    val_loader=eval_loader,
+                    epoch=epoch + 1,
+                    step=step,
+                    eval_losses=losses,
+                    eval_accuracies=accuracies,
+                    eval_f1s=f1s)
 
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc, max_f1 = get_metrics(
+                best_metrics = get_metrics(
                     freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                     losses=losses,
                     accuracies=accuracies,
@@ -709,9 +711,7 @@ class SequenceClassificationDP(SequenceClassification):
                 )
                 save_key_metrics_sc(output_dir=self.metrics_dir,
                                     args=self.args,
-                                    best_acc=max_acc,
-                                    best_loss=min_loss,
-                                    best_f1=max_f1,
+                                    metrics=best_metrics,
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:

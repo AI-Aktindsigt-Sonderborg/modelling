@@ -61,15 +61,15 @@ def get_metrics(freeze_layers_n_steps,
 
     if losses is not None:
         min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
-                       key=lambda x: x['loss'])
+                       key=lambda x: x['score'])
     if accuracies is not None:
         max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
-                      key=lambda x: x['acc'])
+                      key=lambda x: x['score'])
     if f1s is not None:
         max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps],
-                     key=lambda x: x['f1'])
+                     key=lambda x: x['score'])
 
-    return {'loss': min_loss['loss'], 'acc': max_acc['acc'], 'f1': max_f1['f1']}
+    return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
 
 
 def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
@@ -112,9 +112,7 @@ def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
 def save_key_metrics_sc(
     output_dir: str,
     args,
-    best_acc: dict,
-    best_loss: dict,
-    best_f1: dict,
+    metrics: dict,
     total_steps: int,
     filename: str = 'key_metrics'):
     """
@@ -141,10 +139,8 @@ def save_key_metrics_sc(
                                 'delta': args.delta,
                                 'lot_size': args.lot_size,
                                 'train_data': args.train_data,
-                                'total_steps': total_steps},
-                               {'best_acc': best_acc},
-                               {'best_loss': best_loss},
-                               {'best_f1': best_f1}]}
+                                'total_steps': total_steps,
+                                'best_metrics': metrics}]}
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:
