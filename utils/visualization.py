@@ -28,10 +28,10 @@ stopwords_union.update(
      "for", "fx", "bl", ""])
 
 
-
 class DataVisualisation:
 
-    def __init__(self, corpus: List[str], pca: PCA = None, tsne: TSNE = None, kmeans: KMeans = None):
+    def __init__(self, corpus: List[str], pca: PCA = None, tsne: TSNE = None,
+                 kmeans: KMeans = None):
         self.tsne_results = None
         self.vectorizer = TfidfVectorizer()
         self.pca = pca
@@ -57,7 +57,6 @@ class DataVisualisation:
         print(f'Cumulative explained variation for N principal components: '
               f'{np.sum(self.pca.explained_variance_ratio_)}')
 
-
     def compute_tsne(self, on_pca: bool = False):
         if on_pca:
             self.tsne_results = self.tsne.fit_transform(self.pca_result)
@@ -71,7 +70,7 @@ class DataVisualisation:
         self.compute_tsne(on_pca=True)
         print('t-SNE done! Time elapsed: {} seconds'.format(time.time() - time_start))
 
-    def k_means_viz(self, d_type: str='tsne', dim: int = 2, save_plot: bool = True,
+    def k_means_viz(self, d_type: str = 'tsne', dim: int = 2, save_plot: bool = True,
                     labels: List[int] = None):
 
         if d_type == 'tsne':
@@ -145,32 +144,72 @@ class DataVisualisation:
 
         plt.show()
 
-def plot_running_results(output_dir: str, epochs: int, lrs, accs, loss, epsilon: str = "",
+
+def plot_running_results_sc(output_dir: str, epochs: int,
+                            lrs, accs, loss, f1,
+                            epsilon: str = "",
+                            delta: str = ""):
+    file_path = os.path.join(output_dir, 'results')
+    title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
+    plt.ioff()
+    learning_rate_steps = [int(x['step']) for x in lrs]
+    learning_rates = [x['lr'] for x in lrs]
+
+    accuracy_steps = [int(x['step']) for x in accs]
+    accuracies = [x['score'] for x in accs]
+
+    losses_steps = [int(x['step']) for x in loss]
+    losses = [x['score'] for x in loss]
+
+    f1_steps = [int(x['step']) for x in f1]
+    f1s = [x['score'] for x in f1]
+
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(3)
+    fig.suptitle(title, fontsize=14)
+
+    ax1.plot(learning_rate_steps, learning_rates)
+    ax1.set(ylabel='learning rate')
+
+    ax2.plot(accuracy_steps, accuracies, 'orange')
+    ax2.set(ylabel='accuracy')
+
+    ax3.plot(f1_steps, f1s, 'red')
+    ax3.set(ylabel='f1', xlabel='step')
+
+    ax4.plot(losses_steps, losses, 'green')
+    ax4.set(ylabel='loss', xlabel='step')
+    plt.savefig(file_path)
+
+
+def plot_running_results(output_dir: str, epochs: int,
+                         lrs, accs, loss,
+                         epsilon: str = "",
                          delta: str = ""):
     file_path = os.path.join(output_dir, 'results')
     title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
     plt.ioff()
-    learning_rates_steps = [int(x['step']) for x in lrs]
+    learning_rate_steps = [int(x['step']) for x in lrs]
     learning_rates = [x['lr'] for x in lrs]
 
-    accuracies_steps = [int(x['step']) for x in accs]
-    accuracies = [x['acc'] for x in accs]
+    accuracy_steps = [int(x['step']) for x in accs]
+    accuracies = [x['score'] for x in accs]
 
     losses_steps = [int(x['step']) for x in loss]
-    losses = [x['loss'] for x in loss]
+    losses = [x['score'] for x in loss]
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3)
+    fig, (ax1, ax2, ax4) = plt.subplots(3)
     fig.suptitle(title, fontsize=14)
 
-    ax1.plot(learning_rates_steps, learning_rates)
+    ax1.plot(learning_rate_steps, learning_rates)
     ax1.set(ylabel='learning rate')
 
-    ax2.plot(accuracies_steps, accuracies, 'orange')
+    ax2.plot(accuracy_steps, accuracies, 'orange')
     ax2.set(ylabel='accuracy')
 
-    ax3.plot(losses_steps, losses, 'green')
-    ax3.set(ylabel='loss', xlabel='step')
+    ax4.plot(losses_steps, losses, 'green')
+    ax4.set(ylabel='loss', xlabel='step')
     plt.savefig(file_path)
+
 
 def make_plots(corpus: List[str], clusters: List[int] = [3], dims: List[int] = [2],
                pca_components: List[int] = [3], tsne_components: List[int] = [2]):
@@ -192,14 +231,13 @@ def make_plots(corpus: List[str], clusters: List[int] = [3], dims: List[int] = [
 
 
 def wordclouds_classified(data: List[dict] = None, max_words: int = 75,
-                      labels: List[str] = None):
+                          labels: List[str] = None):
     if labels:
         for label in labels:
             label_data = [x for x in data if x['klassifikation'] == label]
             all_text = ""
             for i, line in enumerate(label_data):
                 all_text += line['text'] + " "
-
 
             wordcloud = WordCloud(stopwords=stopwords_union, max_words=max_words,
                                   background_color="white").generate(all_text)
@@ -220,9 +258,7 @@ def wordclouds_classified(data: List[dict] = None, max_words: int = 75,
         plt.savefig(f'plots/class_wordclouds/word_cloud-total.png', bbox_inches='tight')
 
 
-
 def barplot_muni_counts(data: List[dict] = None):
-
     muni_list = np.unique([x['kommune'] for x in data])
 
     splitted = [[y for y in data if y['kommune'] == x] for x in muni_list]
@@ -235,6 +271,7 @@ def barplot_muni_counts(data: List[dict] = None):
     plt.xticks(rotation=90)
     plt.savefig(f'plots/class_wordclouds/class_sizes.png', bbox_inches='tight')
     plt.close()
+
 
 def simple_barplot(labels: List[str], data: List[float]):
     # Create figure and plot
@@ -256,8 +293,6 @@ def simple_barplot(labels: List[str], data: List[float]):
 
 
 def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
-
-
     if conf_plot:
         conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
                                        normalize='true')
@@ -266,21 +301,15 @@ def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False):
         sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g')
         plt.show()
 
-
     return precision_recall_fscore_support(y_list, prediction_list, labels=labels, average='micro'), \
-           f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
-
+        f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)
 
 
 if __name__ == '__main__':
-
     data = read_jsonlines(input_dir=PREP_DATA_DIR, filename='test_classified')
     # data = [x for x in data if not (isinstance(x['text'], float) and math.isnan(x['text'])) and not x['text_len'] > 3000]
 
-
     # barplot_muni_counts(data=data)
-
-
 
     sentences = [x['text'] for x in data]
 
@@ -306,14 +335,11 @@ if __name__ == '__main__':
     # preds = data_viz.kmeans.fit_predict(data_viz.pca_result)
     # data_viz.k_means_viz(d_type='pca', dim=2, labels=label_ids)
 
-    f_score, f1 = calc_f1_score(y_list=label_ids, prediction_list=preds, labels=label_list, conf_plot=True)
-
-
+    f_score, f1 = calc_f1_score(y_list=label_ids, prediction_list=preds, labels=label_list,
+                                conf_plot=True)
 
     print()
-
 
     # code_timer = TimeCode()
     # make_plots(corpus=['a', 'b'], dims=[2, 3], pca_components=[10, 20, 30, 40],
     #            tsne_components=[2, 3], clusters=[3, 4, 5, 6])
-

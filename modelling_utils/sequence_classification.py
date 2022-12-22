@@ -5,17 +5,16 @@ import os
 import shutil
 import sys
 from datetime import datetime
-from time import sleep
 from typing import List
 
 import numpy as np
 import torch
-from sklearn.metrics import f1_score, accuracy_score
 from datasets import load_dataset, ClassLabel
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+from sklearn.metrics import f1_score, accuracy_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, TrainingArguments, Trainer, \
@@ -24,11 +23,10 @@ from transformers import AutoTokenizer, TrainingArguments, Trainer, \
 
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
-from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
     get_metrics, save_key_metrics_sc
-from utils.helpers import TimeCode, append_json, accuracy
-from utils.visualization import plot_running_results
+from utils.helpers import TimeCode, append_json
+from utils.visualization import plot_running_results_sc
 
 
 class SequenceClassification:
@@ -153,9 +151,9 @@ class SequenceClassification:
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
-                plot_running_results(
+                plot_running_results_sc(
                     output_dir=self.metrics_dir,
-                    epochs=self.args.epochs,
+                    epochs=self.args.epochs, f1=f1s,
                     lrs=all_lrs, accs=accuracies, loss=losses)
 
         else:
@@ -715,12 +713,12 @@ class SequenceClassificationDP(SequenceClassification):
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
-                plot_running_results(
+                plot_running_results_sc(
                     output_dir=self.metrics_dir,
                     epsilon=str(self.args.epsilon),
                     delta=str(self.args.delta),
                     epochs=self.args.epochs,
-                    lrs=all_lrs, accs=accuracies, loss=losses)
+                    lrs=all_lrs, accs=accuracies, loss=losses, f1=f1s)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
