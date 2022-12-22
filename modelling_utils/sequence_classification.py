@@ -258,9 +258,11 @@ class SequenceClassification:
                 print(
                     f"\n"
                     f"eval loss: {eval_loss} \t"
-                    f"eval acc: {eval_accuracy}"
+                    f"eval acc: {eval_accuracy}\t"
                     f"eval f1: {eval_f1}"
                 )
+
+                current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
                 append_json(output_dir=self.metrics_dir, filename='eval_losses',
                             data={'epoch': epoch, 'step': step, 'loss': eval_loss})
                 append_json(output_dir=self.metrics_dir, filename='accuracies',
@@ -273,18 +275,27 @@ class SequenceClassification:
 
                 if self.args.save_steps is not None and (
                     step > 0 and (step % self.args.save_steps == 0)):
-                    self.save_model_at_step(
-                        model, epoch, step, eval_losses,
-                        eval_accuracies, eval_f1s
+                    best_metrics = get_metrics(
+                        freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                        losses=eval_losses,
+                        accuracies=eval_accuracies,
+                        f1s=eval_f1s
                     )
+                    self.save_model_at_step(
+                        model=model,
+                        epoch=epoch,
+                        step=step,
+                        current_metrics=current_metrics,
+                        best_metrics=best_metrics)
                 model.train()
             step += 1
         if self.eval_data:
             return model, eval_losses, eval_accuracies, step, lrs
         return model, step, lrs
 
-    def save_model_at_step(self, model, epoch, step, eval_losses,
-                           eval_accuracies, eval_f1s):
+    def save_model_at_step(self, model, epoch, step,
+                           current_metrics: dict,
+                           best_metrics: dict):
         """
         TODO: make generic
         Save model at step and overwrite best_model if the model
@@ -302,14 +313,17 @@ class SequenceClassification:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
-            min_loss, max_acc, max_f1 = get_metrics(
-                freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                losses=eval_losses,
-                accuracies=eval_accuracies,
-                f1s=eval_f1s
-            )
-            if min_loss['loss'] == eval_losses[-1]['loss'] \
-                and max_acc['acc'] == eval_accuracies[-1]['acc']:
+            save_best_model = True
+            for metric in self.args.eval_metrics:
+                print(
+                    f'metric: {metric} - best: {best_metrics[metric]} = current : {current_metrics[metric]}')
+
+            for metric in self.args.eval_metrics:
+                if best_metrics[metric] != current_metrics[metric]:
+                    save_best_model = False
+                    break
+
+            if save_best_model:
                 self.save_model(model, output_dir=self.output_dir,
                                 data_collator=self.data_collator,
                                 tokenizer=self.tokenizer,
@@ -823,8 +837,11 @@ class SequenceClassificationDP(SequenceClassification):
                     print(
                         f"\n"
                         f"eval loss: {eval_loss} \t"
-                        f"eval acc: {eval_accuracy}"
+                        f"eval acc: {eval_accuracy}\t"
+                        f"eval f1: {eval_f1}"
                     )
+
+                    current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='eval_losses',
@@ -844,13 +861,19 @@ class SequenceClassificationDP(SequenceClassification):
 
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
+                        best_metrics = get_metrics(
+                            freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                            losses=eval_losses,
+                            accuracies=eval_accuracies,
+                            f1s=eval_f1s
+                        )
+
                         self.save_model_at_step(
                             model=model._module,
                             epoch=epoch,
                             step=step,
-                            eval_losses=eval_losses,
-                            eval_accuracies=eval_accuracies,
-                            eval_f1s=eval_f1s)
+                            current_metrics=current_metrics,
+                            best_metrics=best_metrics)
                     model.train()
                 step += 1
 

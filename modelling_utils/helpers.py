@@ -69,7 +69,7 @@ def get_metrics(freeze_layers_n_steps,
         max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps],
                      key=lambda x: x['f1'])
 
-    return min_loss, max_acc, max_f1
+    return {'loss': min_loss['loss'], 'acc': max_acc['acc'], 'f1': max_f1['f1']}
 
 
 def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
