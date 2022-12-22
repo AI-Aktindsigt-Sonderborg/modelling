@@ -297,7 +297,6 @@ class SequenceClassification:
                            current_metrics: dict,
                            best_metrics: dict):
         """
-        TODO: make generic
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
         :param model: Current model
@@ -314,10 +313,6 @@ class SequenceClassification:
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
             save_best_model = True
-            for metric in self.args.eval_metrics:
-                print(
-                    f'metric: {metric} - best: {best_metrics[metric]} = current : {current_metrics[metric]}')
-
             for metric in self.args.eval_metrics:
                 if best_metrics[metric] != current_metrics[metric]:
                     save_best_model = False
