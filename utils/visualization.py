@@ -164,7 +164,7 @@ def plot_running_results_sc(output_dir: str, epochs: int,
     f1_steps = [int(x['step']) for x in f1]
     f1s = [x['score'] for x in f1]
 
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(3)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle(title, fontsize=14)
 
     ax1.plot(learning_rate_steps, learning_rates)
