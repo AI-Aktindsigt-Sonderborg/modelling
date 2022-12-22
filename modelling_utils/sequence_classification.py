@@ -299,12 +299,11 @@ class SequenceClassification:
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
+        :param best_metrics: at which step does model have best metrics
+        :param current_metrics: Current eval metrics of model: f1, acc and loss
         :param model: Current model
         :param epoch: Current epoch
         :param step: Current step
-        :param eval_losses: Current list of losses
-        :param eval_accuracies: Current list of accuracies
-        :param eval_f1s: Current list of f1 scores
         """
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
