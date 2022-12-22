@@ -817,7 +817,7 @@ class SequenceClassificationDP(SequenceClassification):
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
                     )
-                    eval_accuracy, eval_loss, eval_f1 = self.evaluate(model, val_loader)
+                    eval_accuracy, eval_f1, eval_loss = self.evaluate(model, val_loader)
                     print(
                         f"\n"
                         f"eval loss: {eval_loss} \t"
