@@ -817,7 +817,7 @@ class SequenceClassificationDP(SequenceClassification):
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
                     )
-                    eval_loss, eval_f1, eval_accuracy = self.evaluate(model, val_loader)
+                    eval_accuracy, eval_loss, eval_f1 = self.evaluate(model, val_loader)
                     print(
                         f"\n"
                         f"eval loss: {eval_loss} \t"
@@ -843,7 +843,7 @@ class SequenceClassificationDP(SequenceClassification):
                     if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
                         self.save_model_at_step(
-                            model=model,
+                            model=model._module,
                             epoch=epoch,
                             step=step,
                             eval_losses=eval_losses,
