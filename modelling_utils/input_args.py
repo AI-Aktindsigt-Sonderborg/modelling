@@ -1,6 +1,5 @@
 import argparse
 from distutils.util import strtobool
-from typing import List
 
 
 class MLMArgParser:
@@ -304,7 +303,6 @@ class SequenceModellingArgParser:
             default='test_classified.json',
             metavar='<str>',
             help="test data file name")
-
 
     def add_model_params(self):
         """

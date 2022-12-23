@@ -4,12 +4,9 @@ import time
 from typing import Optional, List
 
 import numpy as np
-import pandas as pd
 from datasets import load_metric
-from matplotlib import pyplot as plt
 from opacus.validators import ModuleValidator
-from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, f1_score
-import seaborn as sn
+
 
 def blocks(files, size=65536):
     """
@@ -74,6 +71,7 @@ def append_json(output_dir: str, data: dict, filename: str):
         json.dump(data, outfile)
         outfile.write('\n')
 
+
 def save_json(output_dir: str, data: List[dict], filename: str):
     """
     Save list of dicts to json dump
@@ -86,6 +84,7 @@ def save_json(output_dir: str, data: List[dict], filename: str):
         for entry in data:
             json.dump(entry, outfile)
             outfile.write('\n')
+
 
 def read_jsonlines(input_dir: str, filename: str):
     """
@@ -100,6 +99,7 @@ def read_jsonlines(input_dir: str, filename: str):
             data_dict = json.loads(line)
             data.append(data_dict)
     return data
+
 
 def compute_metrics(eval_pred):
     """

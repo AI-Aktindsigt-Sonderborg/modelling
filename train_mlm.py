@@ -5,7 +5,7 @@ from modelling_utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-if args.replace_head == True and args.freeze_layers == False:
+if args.replace_head is True and args.freeze_layers is False:
     print(mlm_parser.parser._option_string_actions['--replace_head'].help)
     print('exiting - try again')
     mlm_parser.parser.exit()
@@ -16,8 +16,8 @@ if args.differential_privacy:
         print(mlm_parser.parser._option_string_actions['--lot_size'].help)
         print('exiting - try again')
         mlm_parser.parser.exit()
-    elif not (args.replace_head == True and args.freeze_layers == True
-              and args.freeze_embeddings):
+    elif not (args.replace_head is True and args.freeze_layers is True
+              and args.freeze_embeddings is True):
         print(mlm_parser.parser._option_string_actions['--freeze_embeddings'].help)
         print('exiting - try again')
         mlm_parser.parser.exit()
