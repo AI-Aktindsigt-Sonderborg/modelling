@@ -5,7 +5,6 @@ import os
 import shutil
 import sys
 from datetime import datetime
-from time import sleep
 from typing import List
 
 import numpy as np
@@ -15,6 +14,7 @@ from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
@@ -25,7 +25,7 @@ from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_metrics, \
     save_key_metrics_mlm
-from utils.helpers import TimeCode, append_json, accuracy
+from utils.helpers import TimeCode, append_json
 from utils.visualization import plot_running_results
 
 
@@ -110,38 +110,50 @@ class MLMModelling:
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
-
+            f1s = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, losses, accuracies, step, lrs = self.train_epoch(model=model,
-                                                                        train_loader=train_loader,
-                                                                        optimizer=optimizer,
-                                                                        val_loader=eval_loader,
-                                                                        epoch=epoch + 1,
-                                                                        step=step,
-                                                                        eval_losses=losses,
-                                                                        eval_accuracies=accuracies)
+                model, step, lrs, losses, accuracies, f1s = self.train_epoch(
+                    model=model,
+                    train_loader=train_loader,
+                    optimizer=optimizer,
+                    val_loader=eval_loader,
+                    epoch=epoch + 1,
+                    step=step,
+                    eval_losses=losses,
+                    eval_accuracies=accuracies,
+                    eval_f1s=f1s)
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = get_metrics(losses, accuracies,
-                                                         self.args.freeze_layers_n_steps)
+                best_metrics = get_metrics(
+                    losses=losses,
+                    accuracies=accuracies,
+                    f1s=f1s,
+                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
 
-                save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
-                                 best_acc=max_acc, best_loss=min_loss,
-                                 total_steps=self.total_steps)
+                save_key_metrics_mlm(output_dir=self.metrics_dir,
+                                     args=self.args,
+                                     metrics=best_metrics,
+                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
                     output_dir=self.metrics_dir,
                     epochs=self.args.epochs,
-                    lrs=all_lrs, accs=accuracies, loss=losses)
+                    lrs=all_lrs,
+                    accs=accuracies,
+                    f1=f1s,
+                    loss=losses)
 
         else:
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs = self.train_epoch(model=model,
-                                                    train_loader=train_loader,
-                                                    optimizer=optimizer,
-                                                    step=step)
+            for epoch in tqdm(range(self.args.epochs),
+                              desc="Epoch", unit="epoch"):
+                model, step, lrs = self.train_epoch(
+                    model=model,
+                    train_loader=train_loader,
+                    optimizer=optimizer,
+                    step=step)
+
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -156,7 +168,8 @@ class MLMModelling:
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None):
+                    eval_accuracies: List[dict] = None,
+                    eval_f1s: List[dict] = None):
         """
         Train one epoch
         :param eval_accuracies:
@@ -175,7 +188,9 @@ class MLMModelling:
         train_losses = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc=f'Train epoch {epoch} of {self.args.epochs}', unit="batch"):
+        for batch in tqdm(train_loader,
+                          desc=f'Train epoch {epoch} of {self.args.epochs}',
+                          unit="batch"):
 
             if self.args.freeze_layers and step == 0:
                 model = self.freeze_layers(model)
@@ -195,7 +210,7 @@ class MLMModelling:
                 self.scheduler = create_scheduler(optimizer,
                                                   start_factor=1,
                                                   end_factor=self.args.learning_rate / (
-                                                      self.total_steps - step),
+                                                          self.total_steps - step),
                                                   total_iters=self.total_steps - step
                                                   )
             append_json(output_dir=self.metrics_dir, filename='learning_rates',
@@ -229,37 +244,66 @@ class MLMModelling:
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
-                eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+                eval_accuracy, eval_f1, eval_loss = self.evaluate(
+                    model, val_loader)
 
                 print(
                     f"\n"
                     f"eval loss: {eval_loss} \t"
-                    f"eval acc: {eval_accuracy}"
+                    f"eval acc: {eval_accuracy}\t"
+                    f"eval f1: {eval_f1}"
                 )
-                append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                            data={'epoch': epoch, 'step': step, 'loss': eval_loss})
-                append_json(output_dir=self.metrics_dir, filename='accuracies',
-                            data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
-                eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
-                eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+
+                current_metrics = {'loss': eval_loss,
+                                   'acc': eval_accuracy,
+                                   'f1': eval_f1}
+
+                append_json(output_dir=self.metrics_dir,
+                            filename='eval_losses',
+                            data={'epoch': epoch, 'step': step, 'score': eval_loss})
+                append_json(output_dir=self.metrics_dir,
+                            filename='accuracies',
+                            data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                append_json(output_dir=self.metrics_dir,
+                            filename='f1s',
+                            data={'epoch': epoch, 'step': step, 'score': eval_f1})
+
+                eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
+                eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
-                    step > 0 and (step % self.args.save_steps == 0)):
-                    self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+                        step > 0 and (step % self.args.save_steps == 0)):
+                    best_metrics = get_metrics(
+                        freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                        losses=eval_losses,
+                        accuracies=eval_accuracies,
+                        f1s=eval_f1s
+                    )
+
+                    self.save_model_at_step(
+                        model=model,
+                        epoch=epoch,
+                        step=step,
+                        current_metrics=current_metrics,
+                        best_metrics=best_metrics)
                 model.train()
             step += 1
         if self.eval_data:
-            return model, eval_losses, eval_accuracies, step, lrs
+            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s
         return model, step, lrs
 
-    def save_model_at_step(self, model, epoch, step, eval_losses, eval_accuracies):
+    def save_model_at_step(self, model, epoch, step,
+                           current_metrics: dict,
+                           best_metrics: dict):
         """
-        Save model at step and overwrite best_model if loss is lowest and acc is highest
+        Save model at step and overwrite best_model if the model
+        have improved evaluation performance.
+        :param best_metrics: at which step does model have best metrics
+        :param current_metrics: Current eval metrics of model: f1, acc and loss
         :param model: Current model
         :param epoch: Current epoch
         :param step: Current step
-        :param eval_losses: Current list of losses
-        :param eval_accuracies: Current list of accuracies
         """
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
@@ -267,10 +311,13 @@ class MLMModelling:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
         if step > self.args.freeze_layers_n_steps:
-            min_loss, max_acc = get_metrics(eval_losses, eval_accuracies,
-                                                     self.args.freeze_layers_n_steps)
-            if min_loss['loss'] == eval_losses[-1]['loss'] \
-                and max_acc['acc'] == eval_accuracies[-1]['acc']:
+            save_best_model = True
+            for metric in self.args.eval_metrics:
+                if best_metrics[metric]['score'] != current_metrics[metric]:
+                    save_best_model = False
+                    break
+
+            if save_best_model:
                 self.save_model(model, output_dir=self.output_dir,
                                 data_collator=self.data_collator,
                                 tokenizer=self.tokenizer,
@@ -286,8 +333,8 @@ class MLMModelling:
         model.eval()
         if not next(model.parameters()).is_cuda:
             model = model.to(self.args.device)
-        loss_arr = []
-        accuracy_arr = []
+
+        y_true, y_pred, loss = np.empty([]), np.empty([]), np.empty([])
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         for batch in tqdm(val_loader, unit="batch", desc="Eval"):
@@ -296,29 +343,34 @@ class MLMModelling:
                            attention_mask=batch["attention_mask"].to(self.args.device),
                            labels=batch["labels"].to(self.args.device))
 
+            batch_loss = output.loss.item()
+
             preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
             labels = batch["labels"].cpu().numpy()
 
             labels_flat = labels.flatten()
-
             preds_flat = preds.flatten()
 
             # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.
             # See nn.CrossEntropyLoss(): ignore_index for more information
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
-            eval_acc = accuracy(np.array([x[1] for x in filtered]),
-                                np.array([x[0] for x in filtered]))
-            eval_loss = output.loss.item()
+            batch_labels = np.array([x[0] for x in filtered]).astype(int)
+            batch_preds = np.array([x[1] for x in filtered]).astype(int)
 
-            if not np.isnan(eval_loss):
-                loss_arr.append(eval_loss)
-            if not np.isnan(eval_acc):
-                accuracy_arr.append(eval_acc)
+            y_true = np.append(y_true, batch_labels)
+            y_pred = np.append(y_pred, batch_preds)
+            loss = np.append(loss, batch_loss)
 
-            sleep(0.001)
+        # calculate metrics of interest
+        acc = accuracy_score(y_true.astype(int),
+                             y_pred.astype(int))
+        f_1 = f1_score(y_true.astype(int),
+                       y_pred.astype(int),
+                       average='macro')
+        loss = np.mean(loss)
 
-        return np.mean(loss_arr), np.mean(accuracy_arr)
+        return (acc, f_1, loss)
 
     def set_up_training(self):
         """
@@ -440,12 +492,11 @@ class MLMModelling:
                 return_special_tokens_mask=True,
             )
 
-
         tokenized = data.map(
             tokenize_function,
             batched=True,
-            num_proc=1,
-            remove_columns=['text'], #, 'label'],
+            # num_proc=1,
+            remove_columns=data.column_names,
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
         )
@@ -565,7 +616,6 @@ class MLMModelling:
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
         torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
-        # model.save_pretrained(save_directory=output_dir)
 
     @staticmethod
     def save_config(output_dir: str, metrics_dir: str, args: argparse.Namespace):
@@ -676,25 +726,31 @@ class MLMModellingDP(MLMModelling):
                                      batch_size=self.args.eval_batch_size)
             losses = []
             accuracies = []
+            f1s = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, losses, accuracies, step, lrs = \
-                    self.train_epoch(model=model,
-                                     train_loader=dp_train_loader,
-                                     optimizer=dp_optimizer,
-                                     val_loader=eval_loader,
-                                     epoch=epoch + 1,
-                                     step=step,
-                                     eval_losses=losses,
-                                     eval_accuracies=accuracies)
+                model, step, lrs, losses, accuracies, f1s = self.train_epoch(
+                    model=model,
+                    train_loader=dp_train_loader,
+                    optimizer=dp_optimizer,
+                    val_loader=eval_loader,
+                    epoch=epoch + 1,
+                    step=step,
+                    eval_losses=losses,
+                    eval_accuracies=accuracies,
+                    eval_f1s=f1s)
 
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                min_loss, max_acc = get_metrics(losses, accuracies,
-                                                         self.args.freeze_layers_n_steps)
+                best_metrics = get_metrics(
+                    losses=losses,
+                    accuracies=accuracies,
+                    f1s=f1s,
+                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
+
                 save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
-                                 best_acc=max_acc, best_loss=min_loss,
-                                 total_steps=self.total_steps)
+                                     metrics=best_metrics,
+                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -702,7 +758,10 @@ class MLMModellingDP(MLMModelling):
                     epsilon=str(self.args.epsilon),
                     delta=str(self.args.delta),
                     epochs=self.args.epochs,
-                    lrs=all_lrs, accs=accuracies, loss=losses)
+                    lrs=all_lrs,
+                    f1=f1s,
+                    accs=accuracies,
+                    loss=losses)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -714,7 +773,7 @@ class MLMModellingDP(MLMModelling):
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
             self.save_model(
-                model=model,
+                model=model._module,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer
@@ -724,7 +783,8 @@ class MLMModellingDP(MLMModelling):
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None):
+                    eval_accuracies: List[dict] = None,
+                    eval_f1s: List[dict] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
         :param eval_accuracies: list of evaluation accuracies
@@ -743,9 +803,9 @@ class MLMModellingDP(MLMModelling):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-            data_loader=train_loader,
-            max_physical_batch_size=self.args.train_batch_size,
-            optimizer=optimizer
+                data_loader=train_loader,
+                max_physical_batch_size=self.args.train_batch_size,
+                optimizer=optimizer
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epochs}',
@@ -807,28 +867,53 @@ class MLMModellingDP(MLMModelling):
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
                     )
-                    eval_loss, eval_accuracy = self.evaluate(model, val_loader)
+                    eval_accuracy, eval_loss, eval_f1 = self.evaluate(model, val_loader)
                     print(
                         f"\n"
                         f"eval loss: {eval_loss} \t"
                         f"eval acc: {eval_accuracy}"
+                        f"eval f1: {eval_f1}"
                     )
-                    append_json(output_dir=self.metrics_dir, filename='eval_losses',
-                                data={'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    append_json(output_dir=self.metrics_dir, filename='accuracies',
-                                data={'epoch': epoch, 'step': step, 'acc': eval_accuracy})
 
-                    eval_losses.append({'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    eval_accuracies.append({'epoch': epoch, 'step': step, 'acc': eval_accuracy})
+                    current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='eval_losses',
+                        data={'epoch': epoch, 'step': step, 'score': eval_loss})
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='accuracies',
+                        data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                    append_json(
+                        output_dir=self.metrics_dir,
+                        filename='f1s',
+                        data={'epoch': epoch, 'step': step, 'score': eval_f1})
+
+                    eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
+                    eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                    eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
-                        self.save_model_at_step(model, epoch, step, eval_losses, eval_accuracies)
+                            step > 0 and (step % self.args.save_steps == 0)):
+                        best_metrics = get_metrics(
+                            freeze_layers_n_steps=self.args.freeze_layers_n_steps,
+                            losses=eval_losses,
+                            accuracies=eval_accuracies,
+                            f1s=eval_f1s
+                        )
+
+                        self.save_model_at_step(
+                            model=model._module,
+                            epoch=epoch,
+                            step=step,
+                            current_metrics=current_metrics,
+                            best_metrics=best_metrics
+                        )
                     model.train()
                 step += 1
 
         if self.eval_data:
-            return model, eval_losses, eval_accuracies, step, lrs
+            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s
         return model, step, lrs
 
     def set_up_training(self):
@@ -945,25 +1030,3 @@ class MLMModellingDP(MLMModelling):
                 param.requires_grad = True
         model.train()
         return model
-
-    @staticmethod
-    def save_model(model: GradSampleModule, output_dir: str, data_collator, tokenizer,
-                   step: str = ""):
-        """
-        Wrap model in trainer class and save to pytorch object
-        :param model: GradSampleModule to save
-        :param output_dir: model directory
-        :param data_collator:
-        :param tokenizer:
-        :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
-        """
-        output_dir = output_dir + step
-        trainer_test = Trainer(
-            model=model._module,
-            args=TrainingArguments(output_dir=output_dir),
-            data_collator=data_collator,
-            tokenizer=tokenizer
-        )
-        trainer_test.save_model(output_dir=output_dir)
-        torch.save(model._module.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
-        torch.save(model._module.state_dict(), os.path.join(output_dir, 'model_weights.json'))

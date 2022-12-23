@@ -26,7 +26,7 @@ from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
     get_metrics, save_key_metrics_sc
 from utils.helpers import TimeCode, append_json
-from utils.visualization import plot_running_results_sc
+from utils.visualization import plot_running_results
 
 
 class SequenceClassification:
@@ -127,7 +127,7 @@ class SequenceClassification:
             f1s = []
 
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, losses, accuracies, step, lrs = self.train_epoch(
+                model, step, lrs, losses, accuracies, f1s = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
                     optimizer=optimizer,
@@ -151,7 +151,7 @@ class SequenceClassification:
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
-                plot_running_results_sc(
+                plot_running_results(
                     output_dir=self.metrics_dir,
                     epochs=self.args.epochs, f1=f1s,
                     lrs=all_lrs, accs=accuracies, loss=losses)
@@ -173,9 +173,13 @@ class SequenceClassification:
             )
         self.model = model
 
-    def train_epoch(self, model: BertForSequenceClassification, train_loader: DataLoader,
-                    optimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None,
+    def train_epoch(self,
+                    model: BertForSequenceClassification,
+                    train_loader: DataLoader,
+                    optimizer, epoch: int = None,
+                    val_loader: DataLoader = None,
+                    step: int = 0,
+                    eval_losses: List[dict] = None,
                     eval_accuracies: List[dict] = None,
                     eval_f1s: List[dict] = None):
         """
@@ -195,7 +199,8 @@ class SequenceClassification:
         train_losses = []
         lrs = []
 
-        for batch in tqdm(train_loader, desc=f'Train epoch {epoch} of {self.args.epochs}',
+        for batch in tqdm(train_loader,
+                          desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
 
             if self.args.freeze_layers and step == 0:
@@ -250,10 +255,8 @@ class SequenceClassification:
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
-                # y_true, y_pred, eval_result = self.eval_model(model)
                 eval_accuracy, eval_f1, eval_loss = self.evaluate(
-                    model, val_loader
-                )
+                    model, val_loader)
 
                 print(
                     f"\n"
@@ -262,13 +265,19 @@ class SequenceClassification:
                     f"eval f1: {eval_f1}"
                 )
 
-                current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
-                append_json(output_dir=self.metrics_dir, filename='eval_losses',
+                current_metrics = {'loss': eval_loss,
+                                   'acc': eval_accuracy,
+                                   'f1': eval_f1}
+                append_json(output_dir=self.metrics_dir,
+                            filename='eval_losses',
                             data={'epoch': epoch, 'step': step, 'score': eval_loss})
-                append_json(output_dir=self.metrics_dir, filename='accuracies',
+                append_json(output_dir=self.metrics_dir,
+                            filename='accuracies',
                             data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                append_json(output_dir=self.metrics_dir, filename='f1s',
+                append_json(output_dir=self.metrics_dir,
+                            filename='f1s',
                             data={'epoch': epoch, 'step': step, 'score': eval_f1})
+
                 eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
                 eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
                 eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
@@ -290,7 +299,7 @@ class SequenceClassification:
                 model.train()
             step += 1
         if self.eval_data:
-            return model, eval_losses, eval_accuracies, step, lrs
+            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s
         return model, step, lrs
 
     def save_model_at_step(self, model, epoch, step,
@@ -713,7 +722,7 @@ class SequenceClassificationDP(SequenceClassification):
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
-                plot_running_results_sc(
+                plot_running_results(
                     output_dir=self.metrics_dir,
                     epsilon=str(self.args.epsilon),
                     delta=str(self.args.delta),

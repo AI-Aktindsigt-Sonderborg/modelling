@@ -74,17 +74,6 @@ def append_json(output_dir: str, data: dict, filename: str):
         json.dump(data, outfile)
         outfile.write('\n')
 
-
-def accuracy(preds: np.array, labels: np.array):
-    """
-    Compute accuracy on predictions and labels
-    :param preds: Predicted token
-    :param labels: Input labelled token
-    :return: Mean accuracy
-    """
-    return (preds == labels).mean()
-
-
 def save_json(output_dir: str, data: List[dict], filename: str):
     """
     Save list of dicts to json dump
@@ -121,26 +110,3 @@ def compute_metrics(eval_pred):
     metric = load_metric("accuracy")
     predictions = np.argmax(eval_pred.predictions, axis=1)
     return metric.compute(predictions=predictions, references=eval_pred.label_ids)
-
-
-def calc_f1_score(y_list, prediction_list, labels, conf_plot: bool = False,
-                  normalize: str = None):
-
-    if conf_plot:
-        conf_matrix = confusion_matrix(y_list, prediction_list, labels=labels,
-                                       normalize=normalize)
-        df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
-
-        plt.figure(figsize=(10, 7))
-        # plot_labels = ['Besk. og int.', 'Børn/unge', 'Erhverv', 'Klima/tek/miljø',
-        #                'Kultur/fritid',
-        #                'Social', 'Sundhed/ældre', 'Øko./adm', 'Øko./budget']
-        sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
-                   yticklabels=labels)
-        # plt.savefig('plots/svm_03_confplot.png')
-        plt.tight_layout()
-        plt.show()
-
-    return precision_recall_fscore_support(y_list, prediction_list, labels=labels,
-                                           average='micro'), \
-           f1_score(y_true=y_list, y_pred=prediction_list, labels=labels, average=None)

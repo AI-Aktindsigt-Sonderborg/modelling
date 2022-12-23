@@ -73,14 +73,17 @@ class MLMArgParser:
         model_params.add_argument(
             "--replace_head",
             type=lambda x: bool(strtobool(x)),
-            default=False,
-            help="Whether to replace bert head",
+            default=True,
+            help="Whether to replace bert head. True is mandatory for MLM with DP - "
+                 "Also set freeze_layers to true if replace_head is true",
             metavar='<bool>')
         model_params.add_argument(
             '-fe', "--freeze_embeddings",
             type=lambda x: bool(strtobool(x)),
             default=True,
-            help="Whether to freeze embeddings layer", metavar='<bool>')
+            help="Whether to freeze embeddings layer. Must be freezed for DP"
+                 " at the moment",
+            metavar='<bool>')
         model_params.add_argument(
             "--save_model_at_end",
             type=lambda x: bool(strtobool(x)),
@@ -151,9 +154,10 @@ class MLMArgParser:
         training_params.add_argument(
             "-fl", "--freeze_layers",
             type=lambda x: bool(strtobool(x)),
-            default=False,
+            default=True,
             metavar='<bool>',
-            help="whether to freeze all bert layers until freeze_layers_n_steps is reached")
+            help="whether to freeze all bert layers until freeze_layers_n_steps is reached."
+                 "True is mandatory for DP at the moment")
         training_params.add_argument(
             "-flns", "--freeze_layers_n_steps",
             type=int,
@@ -222,6 +226,13 @@ class MLMArgParser:
         eval_params.add_argument("--make_plots", type=lambda x: bool(strtobool(x)),
                                  default=True, metavar='<bool>',
                                  help="Whether to plot running learning rate, loss and accuracies")
+        eval_params.add_argument(
+            "--eval_metrics",
+            type=str,
+            nargs='*',
+            default=['loss', 'acc'],
+            metavar='<str>',
+            help="define eval metrics to evaluate best model")
 
     def add_dp_params(self):
         """
@@ -314,7 +325,9 @@ class SequenceModellingArgParser:
             "--freeze_embeddings",
             type=lambda x: bool(strtobool(x)),
             default=True,
-            help="Whether to freeze embeddings layer", metavar='<bool>')
+            help="Whether to freeze embeddings layer. Must be freezed for DP"
+                 " at the moment",
+            metavar='<bool>')
         model_params.add_argument(
             "--save_model_at_end",
             type=lambda x: bool(strtobool(x)),

@@ -72,7 +72,8 @@ def get_metrics(freeze_layers_n_steps,
     return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
 
 
-def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
+def save_key_metrics_mlm(output_dir: str, args,
+                         metrics: dict,
                          total_steps: int, filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
@@ -100,9 +101,8 @@ def save_key_metrics_mlm(output_dir: str, args, best_acc: dict, best_loss: dict,
                                 'lot_size': args.lot_size,
                                 'whole_word_mask': args.whole_word_mask,
                                 'train_data': args.train_data,
-                                'total_steps': total_steps},
-                               {'best_acc': best_acc},
-                               {'best_loss': best_loss}]}
+                                'total_steps': total_steps,
+                                'best_metrics': metrics}]}
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:
