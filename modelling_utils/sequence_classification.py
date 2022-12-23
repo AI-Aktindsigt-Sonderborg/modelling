@@ -26,7 +26,7 @@ from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
     get_metrics, save_key_metrics_sc
 from utils.helpers import TimeCode, append_json
-from utils.visualization import plot_running_results
+from utils.visualization import plot_running_results, plot_confusion_matrix
 
 
 class SequenceClassification:
@@ -35,7 +35,8 @@ class SequenceClassification:
 
     Attributes
     ----------
-    args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible arguments
+    args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for
+    possible arguments
 
     Methods
     -------
@@ -51,11 +52,8 @@ class SequenceClassification:
         Create dummy trainer, such that we get optimizer and can save model object
     tokenize_and_wrap_data(data):
         Tokenize dataset with tokenize_function and wrap with DatasetWrapper
-    load_data(train):
+    load_data(train, test):
         Load data using datasets.load_dataset for training and evaluation
-    load_model_and_replace_bert_head():
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
-
     Static methods
     --------------
     get_data_collator
@@ -80,6 +78,7 @@ class SequenceClassification:
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.train_data = None
         self.eval_data = None
+        self.test_data = None
         self.model = None
         self.local_alvenir_model_path = None
         self.label2id, self.id2label = self.label2id2label()
@@ -88,16 +87,13 @@ class SequenceClassification:
             names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
-            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name)
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.local_alvenir_model_path,
-                local_files_only=self.args.load_alvenir_pretrained)
+            self.model_path = os.path.join(MODEL_DIR, self.args.model_name)
         else:
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.args.model_name,
-                local_files_only=self.args.load_alvenir_pretrained)
+            self.model_path = self.args.model_name
 
+        self.tokenizer = self.get_tokenizer
         self.data_collator = self.get_data_collator
+
         self.scheduler = None
         # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
@@ -117,8 +113,6 @@ class SequenceClassification:
 
         if self.eval_data:
             eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            # self.eval_data_test = self.tokenize_eval_data(self.eval_data)
-
             eval_loader = DataLoader(dataset=eval_data_wrapped,
                                      collate_fn=self.data_collator,
                                      batch_size=self.args.eval_batch_size)
@@ -209,22 +203,22 @@ class SequenceClassification:
             if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                 model = self.unfreeze_layers(model)
                 # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                self.scheduler = create_scheduler(optimizer,
-                                                  start_factor=(self.args.learning_rate
-                                                                / self.args.lr_freezed)
-                                                               / self.args.lr_warmup_steps,
-                                                  end_factor=self.args.learning_rate
-                                                             / self.args.lr_freezed,
-                                                  total_iters=self.args.lr_warmup_steps)
+                self.scheduler = create_scheduler(
+                    optimizer,
+                    start_factor=(self.args.learning_rate / self.args.lr_freezed)
+                                 / self.args.lr_warmup_steps,
+                    end_factor=self.args.learning_rate / self.args.lr_freezed,
+                    total_iters=self.args.lr_warmup_steps)
 
             if step == self.args.lr_start_decay:
-                self.scheduler = create_scheduler(optimizer,
-                                                  start_factor=1,
-                                                  end_factor=self.args.learning_rate / (
-                                                      self.total_steps - step),
-                                                  total_iters=self.total_steps - step
-                                                  )
-            append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                self.scheduler = create_scheduler(
+                    optimizer,
+                    start_factor=1,
+                    end_factor=self.args.learning_rate / (self.total_steps - step),
+                    total_iters=self.total_steps - step)
+
+            append_json(output_dir=self.metrics_dir,
+                        filename='learning_rates',
                         data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
             lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
@@ -241,7 +235,8 @@ class SequenceClassification:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
+            if step % self.args.logging_steps == 0 \
+                    and not step % self.args.evaluate_steps == 0:
                 print(
                     f"\n\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -278,12 +273,15 @@ class SequenceClassification:
                             filename='f1s',
                             data={'epoch': epoch, 'step': step, 'score': eval_f1})
 
-                eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
-                eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
+                eval_losses.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_loss})
+                eval_accuracies.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                eval_f1s.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
-                    step > 0 and (step % self.args.save_steps == 0)):
+                        step > 0 and (step % self.args.save_steps == 0)):
                     best_metrics = get_metrics(
                         freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                         losses=eval_losses,
@@ -332,7 +330,8 @@ class SequenceClassification:
                                 tokenizer=self.tokenizer,
                                 step='/best_model')
 
-    def evaluate(self, model, val_loader: DataLoader) -> tuple:
+    def evaluate(self, model, val_loader: DataLoader,
+                 conf_plot: bool = False) -> tuple:
         """
         :param model:
         :param val_loader:
@@ -342,7 +341,7 @@ class SequenceClassification:
         # set up preliminaries
         model.eval()
         model.to(self.args.device)
-        y_true, y_pred, loss = np.empty([]), np.empty([]), np.empty([])
+        y_true, y_pred, loss = [], [], []
 
         # get model predictions and labels
         for batch in tqdm(val_loader, unit="batch", desc="val"):
@@ -358,14 +357,24 @@ class SequenceClassification:
             batch_labels = batch["labels"].cpu().numpy()
             batch_loss = output.loss.item()
 
-            y_true = np.append(y_true, batch_labels)
-            y_pred = np.append(y_pred, batch_preds)
-            loss = np.append(loss, batch_loss)
+            y_true.extend(list(batch_labels))
+            y_pred.extend(list(batch_preds))
+            loss.append(batch_loss)
 
         # calculate metrics of interest
-        acc = accuracy_score(y_true.astype(int), y_pred.astype(int))
-        f_1 = f1_score(y_true.astype(int), y_pred.astype(int), average='macro')
+        acc = accuracy_score(y_true, y_pred)
+        f_1 = f1_score(y_true, y_pred, average='macro')
         loss = np.mean(loss)
+
+        if conf_plot:
+            y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
+            y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
+
+            plot_confusion_matrix(
+                y_true=y_true_plot,
+                y_pred=y_pred_plot,
+                labels=self.args.labels,
+                model_name=self.args.model_name)
 
         return (acc, f_1, loss)
 
@@ -385,31 +394,19 @@ class SequenceClassification:
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
-        if self.args.load_alvenir_pretrained:
-            model = BertForSequenceClassification.from_pretrained(
-                self.local_alvenir_model_path,
-                num_labels=len(self.args.labels),
-                label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
-        else:
-            model = BertForSequenceClassification.from_pretrained(
-                self.args.model_name,
-                num_labels=len(self.args.labels),
-                label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
+        model = self.get_model
 
         if self.args.freeze_embeddings:
-            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-            #  grad sampler - as this is not implemented in opacus
+            # ToDo: For now we are freezing embedding layer until (maybe) we have
+            #  implemented grad sampler - as this is not implemented in opacus
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
 
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
+        train_loader = DataLoader(dataset=train_data_wrapped,
+                                  batch_size=self.args.train_batch_size,
                                   collate_fn=self.data_collator,
                                   shuffle=True)
 
@@ -418,21 +415,26 @@ class SequenceClassification:
         # optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
 
         if self.args.freeze_layers:
-            self.scheduler = create_scheduler(optimizer,
-                                              start_factor=self.args.lr_freezed /
-                                                           self.args.lr_freezed_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_freezed_warmup_steps)
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=self.args.lr_freezed / self.args.lr_freezed_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_freezed_warmup_steps)
         else:
-            self.scheduler = create_scheduler(optimizer,
-                                              start_factor=self.args.learning_rate /
-                                                           self.args.lr_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_warmup_steps)
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=self.args.learning_rate / self.args.lr_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_warmup_steps)
 
         return model, optimizer, train_loader
 
     def tokenize_and_wrap_data(self, data: Dataset):
+        """
+        Method to tokenize and wrap data needed for DataLoader
+        @param data: Dataset
+        @return: Wrapped, tokenized dataset
+        """
         tokenized = data.map(
             self.tokenize,
             batched=True,
@@ -447,6 +449,11 @@ class SequenceClassification:
         return wrapped
 
     def tokenize(self, batch):
+        """
+        Tokenize each batch in dataset
+        @param batch: batch of data
+        @return: tokens for each batch
+        """
         batch['text'] = [
             line for line in batch['text'] if len(line) > 0 and not line.isspace()
         ]
@@ -458,15 +465,17 @@ class SequenceClassification:
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
 
-    def load_data(self, train: bool = True):
+    def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
         :param train: Whether to train model
+        :param test: Whether to load test data
         """
         if train:
-            self.train_data = load_dataset('json',
-                                           data_files=os.path.join(DATA_DIR, self.args.train_data),
-                                           split='train')
+            self.train_data = load_dataset(
+                'json',
+                data_files=os.path.join(DATA_DIR, self.args.train_data),
+                split='train')
             self.total_steps = int(
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
             self.args.total_steps = self.total_steps
@@ -475,12 +484,19 @@ class SequenceClassification:
                 self.args.delta = 1 / len(self.train_data)
 
         if self.args.evaluate_during_training:
-            self.eval_data = load_dataset('json',
-                                          data_files=os.path.join(DATA_DIR, self.args.eval_data),
-                                          split='train')
+            self.eval_data = load_dataset(
+                'json',
+                data_files=os.path.join(DATA_DIR, self.args.eval_data),
+                split='train')
+
+        if test:
+            self.test_data = load_dataset(
+                'json',
+                data_files=os.path.join(DATA_DIR, self.args.test_data),
+                split='train')
 
     def label2id2label(self):
-        label2id, id2label = dict(), dict()
+        label2id, id2label = {}, {}
 
         for i, label in enumerate(self.args.labels):
             label2id[label] = str(i)
@@ -490,10 +506,11 @@ class SequenceClassification:
     def compute_lr_automatically(self):
 
         if self.args.freeze_layers:
-            self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
+            self.args.lr_freezed_warmup_steps = \
+                int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
-        self.args.lr_warmup_steps = int(
-            np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
+        self.args.lr_warmup_steps = \
+            int(np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
         self.args.lr_start_decay = int(
             np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
                     0.5 + self.args.freeze_layers_n_steps))
@@ -527,13 +544,23 @@ class SequenceClassification:
         )
 
     @property
-    def get_data_collator(self):
-        """
-        Based on word mask load corresponding data collator
-        :return: DataCollator
-        """
+    def get_tokenizer(self):
+        return AutoTokenizer.from_pretrained(
+            self.model_path,
+            local_files_only=self.args.load_alvenir_pretrained)
 
+    @property
+    def get_data_collator(self):
         return DataCollatorWithPadding(tokenizer=self.tokenizer)
+
+    @property
+    def get_model(self):
+        return BertForSequenceClassification.from_pretrained(
+            self.model_path,
+            num_labels=len(self.args.labels),
+            label2id=self.label2id,
+            id2label=self.id2label,
+            local_files_only=self.args.load_alvenir_pretrained)
 
     @staticmethod
     def freeze_layers(model):
@@ -657,10 +684,6 @@ class SequenceClassificationDP(SequenceClassification):
             Get current learning rate from optimizer
         save_key_metrics(output_dir, args, best_acc, best_loss, filename)
             Save important args and performance for benchmarking
-        save_json(output_dir, data, filename)
-            Save list of dicts to json dump
-        accuracy(preds, labels)
-            Compute accuracy on predictions and labels
         create_scheduler(optimizer, start_factor, end_factor, total_iters)
             Create scheduler for learning rate warmup and decay
         """
@@ -669,7 +692,8 @@ class SequenceClassificationDP(SequenceClassification):
         super().__init__(args)
 
         self.privacy_engine = None
-        self.output_name = f'DP-eps-{int(self.args.epsilon)}-{self.args.model_name.replace("/", "_")}-' \
+        self.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
+                           f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
@@ -770,12 +794,13 @@ class SequenceClassificationDP(SequenceClassification):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-            data_loader=train_loader,
-            max_physical_batch_size=self.args.train_batch_size,
-            optimizer=optimizer
+                data_loader=train_loader,
+                max_physical_batch_size=self.args.train_batch_size,
+                optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epochs}',
+            for batch in tqdm(memory_safe_data_loader,
+                              desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
 
                 if self.args.freeze_layers and step == 0:
@@ -784,31 +809,31 @@ class SequenceClassificationDP(SequenceClassification):
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=(self.args.learning_rate
-                                                                    / self.args.lr_freezed)
-                                                                   / self.args.lr_warmup_steps,
-                                                      end_factor=self.args.learning_rate
-                                                                 / self.args.lr_freezed,
-                                                      total_iters=self.args.lr_warmup_steps)
+                    self.scheduler = create_scheduler(
+                        optimizer,
+                        start_factor=(self.args.learning_rate / self.args.lr_freezed)
+                                     / self.args.lr_warmup_steps,
+                        end_factor=self.args.learning_rate / self.args.lr_freezed,
+                        total_iters=self.args.lr_warmup_steps)
 
                 if step == self.args.lr_start_decay:
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=1,
-                                                      end_factor=self.args.learning_rate /
-                                                                 (self.total_steps - step),
-                                                      total_iters=self.total_steps -
-                                                                  self.args.lr_start_decay)
+                    self.scheduler = create_scheduler(
+                        optimizer,
+                        start_factor=1,
+                        end_factor=self.args.learning_rate / (self.total_steps - step),
+                        total_iters=self.total_steps - self.args.lr_start_decay)
 
-                append_json(output_dir=self.metrics_dir, filename='learning_rates',
+                append_json(output_dir=self.metrics_dir,
+                            filename='learning_rates',
                             data={'epoch': epoch, 'step': step,
                                   'lr': get_lr(optimizer)[0]})
                 lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
                 # compute models
-                output = model(input_ids=batch["input_ids"].to(self.args.device),
-                               attention_mask=batch["attention_mask"].to(self.args.device),
-                               labels=batch["labels"].to(self.args.device))
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device))
 
                 loss = output.loss
                 loss.backward()
@@ -818,7 +843,8 @@ class SequenceClassificationDP(SequenceClassification):
                 optimizer.zero_grad()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
+                if step % self.args.logging_steps == 0 \
+                        and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -842,7 +868,10 @@ class SequenceClassificationDP(SequenceClassification):
                         f"eval f1: {eval_f1}"
                     )
 
-                    current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
+                    current_metrics = {
+                        'loss': eval_loss,
+                        'acc': eval_accuracy,
+                        'f1': eval_f1}
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='eval_losses',
@@ -856,12 +885,15 @@ class SequenceClassificationDP(SequenceClassification):
                         filename='f1s',
                         data={'epoch': epoch, 'step': step, 'score': eval_f1})
 
-                    eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
-                    eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                    eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
+                    eval_losses.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_loss})
+                    eval_accuracies.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                    eval_f1s.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
+                            step > 0 and (step % self.args.save_steps == 0)):
                         best_metrics = get_metrics(
                             freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                             losses=eval_losses,
@@ -898,20 +930,8 @@ class SequenceClassificationDP(SequenceClassification):
 
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
-        if self.args.load_alvenir_pretrained:
-            model = BertForSequenceClassification.from_pretrained(
-                self.local_alvenir_model_path,
-                num_labels=len(self.args.labels),
-                label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
-        else:
-            model = BertForSequenceClassification.from_pretrained(
-                self.args.model_name,
-                num_labels=len(self.args.labels),
-                label2id=self.label2id,
-                id2label=self.id2label,
-                local_files_only=self.args.load_alvenir_pretrained)
+        model = self.get_model
+
         # ToDo: For now we are freezing embedding layer until (maybe)
         #  we have implemented grad sampler -
         #  as this is not implemented in opacus
@@ -961,15 +981,16 @@ class SequenceClassificationDP(SequenceClassification):
             model.parameters(),
             lr=self.args.learning_rate)
 
-        dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            epochs=self.args.epochs,
-            target_epsilon=self.args.epsilon,
-            target_delta=self.args.delta,
-            max_grad_norm=self.args.max_grad_norm
-        )
+        dp_model, dp_optimizer, dp_train_loader = \
+            self.privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                epochs=self.args.epochs,
+                target_epsilon=self.args.epsilon,
+                target_delta=self.args.delta,
+                max_grad_norm=self.args.max_grad_norm
+            )
 
         return dp_model, dp_optimizer, dp_train_loader
 

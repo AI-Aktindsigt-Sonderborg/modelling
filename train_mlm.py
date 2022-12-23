@@ -5,7 +5,7 @@ from modelling_utils.input_args import MLMArgParser
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
 
-if not (args.replace_head == True and args.freeze_layers == True):
+if args.replace_head == True and args.freeze_layers == False:
     print(mlm_parser.parser._option_string_actions['--replace_head'].help)
     print('exiting - try again')
     mlm_parser.parser.exit()

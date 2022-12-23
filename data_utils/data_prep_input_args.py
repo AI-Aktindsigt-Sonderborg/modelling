@@ -32,16 +32,28 @@ class DataPrepArgParser:
         self.parser.add_argument(
             '--split',
             type=float,
-            default=0.98,metavar='<float>',
-                                 help='training set size between 0 and 1')
-        self.parser.add_argument('--add_ppl', type=lambda x: bool(strtobool(x)), default=True,
-                                 help='whether or not to add ppl_score to unique sentences',
-                                 metavar='<bool>')
-        self.parser.add_argument('--ppl_threshold', type=int, default=10000, metavar='<int>',
-                                 help='ppl_threshold for approving sentences')
-        self.parser.add_argument('--train_outfile', type=str, metavar='<str>',
-                                 default='train', help="Name of final training data file")
-        self.parser.add_argument('-stnt', '--split_train_n_times', type=int, metavar='<int>',
+            default=0.98, metavar='<float>',
+            help='training set size between 0 and 1')
+        self.parser.add_argument(
+            '--add_ppl',
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            help='whether or not to add ppl_score to unique sentences',
+            metavar='<bool>')
+        self.parser.add_argument(
+            '--ppl_threshold',
+            type=int,
+            default=10000,
+            metavar='<int>',
+            help='ppl_threshold for approving sentences')
+        self.parser.add_argument(
+            '--train_outfile',
+            type=str,
+            metavar='<str>',
+            default='train',
+            help="Name of final training data file")
+        self.parser.add_argument(
+            '-stnt', '--split_train_n_times', type=int, metavar='<int>',
                                  default=0, help="Split train set n times into n+1 training sets")
         self.parser.add_argument('--val_outfile', type=str, metavar='<str>',
                                  default='validation', help="Name of final validation data file")

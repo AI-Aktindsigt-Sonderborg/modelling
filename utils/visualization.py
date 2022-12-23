@@ -1,6 +1,9 @@
 import os
 
+import pandas as pd
+import seaborn as sn
 from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix
 
 
 def plot_running_results(
@@ -53,3 +56,26 @@ def plot_running_results(
     ax4.plot(losses_steps, losses, 'green')
     ax4.set(ylabel='loss', xlabel='step')
     plt.savefig(file_path)
+
+
+def plot_confusion_matrix(
+        y_true,
+        y_pred,
+        labels,
+        model_name: str,
+        normalize: str = 'true',
+        save_fig: bool = True):
+
+    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
+                                   normalize=normalize)
+    df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
+
+    plt.figure(figsize=(10, 7))
+    sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
+               yticklabels=labels)
+
+    plt.tight_layout()
+    if save_fig:
+        plt.savefig(f'plots/conf_plot_{model_name.replace("/", "_")}')
+    else:
+        plt.show()

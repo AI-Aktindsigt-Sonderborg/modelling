@@ -1,35 +1,43 @@
-from data_utils.custom_dataclasses import LoadModelType
-from local_constants import DATA_DIR
-from modelling_utils.supervised_text_modelling import SupervisedTextModelling
+from torch.utils.data import DataLoader
 
-MODEL_NAME = 'last_model_all_data'
-# MODEL_NAME = 'last_model-2022-12-16_21-55-28'
-# MODEL_NAME = 'last_model-2022-12-21_10-53-25/best_model'
-# MODEL_NAME = 'NbAiLab/nb-sbert-base'
+from modelling_utils.input_args import SequenceModellingArgParser
+from modelling_utils.sequence_classification import SequenceClassification
 
-label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1, 'Erhverv og turisme': 2,
-              'Klima, teknik og miljø': 3, 'Kultur og fritid': 4, 'Socialområdet': 5,
+sc_parser = SequenceModellingArgParser()
+
+label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1,
+              'Erhverv og turisme': 2, 'Klima, teknik og miljø': 3,
+              'Kultur og fritid': 4, 'Socialområdet': 5,
               'Sundhed og ældre': 6, 'Økonomi og administration': 7}
 
 LABELS = list(label_dict)
 
-supervised_text_modelling = SupervisedTextModelling(
-    labels=LABELS,
-    data_dir=DATA_DIR,
-    model_name=MODEL_NAME,
-    load_model_type=LoadModelType.EVAL,
-    alvenir_pretrained=True)
+args = sc_parser.parser.parse_args()
 
-y_true, y_pred, eval_result = supervised_text_modelling.eval_model()
+args.model_name = 'sarnikowski/convbert-small-da-cased'
+# args.model_name = 'last_model-2022-12-16_21-55-28'
+args.labels = LABELS
+args.evaluate_during_training = False
+args.load_alvenir_pretrained = False
+args.device = 'cpu'
+args.test_data = 'test_local.json'
 
-acc, f_score, f1 = supervised_text_modelling.calc_f1_score(
-    y_list=y_true,
-    prediction_list=y_pred,
-    labels=LABELS,
-    conf_plot=True,
-    normalize='true',
-    model_name=MODEL_NAME.replace('/', '_'))
+modelling = SequenceClassification(args)
+
+modelling.load_data(train=False, test=True)
+
+test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.test_data)
+test_loader = DataLoader(dataset=test_data_wrapped,
+                         collate_fn=modelling.data_collator,
+                         batch_size=modelling.args.eval_batch_size)
+
+model = modelling.get_model
+
+acc, f_1, loss = modelling.evaluate(
+    model=model,
+    val_loader=test_loader,
+    conf_plot=True)
 
 print(acc)
-print(f_score)
-print(f1)
+print(f_1)
+print(loss)

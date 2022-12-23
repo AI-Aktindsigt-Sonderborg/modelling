@@ -178,7 +178,8 @@ class MLMModelling:
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing validation data
+        :param val_loader: If evaluate_during_training: DataLoader containing
+        validation data
         :param step: Given step
         :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
         else: return model, step, lrs
@@ -197,7 +198,8 @@ class MLMModelling:
 
             if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                 model = self.unfreeze_layers(model)
-                # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
+                # ToDo: Below operation only works if lr is lower than lr_freezed:
+                #  fix this
                 self.scheduler = create_scheduler(optimizer,
                                                   start_factor=(self.args.learning_rate
                                                                 / self.args.lr_freezed)
@@ -230,7 +232,8 @@ class MLMModelling:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
+            if step % self.args.logging_steps == 0 \
+                    and not step % self.args.evaluate_steps == 0:
                 print(
                     f"\n\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -268,9 +271,12 @@ class MLMModelling:
                             filename='f1s',
                             data={'epoch': epoch, 'step': step, 'score': eval_f1})
 
-                eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
-                eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
+                eval_losses.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_loss})
+                eval_accuracies.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                eval_f1s.append(
+                    {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
                         step > 0 and (step % self.args.save_steps == 0)):
@@ -351,7 +357,8 @@ class MLMModelling:
             labels_flat = labels.flatten()
             preds_flat = preds.flatten()
 
-            # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.
+            # We ignore tokens with value "-100" as these are padding tokens
+            # set by the tokenizer.
             # See nn.CrossEntropyLoss(): ignore_index for more information
             filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
 
@@ -414,22 +421,25 @@ class MLMModelling:
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
 
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.train_batch_size,
+        train_loader = DataLoader(dataset=train_data_wrapped,
+                                  batch_size=self.args.train_batch_size,
                                   collate_fn=self.data_collator)
 
         optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
-            self.scheduler = create_scheduler(optimizer,
-                                              start_factor=self.args.lr_freezed /
-                                                           self.args.lr_freezed_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_freezed_warmup_steps)
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=self.args.lr_freezed /
+                             self.args.lr_freezed_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_freezed_warmup_steps)
         else:
-            self.scheduler = create_scheduler(optimizer,
-                                              start_factor=self.args.learning_rate /
-                                                           self.args.lr_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_warmup_steps)
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=self.args.learning_rate /
+                             self.args.lr_warmup_steps,
+                end_factor=1,
+                total_iters=self.args.lr_warmup_steps)
 
         return model, optimizer, train_loader
 
@@ -450,8 +460,6 @@ class MLMModelling:
             learning_rate=learning_rate_init,
             weight_decay=self.args.weight_decay,
             fp16=self.args.use_fp16,
-            # do_train=True
-            # warmup_steps=self.args.lr_warmup_steps,
             # lr_scheduler_type='polynomial' # bert use linear scheduling
         )
 
@@ -511,9 +519,11 @@ class MLMModelling:
         :param train: Whether to train model
         """
         if train:
-            self.train_data = load_dataset('json',
-                                           data_files=os.path.join(DATA_DIR, self.args.train_data),
-                                           split='train')
+            self.train_data = load_dataset(
+                'json',
+                data_files=os.path.join(DATA_DIR, self.args.train_data),
+                split='train')
+
             self.total_steps = int(
                 len(self.train_data) / self.args.train_batch_size * self.args.epochs)
             self.args.total_steps = self.total_steps
@@ -522,9 +532,10 @@ class MLMModelling:
                 self.args.delta = 1 / len(self.train_data)
 
         if self.args.evaluate_during_training:
-            self.eval_data = load_dataset('json',
-                                          data_files=os.path.join(DATA_DIR, self.args.eval_data),
-                                          split='train')
+            self.eval_data = load_dataset(
+                'json',
+                data_files=os.path.join(DATA_DIR, self.args.eval_data),
+                split='train')
 
     def load_model_and_replace_bert_head(self):
         """
@@ -546,7 +557,8 @@ class MLMModelling:
     def compute_lr_automatically(self):
 
         if self.args.freeze_layers:
-            self.args.lr_freezed_warmup_steps = int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
+            self.args.lr_freezed_warmup_steps = \
+                int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
         self.args.lr_warmup_steps = int(
             np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
@@ -781,7 +793,8 @@ class MLMModellingDP(MLMModelling):
         self.model = model
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-                    optimizer: DPOptimizer, epoch: int = None, val_loader: DataLoader = None,
+                    optimizer: DPOptimizer, epoch: int = None,
+                    val_loader: DataLoader = None,
                     step: int = 0, eval_losses: List[dict] = None,
                     eval_accuracies: List[dict] = None,
                     eval_f1s: List[dict] = None):
@@ -808,7 +821,8 @@ class MLMModellingDP(MLMModelling):
                 optimizer=optimizer
         ) as memory_safe_data_loader:
 
-            for batch in tqdm(memory_safe_data_loader, desc=f'Epoch {epoch} of {self.args.epochs}',
+            for batch in tqdm(memory_safe_data_loader,
+                              desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
 
                 if self.args.freeze_layers and step == 0:
@@ -817,31 +831,31 @@ class MLMModellingDP(MLMModelling):
                 if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
                     model = self.unfreeze_layers(model)
                     # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=(self.args.learning_rate
-                                                                    / self.args.lr_freezed)
-                                                                   / self.args.lr_warmup_steps,
-                                                      end_factor=self.args.learning_rate
-                                                                 / self.args.lr_freezed,
-                                                      total_iters=self.args.lr_warmup_steps)
+                    self.scheduler = create_scheduler(
+                        optimizer,
+                        start_factor=(self.args.learning_rate / self.args.lr_freezed)
+                                     / self.args.lr_warmup_steps,
+                        end_factor=self.args.learning_rate / self.args.lr_freezed,
+                        total_iters=self.args.lr_warmup_steps)
 
                 if step == self.args.lr_start_decay:
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=1,
-                                                      end_factor=self.args.learning_rate /
-                                                                 (self.total_steps - step),
-                                                      total_iters=self.total_steps -
-                                                                  self.args.lr_start_decay)
+                    self.scheduler = create_scheduler(
+                        optimizer,
+                        start_factor=1,
+                        end_factor=self.args.learning_rate / (self.total_steps - step),
+                        total_iters=self.total_steps - self.args.lr_start_decay)
 
-                append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                            data={'epoch': epoch, 'step': step,
-                                  'lr': get_lr(optimizer)[0]})
+                append_json(
+                    output_dir=self.metrics_dir,
+                    filename='learning_rates',
+                    data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
                 lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
                 # compute models
-                output = model(input_ids=batch["input_ids"].to(self.args.device),
-                               attention_mask=batch["attention_mask"].to(self.args.device),
-                               labels=batch["labels"].to(self.args.device))
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device))
 
                 loss = output.loss
                 loss.backward()
@@ -851,7 +865,8 @@ class MLMModellingDP(MLMModelling):
                 optimizer.zero_grad()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
+                if step % self.args.logging_steps == 0 \
+                        and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -875,7 +890,9 @@ class MLMModellingDP(MLMModelling):
                         f"eval f1: {eval_f1}"
                     )
 
-                    current_metrics = {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
+                    current_metrics = \
+                        {'loss': eval_loss, 'acc': eval_accuracy, 'f1': eval_f1}
+
                     append_json(
                         output_dir=self.metrics_dir,
                         filename='eval_losses',
@@ -889,9 +906,12 @@ class MLMModellingDP(MLMModelling):
                         filename='f1s',
                         data={'epoch': epoch, 'step': step, 'score': eval_f1})
 
-                    eval_losses.append({'epoch': epoch, 'step': step, 'score': eval_loss})
-                    eval_accuracies.append({'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                    eval_f1s.append({'epoch': epoch, 'step': step, 'score': eval_f1})
+                    eval_losses.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_loss})
+                    eval_accuracies.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_accuracy})
+                    eval_f1s.append(
+                        {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
                             step > 0 and (step % self.args.save_steps == 0)):
@@ -953,7 +973,8 @@ class MLMModellingDP(MLMModelling):
             else:
                 model = BertForMaskedLM.from_pretrained(self.args.model_name)
 
-        train_loader = DataLoader(dataset=train_data_wrapped, batch_size=self.args.lot_size,
+        train_loader = DataLoader(dataset=train_data_wrapped,
+                                  batch_size=self.args.lot_size,
                                   collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
@@ -992,15 +1013,16 @@ class MLMModellingDP(MLMModelling):
         # new opacus version requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
 
-        dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            epochs=self.args.epochs,
-            target_epsilon=self.args.epsilon,
-            target_delta=self.args.delta,
-            max_grad_norm=self.args.max_grad_norm
-        )
+        dp_model, dp_optimizer, dp_train_loader = \
+            self.privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                epochs=self.args.epochs,
+                target_epsilon=self.args.epsilon,
+                target_delta=self.args.delta,
+                max_grad_norm=self.args.max_grad_norm
+            )
 
         return dp_model, dp_optimizer, dp_train_loader
 

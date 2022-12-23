@@ -298,6 +298,13 @@ class SequenceModellingArgParser:
             default='eval_classified.json',
             metavar='<str>',
             help="validation data file name")
+        data_params.add_argument(
+            "--test_data",
+            type=str,
+            default='test_classified.json',
+            metavar='<str>',
+            help="test data file name")
+
 
     def add_model_params(self):
         """
