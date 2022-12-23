@@ -14,7 +14,7 @@ LABELS = list(label_dict)
 
 args = sc_parser.parser.parse_args()
 
-args.model_name = 'sarnikowski/convbert-small-da-cased'
+# args.model_name = 'sarnikowski/convbert-small-da-cased'
 # args.model_name = 'last_model-2022-12-16_21-55-28'
 args.labels = LABELS
 args.evaluate_during_training = False
