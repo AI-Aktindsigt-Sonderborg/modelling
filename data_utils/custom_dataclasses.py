@@ -8,7 +8,7 @@ import torch
 class PredictionOutput:
     prediction: str = None
     logits: torch.Tensor = None
-    softmax: {} = None
+    softmax: dict = None
     class_ids: int = None
 
 

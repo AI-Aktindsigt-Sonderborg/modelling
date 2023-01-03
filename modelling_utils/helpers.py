@@ -60,16 +60,30 @@ def get_metrics(freeze_layers_n_steps,
     max_f1 = None
 
     if losses is not None:
-        min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps],
-                       key=lambda x: x['score'])
+        min_loss = get_best_metric(data=losses, threshold=freeze_layers_n_steps, max_better=False)
+        # min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
     if accuracies is not None:
-        max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps],
-                      key=lambda x: x['score'])
+        max_acc = get_best_metric(data=accuracies, threshold=freeze_layers_n_steps)
+        # max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
     if f1s is not None:
-        max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps],
-                     key=lambda x: x['score'])
+        max_f1 = get_best_metric(data=f1s, threshold=freeze_layers_n_steps)
+        # max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
 
     return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
+
+def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):
+    """
+    Return best metric at step higher than threshold
+    @param data: metric data
+    @param threshold: Get only best metric above threshold
+    @param max_better: True if higher is better
+    @return: The best metric score
+    """
+
+    if max_better:
+        return max([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
+
+    return min([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
 
 
 def save_key_metrics_mlm(output_dir: str, args,

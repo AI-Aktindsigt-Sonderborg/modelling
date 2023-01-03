@@ -645,7 +645,7 @@ class SequenceClassification:
 
 class SequenceClassificationDP(SequenceClassification):
     """
-        Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
+        Class inherited from SequenceClassification to train an unsupervised MLM model with
         differential privacy
 
         Attributes
@@ -839,7 +839,6 @@ class SequenceClassificationDP(SequenceClassification):
                 loss.backward()
                 train_losses.append(loss.item())
                 optimizer.step()
-                # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
                 optimizer.zero_grad()
                 self.scheduler.step()
 
@@ -1015,7 +1014,6 @@ class SequenceClassificationDP(SequenceClassification):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            # ToDo: Fix this
             if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
         model.train()

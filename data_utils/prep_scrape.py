@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import itertools
 import json
@@ -57,7 +58,7 @@ class RawScrapePreprocessing:
     data_preprocessor.from_raw_to_train_val()
     """
 
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace):
         self.args = args
         self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
         self.model_id = 'pere/norwegian-gpt2'
@@ -167,7 +168,6 @@ class RawScrapePreprocessing:
 
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and filter by word count
-                                    # ToDo: add function
                                     dump_data = self.create_dump_data(data=data_dict,
                                                                       sentence_counter=i,
                                                                       sentence=sentence, seen=seen,
@@ -178,7 +178,7 @@ class RawScrapePreprocessing:
                                         approved_sentences.append(1)
                                         unique_approved.append(1)
                                     else:
-                                        if not len(final_sentence.strip()) == 0:
+                                        if final_sentence.strip():
                                             disapproved_sentences.append(
                                                 f'{filename.split("_")[0]} - {data_dict["id"]} - '
                                                 f'{i} - {final_sentence}')
@@ -373,7 +373,7 @@ class ClassifiedScrapePreprocessing:
     Class to read raw excel file with classified KL categories and split to train and validation data
     """
 
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace):
         self.args = args
 
     def read_xls_save_json(self, file_dir: str = CLASS_DATA_DIR,
@@ -433,10 +433,10 @@ class ClassifiedScrapePreprocessing:
         :param test_outfile: if test_outfile specified generate test set
         :return:
         """
-
+        # ToDo: Change to assert
         if not (train_outfile and test_outfile):
             print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
-            return print('At least train_outfile and test_outfile ')
+            return print('At least train_outfile and test_outfile must be specified')
 
         if not train_size and not test_size:
             print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
@@ -487,6 +487,7 @@ class ClassifiedScrapePreprocessing:
 
 
 if __name__ == '__main__':
+
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     prep_args.add_ppl = False
