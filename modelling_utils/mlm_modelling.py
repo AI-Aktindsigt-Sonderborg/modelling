@@ -340,7 +340,7 @@ class MLMModelling:
         if not next(model.parameters()).is_cuda:
             model = model.to(self.args.device)
 
-        y_true, y_pred, loss = np.empty([]), np.empty([]), np.empty([])
+         y_true, y_pred, loss = [], [], []
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         for batch in tqdm(val_loader, unit="batch", desc="Eval"):
@@ -365,18 +365,15 @@ class MLMModelling:
             batch_labels = np.array([x[0] for x in filtered]).astype(int)
             batch_preds = np.array([x[1] for x in filtered]).astype(int)
 
-            y_true = np.append(y_true, batch_labels)
-            y_pred = np.append(y_pred, batch_preds)
-            loss = np.append(loss, batch_loss)
-
+            y_true.extend(list(batch_labels))
+            y_pred.extend(list(batch_preds))
+            loss.append(batch_loss)
+          
         # calculate metrics of interest
-        acc = accuracy_score(y_true.astype(int),
-                             y_pred.astype(int))
-        f_1 = f1_score(y_true.astype(int),
-                       y_pred.astype(int),
-                       average='macro')
+        acc = accuracy_score(y_true, y_pred)
+        f_1 = f1_score(y_true, y_pred, average='macro')
         loss = np.mean(loss)
-
+        
         return (acc, f_1, loss)
 
     def set_up_training(self):
