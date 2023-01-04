@@ -65,13 +65,10 @@ def get_metrics(freeze_layers_n_steps,
 
     if losses:
         min_loss = get_best_metric(data=losses, threshold=freeze_layers_n_steps, max_better=False)
-        # min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
     if accuracies:
         max_acc = get_best_metric(data=accuracies, threshold=freeze_layers_n_steps)
-        # max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
     if f1s:
         max_f1 = get_best_metric(data=f1s, threshold=freeze_layers_n_steps)
-        # max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
 
     return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
 
