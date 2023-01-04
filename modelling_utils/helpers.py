@@ -53,7 +53,7 @@ def get_metrics(freeze_layers_n_steps,
     :param losses: List[dict] of all losses computed by evaluate()
     :param accuracies: List[dict] of all accuracies computed by evaluate()
     :param freeze_layers_n_steps: only get the best performance after model is un-freezed
-    :return: Best metric for loss, accuracy and f1
+    :return: The best metric for loss, accuracy and f1
     """
     min_loss = None
     max_acc = None

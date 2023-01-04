@@ -11,6 +11,14 @@ class PredictionOutput:
     softmax: dict = None
     class_ids: int = None
 
+@dataclass
+class EvalScore:
+    epoch: int = None
+    step: int = None
+    loss: float = None
+    accuracy: float = None
+    f_1: dict = None
+
 
 class DataType(Enum):
     TRAIN = 'train.json'
