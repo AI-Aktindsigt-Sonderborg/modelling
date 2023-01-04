@@ -104,10 +104,10 @@ class MLMModelling:
         step = 0
 
         if self.eval_data:
-            eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                     collate_fn=self.data_collator,
-                                     batch_size=self.args.eval_batch_size)
+            _, eval_loader = self.create_data_loader(
+                data=self.eval_data,
+                batch_size=self.args.eval_batch_size,
+                shuffle=False)
             losses = []
             accuracies = []
             f1s = []
@@ -146,6 +146,7 @@ class MLMModelling:
                     loss=losses)
 
         else:
+            # Training without evaluation
             for epoch in tqdm(range(self.args.epochs),
                               desc="Epoch", unit="epoch"):
                 model, step, lrs = self.train_epoch(
@@ -212,7 +213,7 @@ class MLMModelling:
                 self.scheduler = create_scheduler(optimizer,
                                                   start_factor=1,
                                                   end_factor=self.args.learning_rate / (
-                                                          self.total_steps - step),
+                                                      self.total_steps - step),
                                                   total_iters=self.total_steps - step
                                                   )
             append_json(output_dir=self.metrics_dir, filename='learning_rates',
@@ -233,7 +234,7 @@ class MLMModelling:
             self.scheduler.step()
 
             if step % self.args.logging_steps == 0 \
-                    and not step % self.args.evaluate_steps == 0:
+                and not step % self.args.evaluate_steps == 0:
                 print(
                     f"\n\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -279,7 +280,7 @@ class MLMModelling:
                     {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
+                    step > 0 and (step % self.args.save_steps == 0)):
                     best_metrics = get_metrics(
                         freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                         losses=eval_losses,
@@ -340,7 +341,7 @@ class MLMModelling:
         if not next(model.parameters()).is_cuda:
             model = model.to(self.args.device)
 
-         y_true, y_pred, loss = [], [], []
+        y_true, y_pred, loss = [], [], []
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         for batch in tqdm(val_loader, unit="batch", desc="Eval"):
@@ -368,12 +369,12 @@ class MLMModelling:
             y_true.extend(list(batch_labels))
             y_pred.extend(list(batch_preds))
             loss.append(batch_loss)
-          
+
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
         loss = np.mean(loss)
-        
+
         return (acc, f_1, loss)
 
     def set_up_training(self):
@@ -390,7 +391,9 @@ class MLMModelling:
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
                              args=self.args)
 
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+        train_data_wrapped, train_loader = self.create_data_loader(
+            data=self.train_data,
+            batch_size=self.args.train_batch_size)
 
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
@@ -418,9 +421,9 @@ class MLMModelling:
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
 
-        train_loader = DataLoader(dataset=train_data_wrapped,
-                                  batch_size=self.args.train_batch_size,
-                                  collate_fn=self.data_collator)
+        # train_loader = DataLoader(dataset=train_data_wrapped,
+        #                           batch_size=self.args.train_batch_size,
+        #                           collate_fn=self.data_collator)
 
         optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
@@ -468,6 +471,15 @@ class MLMModelling:
             data_collator=self.data_collator,
             tokenizer=self.tokenizer
         )
+
+    def create_data_loader(self, data: Dataset, batch_size: int,
+                           shuffle: bool = True) -> tuple:
+        data_wrapped = self.tokenize_and_wrap_data(data=data)
+        data_loader = DataLoader(dataset=data_wrapped,
+                                 collate_fn=self.data_collator,
+                                 batch_size=batch_size,
+                                 shuffle=shuffle)
+        return data_wrapped, data_loader
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -729,10 +741,10 @@ class MLMModellingDP(MLMModelling):
         step = 0
 
         if self.eval_data:
-            eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                     collate_fn=self.data_collator,
-                                     batch_size=self.args.eval_batch_size)
+            _, eval_loader = self.create_data_loader(
+                data=self.eval_data,
+                batch_size=self.args.eval_batch_size,
+                shuffle=False)
             losses = []
             accuracies = []
             f1s = []
@@ -813,9 +825,9 @@ class MLMModellingDP(MLMModelling):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-                data_loader=train_loader,
-                max_physical_batch_size=self.args.train_batch_size,
-                optimizer=optimizer
+            data_loader=train_loader,
+            max_physical_batch_size=self.args.train_batch_size,
+            optimizer=optimizer
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader,
@@ -863,7 +875,7 @@ class MLMModellingDP(MLMModelling):
                 self.scheduler.step()
 
                 if step % self.args.logging_steps == 0 \
-                        and not step % self.args.evaluate_steps == 0:
+                    and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -911,7 +923,7 @@ class MLMModellingDP(MLMModelling):
                         {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
-                            step > 0 and (step % self.args.save_steps == 0)):
+                        step > 0 and (step % self.args.save_steps == 0)):
                         best_metrics = get_metrics(
                             freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                             losses=eval_losses,
@@ -947,6 +959,10 @@ class MLMModellingDP(MLMModelling):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
                              args=self.args)
 
+        train_data_wrapped, train_loader = self.create_data_loader(
+            data=self.train_data,
+            batch_size=self.args.lot_size)
+
         train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.load_alvenir_pretrained:
@@ -969,10 +985,6 @@ class MLMModellingDP(MLMModelling):
                 model = self.load_model_and_replace_bert_head()
             else:
                 model = BertForMaskedLM.from_pretrained(self.args.model_name)
-
-        train_loader = DataLoader(dataset=train_data_wrapped,
-                                  batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
             train_loader=train_loader,

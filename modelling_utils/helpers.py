@@ -52,24 +52,28 @@ def get_metrics(freeze_layers_n_steps,
     :param f1s: List[dict] of all f1 scores computed by evaluate()
     :param losses: List[dict] of all losses computed by evaluate()
     :param accuracies: List[dict] of all accuracies computed by evaluate()
-    :param freeze_layers_n_steps: only get best performance after model is un-freezed
+    :param freeze_layers_n_steps: only get the best performance after model is un-freezed
     :return: Best metric for loss, accuracy and f1
     """
     min_loss = None
     max_acc = None
     max_f1 = None
 
-    if losses is not None:
+    # if not [x for x in losses if x['step'] > freeze_layers_n_steps]:
+    #     return
+
+    if losses:
         min_loss = get_best_metric(data=losses, threshold=freeze_layers_n_steps, max_better=False)
         # min_loss = min([x for x in losses if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
-    if accuracies is not None:
+    if accuracies:
         max_acc = get_best_metric(data=accuracies, threshold=freeze_layers_n_steps)
         # max_acc = max([x for x in accuracies if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
-    if f1s is not None:
+    if f1s:
         max_f1 = get_best_metric(data=f1s, threshold=freeze_layers_n_steps)
         # max_f1 = max([x for x in f1s if x['step'] > freeze_layers_n_steps], key=lambda x: x['score'])
 
     return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
+
 
 def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):
     """
@@ -79,11 +83,13 @@ def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):
     @param max_better: True if higher is better
     @return: The best metric score
     """
+    try:
+        if max_better:
+            return max([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
 
-    if max_better:
-        return max([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
-
-    return min([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
+        return min([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
+    except:
+        return None
 
 
 def save_key_metrics_mlm(output_dir: str, args,
@@ -138,23 +144,23 @@ def save_key_metrics_sc(
     :param filename: output filename
     :return:
     """
-    metrics = {'key_metrics': [{'output_name': args.output_name,
-                                'lr': args.learning_rate,
-                                'epochs': args.epochs,
-                                'train_batch_size': args.train_batch_size,
-                                'eval_batch_size': args.eval_batch_size,
-                                'max_length': args.max_length,
-                                'lr_warmup_steps': args.lr_warmup_steps,
-                                'freeze_layers_n_steps': args.freeze_layers_n_steps,
-                                'lr_freezed': args.lr_freezed,
-                                'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
-                                'dp': args.differential_privacy,
-                                'epsilon': args.epsilon,
-                                'delta': args.delta,
-                                'lot_size': args.lot_size,
-                                'train_data': args.train_data,
-                                'total_steps': total_steps,
-                                'best_metrics': metrics}]}
+    metrics = {'output_name': args.output_name,
+               'lr': args.learning_rate,
+               'epochs': args.epochs,
+               'train_batch_size': args.train_batch_size,
+               'eval_batch_size': args.eval_batch_size,
+               'max_length': args.max_length,
+               'lr_warmup_steps': args.lr_warmup_steps,
+               'freeze_layers_n_steps': args.freeze_layers_n_steps,
+               'lr_freezed': args.lr_freezed,
+               'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
+               'dp': args.differential_privacy,
+               'epsilon': args.epsilon,
+               'delta': args.delta,
+               'lot_size': args.lot_size,
+               'train_data': args.train_data,
+               'total_steps': total_steps,
+               'best_metrics': metrics}
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:

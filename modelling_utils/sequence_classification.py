@@ -112,10 +112,11 @@ class SequenceClassification:
         step = 0
 
         if self.eval_data:
-            eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                     collate_fn=self.data_collator,
-                                     batch_size=self.args.eval_batch_size)
+            _, eval_loader = self.create_data_loader(
+                data=self.eval_data,
+                batch_size=self.args.eval_batch_size,
+                shuffle=False)
+
             losses = []
             accuracies = []
             f1s = []
@@ -236,7 +237,7 @@ class SequenceClassification:
             self.scheduler.step()
 
             if step % self.args.logging_steps == 0 \
-                    and not step % self.args.evaluate_steps == 0:
+                and not step % self.args.evaluate_steps == 0:
                 print(
                     f"\n\tTrain Epoch: {epoch} \t"
                     f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -281,7 +282,7 @@ class SequenceClassification:
                     {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                 if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
+                    step > 0 and (step % self.args.save_steps == 0)):
                     best_metrics = get_metrics(
                         freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                         losses=eval_losses,
@@ -376,7 +377,7 @@ class SequenceClassification:
                 labels=self.args.labels,
                 model_name=self.args.model_name)
 
-        return (acc, f_1, loss)
+        return acc, f_1, loss
 
     def set_up_training(self):
         """
@@ -389,10 +390,12 @@ class SequenceClassification:
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+            self.save_config(output_dir=self.output_dir,
+                             metrics_dir=self.metrics_dir,
                              args=self.args)
-
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+        train_data_wrapped, train_loader = self.create_data_loader(
+            data=self.train_data,
+            batch_size=self.args.train_batch_size)
 
         model = self.get_model
 
@@ -404,11 +407,6 @@ class SequenceClassification:
 
         dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
                                                   model=model)
-
-        train_loader = DataLoader(dataset=train_data_wrapped,
-                                  batch_size=self.args.train_batch_size,
-                                  collate_fn=self.data_collator,
-                                  shuffle=True)
 
         # ToDo: Notice change of optimizer here
         optimizer = dummy_trainer.create_optimizer()
@@ -428,6 +426,15 @@ class SequenceClassification:
                 total_iters=self.args.lr_warmup_steps)
 
         return model, optimizer, train_loader
+
+    def create_data_loader(self, data: Dataset, batch_size: int,
+                           shuffle: bool = True) -> tuple:
+        data_wrapped = self.tokenize_and_wrap_data(data=data)
+        data_loader = DataLoader(dataset=data_wrapped,
+                                 collate_fn=self.data_collator,
+                                 batch_size=batch_size,
+                                 shuffle=shuffle)
+        return data_wrapped, data_loader
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -712,10 +719,11 @@ class SequenceClassificationDP(SequenceClassification):
         step = 0
 
         if self.eval_data:
-            eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                     collate_fn=self.data_collator,
-                                     batch_size=self.args.eval_batch_size)
+            _, eval_loader = self.create_data_loader(
+                data=self.eval_data,
+                batch_size=self.args.eval_batch_size,
+                shuffle=False)
+
             losses = []
             accuracies = []
             f1s = []
@@ -794,9 +802,9 @@ class SequenceClassificationDP(SequenceClassification):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-                data_loader=train_loader,
-                max_physical_batch_size=self.args.train_batch_size,
-                optimizer=optimizer
+            data_loader=train_loader,
+            max_physical_batch_size=self.args.train_batch_size,
+            optimizer=optimizer
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader,
@@ -843,7 +851,7 @@ class SequenceClassificationDP(SequenceClassification):
                 self.scheduler.step()
 
                 if step % self.args.logging_steps == 0 \
-                        and not step % self.args.evaluate_steps == 0:
+                    and not step % self.args.evaluate_steps == 0:
                     print(
                         f"\tTrain Epoch: {epoch} \t"
                         f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
@@ -892,7 +900,7 @@ class SequenceClassificationDP(SequenceClassification):
                         {'epoch': epoch, 'step': step, 'score': eval_f1})
 
                     if self.args.save_steps is not None and (
-                            step > 0 and (step % self.args.save_steps == 0)):
+                        step > 0 and (step % self.args.save_steps == 0)):
                         best_metrics = get_metrics(
                             freeze_layers_n_steps=self.args.freeze_layers_n_steps,
                             losses=eval_losses,
@@ -927,7 +935,9 @@ class SequenceClassificationDP(SequenceClassification):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
                              args=self.args)
 
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
+        train_data_wrapped, train_loader = self.create_data_loader(
+            data=self.train_data,
+            batch_size=self.args.lot_size)
 
         model = self.get_model
 
@@ -937,11 +947,6 @@ class SequenceClassificationDP(SequenceClassification):
         if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
-
-        train_loader = DataLoader(dataset=train_data_wrapped,
-                                  batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator,
-                                  shuffle=True)
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
             train_loader=train_loader,

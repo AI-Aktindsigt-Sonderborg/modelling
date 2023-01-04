@@ -433,14 +433,13 @@ class ClassifiedScrapePreprocessing:
         :param test_outfile: if test_outfile specified generate test set
         :return:
         """
-        # ToDo: Change to assert
-        if not (train_outfile and test_outfile):
-            print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
-            return print('At least train_outfile and test_outfile must be specified')
+        assert train_outfile and test_outfile, \
+            '\n At least train_outfile and test_outfile must be specified - see doc: \n' + \
+            ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
-        if not train_size and not test_size:
-            print(ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__)
-            return print('Either train or test size must be specified')
+        assert not train_size and not test_size, \
+            'Either train or test size must be specified - see doc: \n' + \
+            ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
         if train_outfile and test_size and not val_outfile:
             train_test = [train_test_split(x, test_size=test_size, random_state=1) for x in
