@@ -338,7 +338,7 @@ class SequenceClassification:
         :param val_loader:
         :return: mean loss, accuracy-score, f1-score
         """
-
+        # ToDo: Change return to EvalScore like in MLM
         # set up preliminaries
         model.eval()
         model.to(self.args.device)

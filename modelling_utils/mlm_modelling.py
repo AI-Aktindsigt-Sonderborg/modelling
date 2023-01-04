@@ -115,7 +115,7 @@ class MLMModelling:
             f1s = []
             eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs, losses, accuracies, f1s = self.train_epoch(
+                model, step, lrs, losses, accuracies, f1s, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
                     optimizer=optimizer,
@@ -299,7 +299,7 @@ class MLMModelling:
                 model.train()
             step += 1
         if self.eval_data:
-            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s
+            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s, eval_scores
         return model, step, lrs
 
     def save_model_at_step(self, model, epoch, step,
@@ -911,6 +911,12 @@ class MLMModellingDP(MLMModelling):
 
                     current_metrics = {'loss': eval_score.loss, 'acc': eval_score.accuracy, 'f1': eval_score.f_1}
 
+
+                    append_json(output_dir=self.metrics_dir,
+                                filename='eval_scores',
+                                data=dataclasses.asdict(eval_score))
+
+                    # ToDo: Finish EvalScore such that below is not needed
                     eval_losses.append(
                         {'epoch': epoch, 'step': step, 'score': eval_score.loss})
                     eval_accuracies.append(
