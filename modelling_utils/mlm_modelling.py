@@ -7,7 +7,7 @@ import shutil
 import sys
 from datetime import datetime
 from typing import List
-
+from dataclasses import field, fields
 import numpy as np
 import torch
 from datasets import load_dataset
@@ -26,7 +26,7 @@ from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_metrics, \
-    save_key_metrics_mlm
+    save_key_metrics_mlm, log_train_metrics, log_train_metrics_dp
 from utils.helpers import TimeCode, append_json
 from utils.visualization import plot_running_results
 
@@ -237,37 +237,18 @@ class MLMModelling:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0 \
-                    and not step % self.args.evaluate_steps == 0:
-                print(
-                    f"\n\tTrain Epoch: {epoch} \t"
-                    f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                    f"Loss: {np.mean(train_losses):.6f} "
-                )
+            if step % self.args.logging_steps == 0:
+                log_train_metrics(epoch, step,
+                                  get_lr(optimizer)[0],
+                                  np.mean(train_losses))
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
-                print(
-                    f"\tTrain Epoch: {epoch} \t"
-                    f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                    f"Loss: {np.mean(train_losses):.6f} "
-                )
 
                 eval_score = self.evaluate(
                     model=model,
                     val_loader=val_loader)
                 eval_score.step = step
                 eval_score.epoch = epoch
-
-                print(
-                    f"\n"
-                    f"eval loss: {eval_score.loss} \t"
-                    f"eval acc: {eval_score.accuracy}\t"
-                    f"eval f1: {eval_score.f_1}"
-                )
-
-                current_metrics = {'loss': eval_score.loss,
-                                   'acc': eval_score.accuracy,
-                                   'f1': eval_score.f_1}
 
                 append_json(output_dir=self.metrics_dir,
                             filename='eval_scores',
@@ -294,7 +275,7 @@ class MLMModelling:
                         model=model,
                         epoch=epoch,
                         step=step,
-                        current_metrics=current_metrics,
+                        current_metrics=eval_score,
                         best_metrics=best_metrics)
                 model.train()
             step += 1
@@ -303,7 +284,7 @@ class MLMModelling:
         return model, step, lrs
 
     def save_model_at_step(self, model, epoch, step,
-                           current_metrics: dict,
+                           current_metrics: EvalScore,
                            best_metrics: dict):
         """
         Save model at step and overwrite best_model if the model
@@ -314,6 +295,9 @@ class MLMModelling:
         :param epoch: Current epoch
         :param step: Current step
         """
+        current_metrics = dataclasses.asdict(current_metrics)
+
+
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
@@ -376,6 +360,13 @@ class MLMModelling:
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
         loss = float(np.mean(loss))
+
+        print(
+            f"\n"
+            f"eval loss: {loss} \t"
+            f"eval acc: {acc}"
+            f"eval f1: {f_1}"
+        )
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
@@ -874,43 +865,25 @@ class MLMModellingDP(MLMModelling):
                 loss.backward()
                 train_losses.append(loss.item())
                 optimizer.step()
-                # ToDo: Consider zero grad after optimizer.step? see test_mlm line 647
                 optimizer.zero_grad()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0 \
-                        and not step % self.args.evaluate_steps == 0:
-                    print(
-                        f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                        f"Loss: {np.mean(train_losses):.6f} "
-                    )
+                if step % self.args.logging_steps == 0:
+                    log_train_metrics_dp(epoch, step,
+                                         get_lr(optimizer)[0],
+                                         np.mean(train_losses),
+                                         self.privacy_engine.get_epsilon(self.args.delta),
+                                         self.args.delta)
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 
-                    print(
-                        f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                        f"Loss: {np.mean(train_losses):.6f} "
-                        f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
-                        f"δ = {self.args.delta})"
-                    )
                     eval_score = self.evaluate(
                         model=model,
                         val_loader=val_loader)
                     eval_score.step = step
                     eval_score.epoch = epoch
 
-                    # eval_accuracy, eval_loss, eval_f1 = self.evaluate(model, val_loader)
-                    print(
-                        f"\n"
-                        f"eval loss: {eval_score.loss} \t"
-                        f"eval acc: {eval_score.accuracy}"
-                        f"eval f1: {eval_score.f_1}"
-                    )
-
                     current_metrics = {'loss': eval_score.loss, 'acc': eval_score.accuracy, 'f1': eval_score.f_1}
-
 
                     append_json(output_dir=self.metrics_dir,
                                 filename='eval_scores',
@@ -1058,7 +1031,6 @@ class MLMModellingDP(MLMModelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            # ToDo: Fix this
             if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
         model.train()

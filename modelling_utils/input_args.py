@@ -258,7 +258,7 @@ class MLMArgParser:
             "--eval_metrics",
             type=str,
             nargs='*',
-            default=['loss', 'acc'],
+            default=['loss', 'accuracy'],
             metavar='<str>',
             help="define eval metrics to evaluate best model")
 

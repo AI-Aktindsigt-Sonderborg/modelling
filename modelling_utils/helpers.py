@@ -70,7 +70,20 @@ def get_metrics(freeze_layers_n_steps,
     if f1s:
         max_f1 = get_best_metric(data=f1s, threshold=freeze_layers_n_steps)
 
-    return {'loss': min_loss, 'acc': max_acc, 'f1': max_f1}
+    return {'loss': min_loss, 'accuracy': max_acc, 'f_1': max_f1}
+
+def log_train_metrics(epoch, step, lr, loss):
+    print(f"\tTrain Epoch: {epoch} \t"
+        f"Step: {step} \t LR: {lr}\t"
+        f"Loss: {loss:.6f} ")
+
+def log_train_metrics_dp(epoch, step, lr, loss, eps, delta):
+    print(
+        f"\tTrain Epoch: {epoch} \t"
+        f"Step: {step} \t LR: {lr}\t"
+        f"Loss: {loss:.6f} "
+        f"(ε = {eps:.2f}, "
+        f"δ = {delta})")
 
 
 def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):
