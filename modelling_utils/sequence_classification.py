@@ -400,8 +400,6 @@ class SequenceClassification:
         model = self.get_model
 
         if self.args.freeze_embeddings:
-            # ToDo: For now we are freezing embedding layer until (maybe) we have
-            #  implemented grad sampler - as this is not implemented in opacus
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
@@ -941,9 +939,6 @@ class SequenceClassificationDP(SequenceClassification):
 
         model = self.get_model
 
-        # ToDo: For now we are freezing embedding layer until (maybe)
-        #  we have implemented grad sampler -
-        #  as this is not implemented in opacus
         if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
@@ -952,7 +947,6 @@ class SequenceClassificationDP(SequenceClassification):
             train_loader=train_loader,
             model=model)
 
-        # ToDo: finish head warmup lr
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(
                 dp_optimizer,

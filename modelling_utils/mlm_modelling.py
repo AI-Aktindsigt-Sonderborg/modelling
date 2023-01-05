@@ -7,7 +7,7 @@ import shutil
 import sys
 from datetime import datetime
 from typing import List
-from dataclasses import field, fields
+
 import numpy as np
 import torch
 from datasets import load_dataset
@@ -15,6 +15,7 @@ from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
@@ -398,8 +399,6 @@ class MLMModelling:
             lm_head = new_head.to(self.args.device)
             model.cls = lm_head
 
-            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-            #  grad sampler - as this is not implemented in opacus
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
 
@@ -549,8 +548,6 @@ class MLMModelling:
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
 
-        # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-        #  grad sampler - as this is not implemented in opacus
         if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
@@ -965,7 +962,6 @@ class MLMModellingDP(MLMModelling):
             train_loader=train_loader,
             model=model)
 
-        # ToDo: finish head warmup lr
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(
                 dp_optimizer,
@@ -1005,9 +1001,10 @@ class MLMModellingDP(MLMModelling):
                 epochs=self.args.epochs,
                 target_epsilon=self.args.epsilon,
                 target_delta=self.args.delta,
-                max_grad_norm=self.args.max_grad_norm
+                max_grad_norm=self.args.max_grad_norm,
+                grad_sample_mode="hooks"
             )
-
+        self.privacy_engine.get_epsilon(self.args.delta)
         return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
