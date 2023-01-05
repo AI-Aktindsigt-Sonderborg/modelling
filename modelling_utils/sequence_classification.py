@@ -486,7 +486,7 @@ class SequenceClassification:
             self.args.total_steps = self.total_steps
 
             if self.args.compute_delta:
-                self.args.delta = 1 / len(self.train_data)
+                self.args.delta = 1 / (2*len(self.train_data))
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset(
