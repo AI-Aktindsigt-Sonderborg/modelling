@@ -101,6 +101,18 @@ def read_jsonlines(input_dir: str, filename: str):
     return data
 
 
+def read_json(filepath: str):
+    """
+    read json file to list of dicts
+    :param input_dir: directory to read file from
+    :param filename: input file name
+    """
+    data = []
+    with open(filepath, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    return data
+
+
 def compute_metrics(eval_pred):
     """
     Computes accuracy on a batch of predictions

@@ -85,13 +85,9 @@ class MLMModelling:
         self.eval_data = None
         self.model = None
         self.local_alvenir_model_path = None
-        if self.args.load_alvenir_pretrained:
-            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name,
-                                                         'best_model')
-            self.tokenizer = AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
-        else:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
-        self.data_collator = self.get_data_collator
+        self.tokenizer = self.get_tokenizer()
+
+        self.data_collator = self.get_data_collator()
         self.scheduler = None
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
@@ -565,7 +561,14 @@ class MLMModelling:
             np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
                     0.5 + self.args.freeze_layers_n_steps))
 
-    @property
+    def get_tokenizer(self):
+        if self.args.load_alvenir_pretrained:
+            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name,
+                                                         'best_model')
+            return AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
+
     def get_data_collator(self):
         """
         Based on word mask load corresponding data collator

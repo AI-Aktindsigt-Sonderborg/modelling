@@ -91,8 +91,8 @@ class SequenceClassification:
         else:
             self.model_path = self.args.model_name
 
-        self.tokenizer = self.get_tokenizer
-        self.data_collator = self.get_data_collator
+        self.tokenizer = self.get_tokenizer()
+        self.data_collator = self.get_data_collator()
 
         self.scheduler = None
         # ToDo: Experiment with freezing layers - see SPRIN-159
@@ -548,13 +548,11 @@ class SequenceClassification:
             tokenizer=self.tokenizer
         )
 
-    @property
     def get_tokenizer(self):
         return AutoTokenizer.from_pretrained(
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
-    @property
     def get_data_collator(self):
         return DataCollatorWithPadding(tokenizer=self.tokenizer)
 
