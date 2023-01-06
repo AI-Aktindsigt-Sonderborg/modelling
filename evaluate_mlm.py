@@ -7,7 +7,7 @@ from transformers import BertConfig
 from modelling_utils.custom_modeling_bert import BertForMaskedLM, BertOnlyMLMHeadCustom
 from modelling_utils.mlm_modelling import MLMModelling
 from modelling_utils.input_args import MLMArgParser
-
+# sat til true pga noget huggingface key
 os.environ["WANDB_DISABLED"] = "true"
 
 if __name__ == '__main__':

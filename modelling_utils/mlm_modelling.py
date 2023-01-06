@@ -469,7 +469,6 @@ class MLMModelling:
         tokenized = data.map(
             tokenize_function,
             batched=True,
-            # num_proc=1,
             remove_columns=data.column_names,
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
