@@ -28,6 +28,7 @@ def all_metrics_to_csv():
             if 'best_metrics' in data.keys():
                 data['loss'] = data['best_metrics']['loss']['score']
                 data['acc'] = data['best_metrics']['acc']['score']
+                print(model_name)
                 data['f_1'] = data['best_metrics']['f1']['score']
 
                 data.pop('best_metrics', None)

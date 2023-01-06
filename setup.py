@@ -17,6 +17,11 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
     print("Create data dir!")
 
+if not os.path.exists('metadata'):
+    # Create a new directory because it does not exist
+    os.makedirs('metadata')
+    print("Create metadata dir!")
+
 if not os.path.exists(MODEL_DIR):
     # Create a new directory because it does not exist
     os.makedirs(MODEL_DIR)
