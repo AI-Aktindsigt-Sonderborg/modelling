@@ -32,11 +32,6 @@ def all_metrics_to_csv():
 
                 data.pop('best_metrics', None)
 
-
-                print()
-
-
-
             all_data.append(data)
 
 
@@ -46,22 +41,5 @@ def all_metrics_to_csv():
 
 all_metrics_to_csv()
 
-# def init_file():
-#     for model_name in os.listdir(MODEL_DIR):
-#         metrics_file = os.path.join(MODEL_DIR, model_name, 'metrics', 'key_metrics.json')
-#         if os.path.isfile(metrics_file):
-#             data = read_json(metrics_file)
-#             key_names_1 = list(data['key_metrics'][0].keys())
-#             key_names_1.remove('output_name')
-#             key_names_1.remove('best_metrics')
-#
-#
-#             key_names_2 = list(data['key_metrics'][0]['best_metrics'].keys())
-#
-#             header = 'model_name' + '\t' + '\t'.join(key_names_2) + '\t' + '\t'.join(key_names_1)
-#
-#             with open('metadata/model_metrics.csv', 'w', encoding='utf-8') as file:
-#                 file.write(header)
-#             break
 
 
