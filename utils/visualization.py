@@ -1,18 +1,19 @@
 import os
+from typing import List
 
 import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 
+from data_utils.custom_dataclasses import EvalScore
+
 
 def plot_running_results(
         output_dir: str,
         epochs: int,
+        metrics: List[EvalScore],
         lrs,
-        accs,
-        loss,
-        f1,
         epsilon: str = "",
         delta: str = ""):
     """
@@ -29,17 +30,23 @@ def plot_running_results(
     file_path = os.path.join(output_dir, 'results')
     title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
     plt.ioff()
+
+    metric_steps = [x.step for x in metrics]
+    accuracies = [x.accuracy for x in metrics]
+    losses = [x.loss for x in metrics]
+    f_1s = [x.f_1 for x in metrics]
+
     learning_rate_steps = [int(x['step']) for x in lrs]
     learning_rates = [x['lr'] for x in lrs]
 
-    accuracy_steps = [int(x['step']) for x in accs]
-    accuracies = [x['score'] for x in accs]
+    # accuracy_steps = [int(x['step']) for x in accs]
+    # accuracies = [x['score'] for x in accs]
 
-    losses_steps = [int(x['step']) for x in loss]
-    losses = [x['score'] for x in loss]
+    # losses_steps = [int(x['step']) for x in loss]
+    # losses = [x['score'] for x in loss]
 
-    f1_steps = [int(x['step']) for x in f1]
-    f1s = [x['score'] for x in f1]
+    # f1_steps = [int(x['step']) for x in f1]
+    # f1s = [x['score'] for x in f1]
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle(title, fontsize=14)
@@ -47,14 +54,15 @@ def plot_running_results(
     ax1.plot(learning_rate_steps, learning_rates)
     ax1.set(ylabel='learning rate')
 
-    ax2.plot(accuracy_steps, accuracies, 'orange')
+    ax2.plot(metric_steps, accuracies, 'orange')
     ax2.set(ylabel='accuracy')
 
-    ax3.plot(f1_steps, f1s, 'red')
+    ax3.plot(metric_steps, f_1s, 'red')
     ax3.set(ylabel='f1', xlabel='step')
 
-    ax4.plot(losses_steps, losses, 'green')
+    ax4.plot(metric_steps, losses, 'green')
     ax4.set(ylabel='loss', xlabel='step')
+    plt.tight_layout()
     plt.savefig(file_path)
 
 

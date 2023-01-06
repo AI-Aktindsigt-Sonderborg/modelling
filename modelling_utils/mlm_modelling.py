@@ -107,34 +107,26 @@ class MLMModelling:
                 data=self.eval_data,
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
-            losses = []
-            accuracies = []
-            f1s = []
             eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs, losses, accuracies, f1s, eval_scores = self.train_epoch(
+                model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
                     optimizer=optimizer,
                     val_loader=eval_loader,
                     epoch=epoch + 1,
                     step=step,
-                    eval_losses=losses,
-                    eval_accuracies=accuracies,
-                    eval_f1s=f1s,
                     eval_scores=eval_scores)
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                best_metrics = get_metrics(
-                    losses=losses,
-                    accuracies=accuracies,
-                    f1s=f1s,
-                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
+                best_metrics, _ = get_metrics(
+                    eval_scores=eval_scores,
+                    eval_metrics=self.args.eval_metrics)
 
                 save_key_metrics_mlm(output_dir=self.metrics_dir,
                                      args=self.args,
-                                     metrics=best_metrics,
+                                     best_metrics=best_metrics,
                                      total_steps=self.total_steps)
 
             if self.args.make_plots:
@@ -142,9 +134,7 @@ class MLMModelling:
                     output_dir=self.metrics_dir,
                     epochs=self.args.epochs,
                     lrs=all_lrs,
-                    accs=accuracies,
-                    f1=f1s,
-                    loss=losses)
+                    metrics=eval_scores)
 
         else:
             # Training without evaluation
@@ -169,9 +159,7 @@ class MLMModelling:
 
     def train_epoch(self, model: BertForMaskedLM, train_loader: DataLoader,
                     optimizer, epoch: int = None, val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None,
-                    eval_f1s: List[dict] = None, eval_scores: List[EvalScore] = None):
+                    step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch
         :param eval_accuracies:
@@ -214,7 +202,7 @@ class MLMModelling:
                 self.scheduler = create_scheduler(optimizer,
                                                   start_factor=1,
                                                   end_factor=self.args.learning_rate / (
-                                                          self.total_steps - step),
+                                                      self.total_steps - step),
                                                   total_iters=self.total_steps - step
                                                   )
             append_json(output_dir=self.metrics_dir, filename='learning_rates',
@@ -252,37 +240,26 @@ class MLMModelling:
                             data=dataclasses.asdict(eval_score))
                 eval_scores.append(eval_score)
 
-                eval_losses.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_score.loss})
-                eval_accuracies.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_score.accuracy})
-                eval_f1s.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_score.f_1})
-
                 if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
-                    best_metrics = get_metrics(
-                        freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                        losses=eval_losses,
-                        accuracies=eval_accuracies,
-                        f1s=eval_f1s
-                    )
+                    step > self.args.freeze_layers_n_steps and
+                    (step % self.args.save_steps == 0)):
+                    _, save_best_model = get_metrics(
+                        eval_scores=eval_scores,
+                        eval_metrics=self.args.eval_metrics)
 
                     self.save_model_at_step(
                         model=model,
                         epoch=epoch,
                         step=step,
-                        current_metrics=eval_score,
-                        best_metrics=best_metrics)
+                        save_best_model=save_best_model)
                 model.train()
             step += 1
         if self.eval_data:
-            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s, eval_scores
+            return model, step, lrs, eval_scores
         return model, step, lrs
 
     def save_model_at_step(self, model, epoch, step,
-                           current_metrics: EvalScore,
-                           best_metrics: dict):
+                           save_best_model: bool):
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
@@ -292,26 +269,18 @@ class MLMModelling:
         :param epoch: Current epoch
         :param step: Current step
         """
-        current_metrics = dataclasses.asdict(current_metrics)
-
 
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
-        if step > self.args.freeze_layers_n_steps:
-            save_best_model = True
-            for metric in self.args.eval_metrics:
-                if best_metrics[metric]['score'] != current_metrics[metric]:
-                    save_best_model = False
-                    break
 
-            if save_best_model:
-                self.save_model(model, output_dir=self.output_dir,
-                                data_collator=self.data_collator,
-                                tokenizer=self.tokenizer,
-                                step='/best_model')
+        if save_best_model:
+            self.save_model(model, output_dir=self.output_dir,
+                            data_collator=self.data_collator,
+                            tokenizer=self.tokenizer,
+                            step='/best_model')
 
     def evaluate(self, model, val_loader: DataLoader):
         """
@@ -567,7 +536,7 @@ class MLMModelling:
                                                          'best_model')
             return AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
 
-        self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
+        return AutoTokenizer.from_pretrained(self.args.model_name)
 
     def get_data_collator(self):
         """
@@ -597,7 +566,7 @@ class MLMModelling:
     def unfreeze_layers(model):
         """
         Un-freeze all layers exept for embeddings in model, such that we can train full model
-        :param model: Model of type BertForMaskedLM
+        :param model: A model of type BertForMaskedLM
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
@@ -738,34 +707,26 @@ class MLMModellingDP(MLMModelling):
                 data=self.eval_data,
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
-            losses = []
-            accuracies = []
-            f1s = []
             eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs, losses, accuracies, f1s, eval_scores = self.train_epoch(
+                model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=dp_train_loader,
                     optimizer=dp_optimizer,
                     val_loader=eval_loader,
                     epoch=epoch + 1,
                     step=step,
-                    eval_losses=losses,
-                    eval_accuracies=accuracies,
-                    eval_f1s=f1s,
                     eval_scores=eval_scores)
 
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                best_metrics = get_metrics(
-                    losses=losses,
-                    accuracies=accuracies,
-                    f1s=f1s,
-                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
+                best_metrics, _ = get_metrics(
+                    eval_scores=eval_scores,
+                    eval_metrics=self.args.eval_metrics)
 
                 save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
-                                     metrics=best_metrics,
+                                     best_metrics=best_metrics,
                                      total_steps=self.total_steps)
 
             if self.args.make_plots:
@@ -775,9 +736,7 @@ class MLMModellingDP(MLMModelling):
                     delta=str(self.args.delta),
                     epochs=self.args.epochs,
                     lrs=all_lrs,
-                    f1=f1s,
-                    accs=accuracies,
-                    loss=losses)
+                    metrics=eval_scores)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -799,9 +758,7 @@ class MLMModellingDP(MLMModelling):
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None,
-                    eval_f1s: List[dict] = None, eval_scores: List[EvalScore] = None):
+                    step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
         :param eval_accuracies: list of evaluation accuracies
@@ -820,9 +777,9 @@ class MLMModellingDP(MLMModelling):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-                data_loader=train_loader,
-                max_physical_batch_size=self.args.train_batch_size,
-                optimizer=optimizer
+            data_loader=train_loader,
+            max_physical_batch_size=self.args.train_batch_size,
+            optimizer=optimizer
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader,
@@ -883,41 +840,29 @@ class MLMModellingDP(MLMModelling):
                     eval_score.step = step
                     eval_score.epoch = epoch
 
-                    current_metrics = {'loss': eval_score.loss, 'acc': eval_score.accuracy, 'f1': eval_score.f_1}
-
                     append_json(output_dir=self.metrics_dir,
                                 filename='eval_scores',
                                 data=dataclasses.asdict(eval_score))
-
-                    # ToDo: Finish EvalScore such that below is not needed
-                    eval_losses.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_score.loss})
-                    eval_accuracies.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_score.accuracy})
-                    eval_f1s.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_score.f_1})
+                    eval_scores.append(eval_score)
 
                     if self.args.save_steps is not None and (
-                            step > 0 and (step % self.args.save_steps == 0)):
-                        best_metrics = get_metrics(
-                            freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                            losses=eval_losses,
-                            accuracies=eval_accuracies,
-                            f1s=eval_f1s
-                        )
+                        step > self.args.freeze_layers_n_steps and
+                        (step % self.args.save_steps == 0)):
+                        _, save_best_model = get_metrics(
+                            eval_scores=eval_scores,
+                            eval_metrics=self.args.eval_metrics)
 
                         self.save_model_at_step(
                             model=model._module,
                             epoch=epoch,
                             step=step,
-                            current_metrics=current_metrics,
-                            best_metrics=best_metrics
-                        )
+                            save_best_model=save_best_model)
+
                     model.train()
                 step += 1
 
         if self.eval_data:
-            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s, eval_scores
+            return model, step, lrs, eval_scores
         return model, step, lrs
 
     def set_up_training(self):
@@ -937,8 +882,6 @@ class MLMModellingDP(MLMModelling):
         train_data_wrapped, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.lot_size)
-
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
 
         if self.args.load_alvenir_pretrained:
             model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
@@ -993,7 +936,7 @@ class MLMModellingDP(MLMModelling):
 
         # validate if model works with opacus
         validate_model(model, strict_validation=True)
-        # new opacus version requires to generate optimizer from model.parameters()
+        # opacus version >= 1.0 requires to generate optimizer from model.parameters()
         optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
 
         dp_model, dp_optimizer, dp_train_loader = \
@@ -1005,6 +948,8 @@ class MLMModellingDP(MLMModelling):
                 target_epsilon=self.args.epsilon,
                 target_delta=self.args.delta,
                 max_grad_norm=self.args.max_grad_norm,
+                # ToDo: hooks is the original opacus grad sampler. If we want to try
+                #  new features, then see https://github.com/pytorch/opacus/releases
                 grad_sample_mode="hooks"
             )
         self.privacy_engine.get_epsilon(self.args.delta)
