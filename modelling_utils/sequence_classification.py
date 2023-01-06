@@ -1,5 +1,6 @@
 # pylint: disable=protected-access
 import argparse
+import dataclasses
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ from transformers import AutoTokenizer, TrainingArguments, Trainer, \
     BertForSequenceClassification, \
     DataCollatorWithPadding
 
+from data_utils.custom_dataclasses import EvalScore
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
@@ -117,39 +119,33 @@ class SequenceClassification:
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
 
-            losses = []
-            accuracies = []
-            f1s = []
-
+            eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs, losses, accuracies, f1s = self.train_epoch(
+                model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
                     optimizer=optimizer,
                     val_loader=eval_loader,
                     epoch=epoch + 1,
                     step=step,
-                    eval_losses=losses,
-                    eval_accuracies=accuracies,
-                    eval_f1s=f1s)
+                    eval_scores=eval_scores)
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                best_metrics = get_metrics(
-                    losses=losses,
-                    accuracies=accuracies,
-                    f1s=f1s,
-                    freeze_layers_n_steps=self.args.freeze_layers_n_steps)
+                best_metrics, _ = get_metrics(
+                    eval_scores=eval_scores,
+                    eval_metrics=self.args.eval_metrics)
 
-                save_key_metrics_sc(output_dir=self.metrics_dir, args=self.args,
-                                    metrics=best_metrics,
+                save_key_metrics_sc(output_dir=self.metrics_dir,
+                                    args=self.args,
+                                    best_metrics=best_metrics,
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
                     output_dir=self.metrics_dir,
-                    epochs=self.args.epochs, f1=f1s,
-                    lrs=all_lrs, accs=accuracies, loss=losses)
+                    epochs=self.args.epochs,
+                    lrs=all_lrs, metrics=eval_scores)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -174,9 +170,7 @@ class SequenceClassification:
                     optimizer, epoch: int = None,
                     val_loader: DataLoader = None,
                     step: int = 0,
-                    eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None,
-                    eval_f1s: List[dict] = None):
+                    eval_scores: List[EvalScore] = None):
         """
         Train one epoch
         :param model: Model of type BertForMaskedLM
@@ -251,59 +245,38 @@ class SequenceClassification:
                     f"Loss: {np.mean(train_losses):.6f} "
                 )
 
-                eval_accuracy, eval_f1, eval_loss = self.evaluate(
+                eval_score = self.evaluate(
                     model, val_loader)
+                eval_score.step = step
+                eval_score.epoch = epoch
 
-                print(
-                    f"\n"
-                    f"eval loss: {eval_loss} \t"
-                    f"eval acc: {eval_accuracy}\t"
-                    f"eval f1: {eval_f1}"
-                )
-
-                current_metrics = {'loss': eval_loss,
-                                   'acc': eval_accuracy,
-                                   'f1': eval_f1}
                 append_json(output_dir=self.metrics_dir,
-                            filename='eval_losses',
-                            data={'epoch': epoch, 'step': step, 'score': eval_loss})
-                append_json(output_dir=self.metrics_dir,
-                            filename='accuracies',
-                            data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                append_json(output_dir=self.metrics_dir,
-                            filename='f1s',
-                            data={'epoch': epoch, 'step': step, 'score': eval_f1})
-
-                eval_losses.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_loss})
-                eval_accuracies.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                eval_f1s.append(
-                    {'epoch': epoch, 'step': step, 'score': eval_f1})
+                            filename='eval_scores',
+                            data=dataclasses.asdict(eval_score))
+                eval_scores.append(eval_score)
 
                 if self.args.save_steps is not None and (
-                    step > 0 and (step % self.args.save_steps == 0)):
-                    best_metrics = get_metrics(
-                        freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                        losses=eval_losses,
-                        accuracies=eval_accuracies,
-                        f1s=eval_f1s
-                    )
+                    step > self.args.freeze_layers_n_steps and
+                    (step % self.args.save_steps == 0)):
+
+                    _, save_best_model = get_metrics(
+                        eval_scores=eval_scores,
+                        eval_metrics=self.args.eval_metrics)
+
                     self.save_model_at_step(
                         model=model,
                         epoch=epoch,
                         step=step,
-                        current_metrics=current_metrics,
-                        best_metrics=best_metrics)
+                        save_best_model=save_best_model)
+
                 model.train()
             step += 1
         if self.eval_data:
-            return model, step, lrs, eval_losses, eval_accuracies, eval_f1s
+            return model, step, lrs, eval_scores
         return model, step, lrs
 
     def save_model_at_step(self, model, epoch, step,
-                           current_metrics: dict,
-                           best_metrics: dict):
+                           save_best_model: bool):
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
@@ -313,26 +286,21 @@ class SequenceClassification:
         :param epoch: Current epoch
         :param step: Current step
         """
+
         if not self.args.save_only_best_model:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}')
-        if step > self.args.freeze_layers_n_steps:
-            save_best_model = True
-            for metric in self.args.eval_metrics:
-                if best_metrics[metric]['score'] != current_metrics[metric]:
-                    save_best_model = False
-                    break
 
-            if save_best_model:
-                self.save_model(model, output_dir=self.output_dir,
-                                data_collator=self.data_collator,
-                                tokenizer=self.tokenizer,
-                                step='/best_model')
+        if save_best_model:
+            self.save_model(model, output_dir=self.output_dir,
+                            data_collator=self.data_collator,
+                            tokenizer=self.tokenizer,
+                            step='/best_model')
 
     def evaluate(self, model, val_loader: DataLoader,
-                 conf_plot: bool = False) -> tuple:
+                 conf_plot: bool = False) -> EvalScore:
         """
         :param model:
         :param val_loader:
@@ -358,14 +326,20 @@ class SequenceClassification:
             batch_labels = batch["labels"].cpu().numpy()
             batch_loss = output.loss.item()
 
-            y_true.extend(list(batch_labels))
-            y_pred.extend(list(batch_preds))
+            y_true.extend(batch_labels)
+            y_pred.extend(batch_preds)
             loss.append(batch_loss)
+
 
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
-        loss = np.mean(loss)
+        loss = float(np.mean(loss))
+
+        print(f"\n"
+            f"eval loss: {loss} \t"
+            f"eval acc: {acc}"
+            f"eval f1: {f_1}")
 
         if conf_plot:
             y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
@@ -377,7 +351,7 @@ class SequenceClassification:
                 labels=self.args.labels,
                 model_name=self.args.model_name)
 
-        return acc, f_1, loss
+        return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
     def set_up_training(self):
         """
@@ -393,6 +367,7 @@ class SequenceClassification:
             self.save_config(output_dir=self.output_dir,
                              metrics_dir=self.metrics_dir,
                              args=self.args)
+
         train_data_wrapped, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.train_batch_size)
@@ -720,33 +695,27 @@ class SequenceClassificationDP(SequenceClassification):
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
 
-            losses = []
-            accuracies = []
-            f1s = []
+            eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, losses, accuracies, step, lrs = self.train_epoch(
+                model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=dp_train_loader,
                     optimizer=dp_optimizer,
                     val_loader=eval_loader,
                     epoch=epoch + 1,
                     step=step,
-                    eval_losses=losses,
-                    eval_accuracies=accuracies,
-                    eval_f1s=f1s)
+                    eval_scores=eval_scores)
 
                 all_lrs.extend(lrs)
 
             if step > self.args.freeze_layers_n_steps:
-                best_metrics = get_metrics(
-                    freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                    losses=losses,
-                    accuracies=accuracies,
-                    f1s=f1s
-                )
+                best_metrics, _ = get_metrics(
+                    eval_scores=eval_scores,
+                    eval_metrics=self.args.eval_metrics)
+
                 save_key_metrics_sc(output_dir=self.metrics_dir,
                                     args=self.args,
-                                    metrics=best_metrics,
+                                    best_metrics=best_metrics,
                                     total_steps=self.total_steps)
 
             if self.args.make_plots:
@@ -755,7 +724,7 @@ class SequenceClassificationDP(SequenceClassification):
                     epsilon=str(self.args.epsilon),
                     delta=str(self.args.delta),
                     epochs=self.args.epochs,
-                    lrs=all_lrs, accs=accuracies, loss=losses, f1=f1s)
+                    lrs=all_lrs, metrics=eval_scores)
 
         else:
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -777,9 +746,7 @@ class SequenceClassificationDP(SequenceClassification):
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None,
-                    eval_f1s: List[dict] = None):
+                    step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
         :param eval_accuracies: list of evaluation accuracies
@@ -863,58 +830,34 @@ class SequenceClassificationDP(SequenceClassification):
                         f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
                         f"δ = {self.args.delta})"
                     )
-                    eval_accuracy, eval_f1, eval_loss = self.evaluate(model, val_loader)
-                    print(
-                        f"\n"
-                        f"eval loss: {eval_loss} \t"
-                        f"eval acc: {eval_accuracy}\t"
-                        f"eval f1: {eval_f1}"
-                    )
+                    eval_score = self.evaluate(
+                        model=model,
+                        val_loader=val_loader)
+                    eval_score.step = step
+                    eval_score.epoch = epoch
 
-                    current_metrics = {
-                        'loss': eval_loss,
-                        'acc': eval_accuracy,
-                        'f1': eval_f1}
-                    append_json(
-                        output_dir=self.metrics_dir,
-                        filename='eval_losses',
-                        data={'epoch': epoch, 'step': step, 'score': eval_loss})
-                    append_json(
-                        output_dir=self.metrics_dir,
-                        filename='accuracies',
-                        data={'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                    append_json(
-                        output_dir=self.metrics_dir,
-                        filename='f1s',
-                        data={'epoch': epoch, 'step': step, 'score': eval_f1})
-
-                    eval_losses.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_loss})
-                    eval_accuracies.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_accuracy})
-                    eval_f1s.append(
-                        {'epoch': epoch, 'step': step, 'score': eval_f1})
+                    append_json(output_dir=self.metrics_dir,
+                                filename='eval_scores',
+                                data=dataclasses.asdict(eval_score))
+                    eval_scores.append(eval_score)
 
                     if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
-                        best_metrics = get_metrics(
-                            freeze_layers_n_steps=self.args.freeze_layers_n_steps,
-                            losses=eval_losses,
-                            accuracies=eval_accuracies,
-                            f1s=eval_f1s
-                        )
+                        step > self.args.freeze_layers_n_steps and
+                        (step % self.args.save_steps == 0)):
+                        _, save_best_model = get_metrics(
+                            eval_scores=eval_scores,
+                            eval_metrics=self.args.eval_metrics)
 
                         self.save_model_at_step(
                             model=model._module,
                             epoch=epoch,
                             step=step,
-                            current_metrics=current_metrics,
-                            best_metrics=best_metrics)
+                            save_best_model=save_best_model)
                     model.train()
                 step += 1
 
         if self.eval_data:
-            return model, eval_losses, eval_accuracies, step, lrs
+            return model, step, lrs, eval_scores
         return model, step, lrs
 
     def set_up_training(self):
@@ -931,7 +874,7 @@ class SequenceClassificationDP(SequenceClassification):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
                              args=self.args)
 
-        train_data_wrapped, train_loader = self.create_data_loader(
+        _, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.lot_size)
 

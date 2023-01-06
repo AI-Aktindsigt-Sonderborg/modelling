@@ -107,6 +107,7 @@ class MLMModelling:
                 data=self.eval_data,
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
+
             eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
                 model, step, lrs, eval_scores = self.train_epoch(
@@ -243,6 +244,7 @@ class MLMModelling:
                 if self.args.save_steps is not None and (
                     step > self.args.freeze_layers_n_steps and
                     (step % self.args.save_steps == 0)):
+
                     _, save_best_model = get_metrics(
                         eval_scores=eval_scores,
                         eval_metrics=self.args.eval_metrics)
@@ -282,7 +284,7 @@ class MLMModelling:
                             tokenizer=self.tokenizer,
                             step='/best_model')
 
-    def evaluate(self, model, val_loader: DataLoader):
+    def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
         """
         Evaluate model at given step
         :param model:
@@ -318,8 +320,8 @@ class MLMModelling:
             batch_labels = np.array([x[0] for x in filtered]).astype(int)
             batch_preds = np.array([x[1] for x in filtered]).astype(int)
 
-            y_true.extend(list(batch_labels))
-            y_pred.extend(list(batch_preds))
+            y_true.extend(batch_labels)
+            y_pred.extend(batch_preds)
             loss.append(batch_loss)
 
         # calculate metrics of interest
@@ -327,12 +329,10 @@ class MLMModelling:
         f_1 = f1_score(y_true, y_pred, average='macro')
         loss = float(np.mean(loss))
 
-        print(
-            f"\n"
+        print(f"\n"
             f"eval loss: {loss} \t"
             f"eval acc: {acc}"
-            f"eval f1: {f_1}"
-        )
+            f"eval f1: {f_1}")
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
@@ -879,7 +879,7 @@ class MLMModellingDP(MLMModelling):
             self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
                              args=self.args)
 
-        train_data_wrapped, train_loader = self.create_data_loader(
+        _, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.lot_size)
 
