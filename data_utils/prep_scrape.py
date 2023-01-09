@@ -389,7 +389,7 @@ class ClassifiedScrapePreprocessing:
         with open(os.path.join(DATA_DIR, 'train_1110.json'),
                   'r', encoding='utf-8') as file:
             for i, line in enumerate(file):
-                if i % 100 == 0:
+                if i % 100000 == 0:
                     print(i)
                 data_dict = json.loads(line)
 
@@ -397,9 +397,7 @@ class ClassifiedScrapePreprocessing:
                     k += 1
                     # print()
 
-
-
-
+        print(f'{k} of {len(list_data)} has been trained on')
         label_set = {x['label'] for x in list_data}
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
@@ -426,7 +424,7 @@ class ClassifiedScrapePreprocessing:
             '\n At least train_outfile and test_outfile must be specified - see doc: \n' + \
             ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
-        assert not train_size and not test_size, \
+        assert train_size and test_size, \
             'Either train or test size must be specified - see doc: \n' + \
             ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
