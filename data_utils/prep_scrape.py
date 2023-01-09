@@ -493,8 +493,7 @@ if __name__ == '__main__':
     if prep_args.data_type == 'unlabelled':
         data_preprocessor = RawScrapePreprocessing(args=prep_args)
         data_preprocessor.create_unique_sentences()
-        data_preprocessor.from_raw_to_train_val()
-        # data_preprocessor.split_train_val()
+        data_preprocessor.split_train_val()
 
     if prep_args.data_type == 'labelled':
         # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
