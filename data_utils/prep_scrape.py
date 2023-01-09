@@ -19,7 +19,7 @@ from data_utils.helpers import write_json_lines, split_sentences, write_text_lin
     load_model_for_ppl, find_letters_and_word_count
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR, \
     CLASS_DATA_DIR
-from utils.helpers import TimeCode, read_jsonlines, save_json
+from utils.helpers import TimeCode, read_jsonlines, save_json, append_json
 from utils.helpers import count_num_lines
 
 
@@ -137,6 +137,12 @@ class RawScrapePreprocessing:
         else:
             model = None
             tokenizer = None
+
+        class_data = read_jsonlines(
+            input_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
+            filename='all_sentences')
+        class_texts = [x['text'] for x in class_data]
+
         approved_sentences = []
         disapproved_sentences = []
         unique_approved = []
@@ -169,14 +175,15 @@ class RawScrapePreprocessing:
 
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and filter by word count
-                                    dump_data = self.create_dump_data(
+                                    dump_data, seen = self.create_dump_data(
                                         data=data_dict,
                                         sentence_counter=i,
                                         sentence=sentence,
                                         seen=seen,
                                         filename=filename,
                                         model=model,
-                                        tokenizer=tokenizer)
+                                        tokenizer=tokenizer,
+                                        class_data=class_texts)
                                     if dump_data:
                                         json.dump(dump_data, outfile)
                                         outfile.write('\n')
@@ -202,7 +209,7 @@ class RawScrapePreprocessing:
         print()
 
     def create_dump_data(self, data: dict, sentence_counter: int, sentence: str, seen,
-                         filename, model, tokenizer):
+                         filename, model, tokenizer, class_data):
         final_sentence = sentence.strip()
         if find_letters_and_word_count(
             text=final_sentence,
@@ -211,7 +218,12 @@ class RawScrapePreprocessing:
             line_hash = hashlib.md5(final_sentence.encode()).digest()
             # add to unique sentences if not already exists
             if line_hash in seen:
-                return None
+                return None, seen
+
+
+            if final_sentence in class_data:
+                seen.add(line_hash)
+                return None, seen
 
             seen.add(line_hash)
 
@@ -226,9 +238,9 @@ class RawScrapePreprocessing:
                     str(score_gpt2(text=final_sentence,
                                    model=model,
                                    tokenizer=tokenizer))
-            return dump_data
+            return dump_data, seen
 
-        return None
+        return None, seen
 
     def split_train_val(self,
                         in_file: str = 'unique_sentences.json',
@@ -385,19 +397,19 @@ class ClassifiedScrapePreprocessing:
         :param data: list of dictionarys of sentences
         :return: list of lists of dicts
         """
-        k = 0
-        with open(os.path.join(DATA_DIR, 'train_1110.json'),
-                  'r', encoding='utf-8') as file:
-            for i, line in enumerate(file):
-                if i % 100000 == 0:
-                    print(i)
-                data_dict = json.loads(line)
+        # k = 0
+        # with open(os.path.join(DATA_DIR, 'train_1110.json'),
+        #           'r', encoding='utf-8') as file:
+        #     for i, line in enumerate(file):
+        #         if i % 100000 == 0:
+        #             print(i)
+        #         data_dict = json.loads(line)
+        #
+        #         if data_dict['text'] in [x['text'] for x in list_data]:
+        #             k += 1
+        #             # print()
 
-                if data_dict['text'] in [x['text'] for x in list_data]:
-                    k += 1
-                    # print()
-
-        print(f'{k} of {len(list_data)} has been trained on')
+        # print(f'{k} of {len(list_data)} has been trained on')
         label_set = {x['label'] for x in list_data}
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
@@ -468,7 +480,8 @@ class ClassifiedScrapePreprocessing:
                         all_data.append({'label': line['klassifikation'], 'text': line['text']})
                     else:
                         print(f'line {line} is empty')
-
+        write_json_lines(out_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
+                         data=all_data, filename='all_sentences')
         return all_data
 
 
@@ -476,9 +489,10 @@ if __name__ == '__main__':
 
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    prep_args.data_type = 'labelled'
+    # prep_args.data_type = 'labelled'
     if prep_args.data_type == 'unlabelled':
         data_preprocessor = RawScrapePreprocessing(args=prep_args)
+        data_preprocessor.create_unique_sentences()
         data_preprocessor.from_raw_to_train_val()
         # data_preprocessor.split_train_val()
 
