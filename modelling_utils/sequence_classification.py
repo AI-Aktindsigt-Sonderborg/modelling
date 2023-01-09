@@ -99,9 +99,9 @@ class SequenceClassification:
         self.scheduler = None
         # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 0
-            self.args.lr_freezed_warmup_steps = 0
-            self.args.lr_freezed = 0
+            self.args.freeze_layers_n_steps = None
+            self.args.lr_freezed_warmup_steps = None
+            self.args.lr_freezed = None
 
     def train_model(self):
         """
