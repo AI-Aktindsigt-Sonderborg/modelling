@@ -168,55 +168,30 @@ class RawScrapePreprocessing:
 
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and filter by word count
-                                    dump_data = self.create_dump_data(data=data_dict,
-                                                                      sentence_counter=i,
-                                                                      sentence=sentence, seen=seen,
-                                                                      filename=filename,
-                                                                      model=model,
-                                                                      tokenizer=tokenizer)
+                                    dump_data = self.create_dump_data(
+                                        data=data_dict,
+                                        sentence_counter=i,
+                                        sentence=sentence,
+                                        seen=seen,
+                                        filename=filename,
+                                        model=model,
+                                        tokenizer=tokenizer)
                                     if dump_data:
+                                        json.dump(dump_data, outfile)
+                                        outfile.write('\n')
+                                        muni_outfile.write(
+                                            f"{data_dict['id']} - {i} - {sentence}\n")
+
                                         approved_sentences.append(1)
                                         unique_approved.append(1)
                                     else:
-                                        if final_sentence.strip():
+                                        if sentence.strip():
                                             disapproved_sentences.append(
                                                 f'{filename.split("_")[0]} - {data_dict["id"]} - '
-                                                f'{i} - {final_sentence}')
+                                                f'{i} - {sentence}')
 
-                                    final_sentence = sentence.strip()
-                                    if find_letters_and_word_count(
-                                        text=final_sentence,
-                                        word_count_threshold=self.args.min_len):
-                                        approved_sentences.append(1)
-                                        line_hash = hashlib.md5(final_sentence.encode()).digest()
-                                        # add to unique sentences if not already exists
-                                        if line_hash not in seen:
-                                            seen.add(line_hash)
-                                            unique_approved.append(1)
-                                            dump_data = {'id': data_dict['id'], 'sentence': i,
-                                                         'kommune': filename.split('_')[0],
-                                                         'url': data_dict['url'],
-                                                         'sha512': data_dict['sha512'],
-                                                         'text': final_sentence}
-
-                                            if self.args.add_ppl:
-                                                dump_data['ppl_score'] = \
-                                                    str(score_gpt2(text=final_sentence,
-                                                                   model=model,
-                                                                   tokenizer=tokenizer))
-
-                                            json.dump(dump_data, outfile)
-
-                                            outfile.write('\n')
-
-                                            muni_outfile.write(
-                                                f"{data_dict['id']} - {i} - {sentence}\n")
-                                    else:
-                                        if not len(final_sentence.strip()) == 0:
-                                            disapproved_sentences.append(
-                                                f'{filename.split("_")[0]} - {data_dict["id"]} - '
-                                                f'{i} - {final_sentence}')
-        write_text_lines(out_dir=DATA_DIR, filename='data_testing/disapproved_sentences',
+        write_text_lines(out_dir=DATA_DIR,
+                         filename='data_testing/disapproved_sentences',
                          data=disapproved_sentences)
         # Print running time of code
         timer.how_long_since_start()
@@ -267,23 +242,23 @@ class RawScrapePreprocessing:
         with open(os.path.join(PREP_DATA_DIR, in_file), 'r', encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
-                sentences.append(data_dict['text'])
+                sentences.append({'text': data_dict['text']})
         random.seed(seed)
         random.shuffle(sentences)
         train_idx = int(len(sentences) * self.args.split)
         train_init = sentences[:train_idx]
 
         val = sentences[train_idx:]
-        val = [{'text': x} for x in val]
+        val = [x for x in val]
         if self.args.split_train_n_times > 0:
             train_chunks = np.array_split(train_init, self.args.split_train_n_times)
             for i, train_chunk in enumerate(train_chunks):
-                train = [{'text': x} for x in list(train_chunk)]
+                train = [x for x in list(train_chunk)]
                 train_outfile = self.args.train_outfile + f'_{i}'
                 self.save_datasets(train=train, train_outfile=train_outfile)
             self.save_datasets(val=val)
         else:
-            train = [{'text': x} for x in train_init]
+            train = [x for x in train_init]
             self.save_datasets(train=train, val=val, train_outfile=self.args.train_outfile)
 
     def save_datasets(self, train: List[dict] = None, val: List[dict] = None,
@@ -488,26 +463,28 @@ if __name__ == '__main__':
 
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    prep_args.add_ppl = False
 
-    # data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    # data_preprocessor.from_raw_to_train_val()
+    if prep_args.data_type == 'unlabelled':
+        data_preprocessor = RawScrapePreprocessing(args=prep_args)
+        data_preprocessor.from_raw_to_train_val()
+        # data_preprocessor.split_train_val()
 
-    # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
-    # prep_args.classified_scrape_file = 'aalborg_classified_scrape'
+    if prep_args.data_type == 'labelled':
+        # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
+        # prep_args.classified_scrape_file = 'aalborg_classified_scrape'
 
-    # prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
-    # prep_args.classified_scrape_file = 'mixed_classified_scrape'
+        # prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
+        # prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
-    class_prep = ClassifiedScrapePreprocessing(prep_args)
-    concat_data = class_prep.concat_all_classified_data()
-    grouped_data = class_prep.group_data_by_class(list_data=concat_data)
+        class_prep = ClassifiedScrapePreprocessing(prep_args)
+        concat_data = class_prep.concat_all_classified_data()
+        grouped_data = class_prep.group_data_by_class(list_data=concat_data)
 
-    class_prep.train_val_test_to_json_split(class_grouped_data=grouped_data,
-                                            train_outfile='train_classified',
-                                            val_outfile='eval_classified',
-                                            test_outfile='test_classified',
-                                            train_size=0.9,
-                                            test_size=30)
+        class_prep.train_val_test_to_json_split(class_grouped_data=grouped_data,
+                                                train_outfile='train_classified',
+                                                val_outfile='eval_classified',
+                                                test_outfile='test_classified',
+                                                train_size=0.9,
+                                                test_size=30)
 
     print()

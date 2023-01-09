@@ -53,17 +53,17 @@ class DataPrepArgParser:
             default='train',
             help="Name of final training data file")
         self.parser.add_argument(
-            '-stnt', '--split_train_n_times',
-            type=int,
-            metavar='<int>',
-            default=0,
-            help="Split train set n times into n+1 training sets")
-        self.parser.add_argument(
             '--val_outfile',
             type=str,
             metavar='<str>',
             default='validation',
             help="Name of final validation data file")
+        self.parser.add_argument(
+            '-stnt', '--split_train_n_times',
+            type=int,
+            metavar='<int>',
+            default=0,
+            help="Split train set n times into n+1 training sets")
         self.parser.add_argument(
             '--excel_classification_file',
             type=str,
