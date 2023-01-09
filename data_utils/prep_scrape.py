@@ -142,6 +142,7 @@ class RawScrapePreprocessing:
             input_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
             filename='all_sentences')
         class_texts = [x['text'] for x in class_data]
+        class_hash = {hashlib.md5(x.encode()).digest() for x in class_texts}
 
         approved_sentences = []
         disapproved_sentences = []
@@ -184,7 +185,7 @@ class RawScrapePreprocessing:
                                         filename=filename,
                                         model=model,
                                         tokenizer=tokenizer,
-                                        class_data=class_texts)
+                                        class_data=class_hash)
                                     if dump_data:
                                         per_muni_dump_data.append(dump_data)
                                         json.dump(dump_data, outfile)
@@ -199,7 +200,6 @@ class RawScrapePreprocessing:
                                             disapproved_sentences.append(
                                                 f'{filename.split("_")[0]} - {data_dict["id"]} - '
                                                 f'{i} - {sentence}')
-                    a = [x for x in per_muni_dump_data if x['text'] in class_texts]
 
         write_text_lines(out_dir=DATA_DIR,
                          filename='data_testing/disapproved_sentences',
@@ -224,9 +224,9 @@ class RawScrapePreprocessing:
                 return None, seen
 
 
-            # if final_sentence in class_data:
-            #     seen.add(line_hash)
-            #     return None, seen
+            if line_hash in class_data:
+                seen.add(line_hash)
+                return None, seen
 
             seen.add(line_hash)
 
