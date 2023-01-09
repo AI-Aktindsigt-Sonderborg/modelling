@@ -84,19 +84,24 @@ def get_metrics(eval_scores: List[EvalScore],
     return best_metric_dict, save_best_model
 
 
-def log_train_metrics(epoch, step, lr, loss):
-    print(f"\tTrain Epoch: {epoch} \t"
-          f"Step: {step} \t LR: {lr}\t"
-          f"Loss: {loss:.6f} ")
+def log_train_metrics(epoch: int, step: int, lr: float, loss: float,
+                      logging_steps: int):
+    if step % logging_steps == 0:
+        print(f"\tTrain Epoch: {epoch} \t"
+              f"Step: {step} \t LR: {lr}\t"
+              f"Loss: {loss:.6f} ")
 
 
-def log_train_metrics_dp(epoch, step, lr, loss, eps, delta):
-    print(
-        f"\tTrain Epoch: {epoch} \t"
-        f"Step: {step} \t LR: {lr}\t"
-        f"Loss: {loss:.6f} "
-        f"(ε = {eps:.2f}, "
-        f"δ = {delta})")
+def log_train_metrics_dp(epoch: int, step: int, lr: float,
+                         loss: float, eps: float, delta: float,
+                         logging_steps: int):
+    if step % logging_steps == 0:
+        print(
+            f"\tTrain Epoch: {epoch} \t"
+            f"Step: {step} \t LR: {lr}\t"
+            f"Loss: {loss:.6f} "
+            f"(ε = {eps:.2f}, "
+            f"δ = {delta})")
 
 
 # def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):

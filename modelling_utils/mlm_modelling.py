@@ -183,31 +183,16 @@ class MLMModelling:
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
+            model = self.modify_learning_rate_and_layers(
+                model=model,
+                optimizer=optimizer,
+                step=step)
 
-            if self.args.freeze_layers and step == 0:
-                model = self.freeze_layers(model)
+            append_json(
+                output_dir=self.metrics_dir,
+                filename='learning_rates',
+                data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
-            if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-                model = self.unfreeze_layers(model)
-                # ToDo: Below operation only works if lr is lower than lr_freezed:
-                #  fix this
-                self.scheduler = create_scheduler(optimizer,
-                                                  start_factor=(self.args.learning_rate
-                                                                / self.args.lr_freezed)
-                                                               / self.args.lr_warmup_steps,
-                                                  end_factor=self.args.learning_rate
-                                                             / self.args.lr_freezed,
-                                                  total_iters=self.args.lr_warmup_steps)
-
-            if step == self.args.lr_start_decay:
-                self.scheduler = create_scheduler(optimizer,
-                                                  start_factor=1,
-                                                  end_factor=self.args.learning_rate / (
-                                                      self.total_steps - step),
-                                                  total_iters=self.total_steps - step
-                                                  )
-            append_json(output_dir=self.metrics_dir, filename='learning_rates',
-                        data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
             lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
             optimizer.zero_grad()
@@ -223,10 +208,12 @@ class MLMModelling:
             optimizer.step()
             self.scheduler.step()
 
-            if step % self.args.logging_steps == 0:
-                log_train_metrics(epoch, step,
-                                  get_lr(optimizer)[0],
-                                  np.mean(train_losses))
+            log_train_metrics(
+                epoch,
+                step,
+                lr=get_lr(optimizer)[0],
+                loss=float(np.mean(train_losses)),
+                logging_steps=self.args.logging_steps)
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 
@@ -244,7 +231,6 @@ class MLMModelling:
                 if self.args.save_steps is not None and (
                     step > self.args.freeze_layers_n_steps and
                     (step % self.args.save_steps == 0)):
-
                     _, save_best_model = get_metrics(
                         eval_scores=eval_scores,
                         eval_metrics=self.args.eval_metrics)
@@ -330,9 +316,9 @@ class MLMModelling:
         loss = float(np.mean(loss))
 
         print(f"\n"
-            f"eval loss: {loss} \t"
-            f"eval acc: {acc}"
-            f"eval f1: {f_1}")
+              f"eval loss: {loss} \t"
+              f"eval acc: {acc}"
+              f"eval f1: {f_1}")
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
@@ -547,6 +533,30 @@ class MLMModelling:
                                                 mlm_probability=self.args.mlm_prob)
         return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
                                                mlm_probability=self.args.mlm_prob)
+
+    def modify_learning_rate_and_layers(self, model, optimizer, step: int):
+        if self.args.freeze_layers and step == 0:
+            model = self.freeze_layers(model)
+
+        if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
+            model = self.unfreeze_layers(model)
+            # ToDo: Below operation only works if lr is lower than lr_freezed:
+            #  fix this - also for SeqModelling
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=(self.args.learning_rate / self.args.lr_freezed)
+                             / self.args.lr_warmup_steps,
+                end_factor=self.args.learning_rate / self.args.lr_freezed,
+                total_iters=self.args.lr_warmup_steps)
+
+        if step == self.args.lr_start_decay:
+            self.scheduler = create_scheduler(
+                optimizer,
+                start_factor=1,
+                end_factor=self.args.learning_rate / (self.total_steps - step),
+                total_iters=self.total_steps - step
+            )
+        return model
 
     @staticmethod
     def freeze_layers(model):
@@ -785,30 +795,16 @@ class MLMModellingDP(MLMModelling):
                               desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
 
-                if self.args.freeze_layers and step == 0:
-                    model = self.freeze_layers(model)
-
-                if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-                    model = self.unfreeze_layers(model)
-                    # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                    self.scheduler = create_scheduler(
-                        optimizer,
-                        start_factor=(self.args.learning_rate / self.args.lr_freezed)
-                                     / self.args.lr_warmup_steps,
-                        end_factor=self.args.learning_rate / self.args.lr_freezed,
-                        total_iters=self.args.lr_warmup_steps)
-
-                if step == self.args.lr_start_decay:
-                    self.scheduler = create_scheduler(
-                        optimizer,
-                        start_factor=1,
-                        end_factor=self.args.learning_rate / (self.total_steps - step),
-                        total_iters=self.total_steps - self.args.lr_start_decay)
+                model = self.modify_learning_rate_and_layers(
+                    model=model,
+                    optimizer=optimizer,
+                    step=step)
 
                 append_json(
                     output_dir=self.metrics_dir,
                     filename='learning_rates',
                     data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+
                 lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
                 # compute models
@@ -824,12 +820,14 @@ class MLMModellingDP(MLMModelling):
                 optimizer.zero_grad()
                 self.scheduler.step()
 
-                if step % self.args.logging_steps == 0:
-                    log_train_metrics_dp(epoch, step,
-                                         get_lr(optimizer)[0],
-                                         np.mean(train_losses),
-                                         self.privacy_engine.get_epsilon(self.args.delta),
-                                         self.args.delta)
+                log_train_metrics_dp(
+                    epoch,
+                    step,
+                    lr=get_lr(optimizer)[0],
+                    loss=float(np.mean(train_losses)),
+                    eps=self.privacy_engine.get_epsilon(self.args.delta),
+                    delta=self.args.delta,
+                    logging_steps=self.args.logging_steps)
 
                 if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 

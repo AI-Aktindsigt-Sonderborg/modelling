@@ -410,8 +410,7 @@ class ClassifiedScrapePreprocessing:
         :return: list of lists of dicts
         """
 
-        label_set = set(map(lambda x: x['label'], list_data))
-
+        label_set = {x['label'] for x in list_data}
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
 
@@ -490,6 +489,7 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     prep_args.add_ppl = False
+
     # data_preprocessor = RawScrapePreprocessing(args=prep_args)
     # data_preprocessor.from_raw_to_train_val()
 

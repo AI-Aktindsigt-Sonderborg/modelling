@@ -37,7 +37,7 @@ class DataPrepArgParser:
         self.parser.add_argument(
             '--add_ppl',
             type=lambda x: bool(strtobool(x)),
-            default=True,
+            default=False,
             help='whether or not to add ppl_score to unique sentences',
             metavar='<bool>')
         self.parser.add_argument(
@@ -74,5 +74,11 @@ class DataPrepArgParser:
             '--classified_scrape_file',
             type=str,
             metavar='<str>',
-            default='classified_scrape1',
+            default='classified_scrape',
             help="name of classified scrape file")
+        self.parser.add_argument(
+            '--data_type',
+            type=str,
+            metavar='<str>',
+            default='unlabelled',
+            help="Type of data: 'unlabelled' or 'labelled'")

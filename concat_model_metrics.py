@@ -10,10 +10,11 @@ from utils.helpers import read_json
 def all_metrics_to_csv():
     all_data = []
     for model_name in os.listdir(MODEL_DIR):
+        if model_name == 'last_model':
+            print()
         metrics_file = os.path.join(MODEL_DIR, model_name, 'metrics', 'key_metrics.json')
         if os.path.isfile(metrics_file):
             data = read_json(metrics_file)
-
 
             if 'key_metrics' in data.keys():
                 if len(data['key_metrics']) > 1:
@@ -28,7 +29,6 @@ def all_metrics_to_csv():
             if 'best_metrics' in data.keys():
                 data['loss'] = data['best_metrics']['loss']['score']
                 data['acc'] = data['best_metrics']['acc']['score']
-                print(model_name)
                 if 'f1' in data['best_metrics'].keys():
                     data['f_1'] = data['best_metrics']['f1']['score']
                 else:
@@ -38,12 +38,9 @@ def all_metrics_to_csv():
 
             all_data.append(data)
 
-
     df = pd.DataFrame.from_records(all_data)
 
     df.to_csv('metadata/model_metrics.csv', sep='\t')
 
+
 all_metrics_to_csv()
-
-
-
