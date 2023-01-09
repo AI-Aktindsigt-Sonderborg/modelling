@@ -25,5 +25,10 @@ if args.differential_privacy:
     mlm_modelling_dp = MLMModellingDP(args=args)
     mlm_modelling_dp.train_model()
 else:
+    args.epsilon = None
+    args.delta = None
+    args.compute_delta = None
+    args.max_grad_norm = None
+    args.lot_size = None
     mlm_modelling = MLMModelling(args=args)
     mlm_modelling.train_model()
