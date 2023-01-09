@@ -10,8 +10,6 @@ from utils.helpers import read_json
 def all_metrics_to_csv():
     all_data = []
     for model_name in os.listdir(MODEL_DIR):
-        if model_name == 'last_model':
-            print()
         metrics_file = os.path.join(MODEL_DIR, model_name, 'metrics', 'key_metrics.json')
         if os.path.isfile(metrics_file):
             data = read_json(metrics_file)

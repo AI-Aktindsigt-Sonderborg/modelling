@@ -98,6 +98,7 @@ class RawScrapePreprocessing:
                                                       total=total_lines,
                                                       desc=f'{filename}: {file_index + 1} of {file_count}',
                                                       unit="line")):
+
                         data_dict = json.loads(line)
 
                         if self.is_correct_danish(
@@ -384,6 +385,20 @@ class ClassifiedScrapePreprocessing:
         :param data: list of dictionarys of sentences
         :return: list of lists of dicts
         """
+        k = 0
+        with open(os.path.join(DATA_DIR, 'train_1110.json'),
+                  'r', encoding='utf-8') as file:
+            for i, line in enumerate(file):
+                if i % 100 == 0:
+                    print(i)
+                data_dict = json.loads(line)
+
+                if data_dict['text'] in [x['text'] for x in list_data]:
+                    k += 1
+                    # print()
+
+
+
 
         label_set = {x['label'] for x in list_data}
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
@@ -463,7 +478,7 @@ if __name__ == '__main__':
 
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-
+    prep_args.data_type = 'labelled'
     if prep_args.data_type == 'unlabelled':
         data_preprocessor = RawScrapePreprocessing(args=prep_args)
         data_preprocessor.from_raw_to_train_val()
