@@ -95,7 +95,6 @@ class MLMModelling:
             self.args.lr_freezed_warmup_steps = None
             self.args.lr_freezed = None
 
-
     def train_model(self):
         """
         load data, set up training and train model
@@ -110,7 +109,7 @@ class MLMModelling:
             _, eval_loader = self.create_data_loader(
                 data=self.eval_data,
                 batch_size=self.args.eval_batch_size,
-                shuffle=False)
+                shuffle=True)
 
             eval_scores = []
             for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
@@ -167,8 +166,7 @@ class MLMModelling:
                     step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch
-        :param eval_accuracies:
-        :param eval_losses:
+        :param eval_scores: eval_scores of type List[EvalScore]
         :param model: Model of type BertForMaskedLM
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
