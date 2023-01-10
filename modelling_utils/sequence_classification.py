@@ -99,7 +99,7 @@ class SequenceClassification:
         self.scheduler = None
         # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = None
+            self.args.freeze_layers_n_steps = 0
             self.args.lr_freezed_warmup_steps = None
             self.args.lr_freezed = None
 
@@ -173,6 +173,7 @@ class SequenceClassification:
                     eval_scores: List[EvalScore] = None):
         """
         Train one epoch
+        :param eval_scores: eval_scores of type List[EvalScore]
         :param model: Model of type BertForMaskedLM
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
@@ -191,32 +192,17 @@ class SequenceClassification:
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
-
-            model = self.modify_learning_rate_and_layers(
+            model, optimizer, eval_scores, train_losses, lrs = self.train_batch(
                 model=model,
                 optimizer=optimizer,
-                step=step)
-
-            append_json(
-                output_dir=self.metrics_dir,
-                filename='learning_rates',
-                data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-            lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-            optimizer.zero_grad()
-
-            # compute model output
-            output = model(
-                input_ids=batch["input_ids"].to(self.args.device),
-                attention_mask=batch["attention_mask"].to(self.args.device),
-                labels=batch["labels"].to(self.args.device))
-
-            loss = output.loss
-            loss.backward()
-            train_losses.append(loss.item())
-            optimizer.step()
-            self.scheduler.step()
+                batch=batch,
+                val_loader=val_loader,
+                epoch=epoch,
+                step=step,
+                eval_scores=eval_scores,
+                train_losses=train_losses,
+                learning_rates=lrs
+            )
 
             log_train_metrics(
                 epoch,
@@ -224,37 +210,73 @@ class SequenceClassification:
                 lr=get_lr(optimizer)[0],
                 loss=float(np.mean(train_losses)),
                 logging_steps=self.args.logging_steps)
-
-            if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
-
-                eval_score = self.evaluate(
-                    model, val_loader)
-                eval_score.step = step
-                eval_score.epoch = epoch
-
-                append_json(output_dir=self.metrics_dir,
-                            filename='eval_scores',
-                            data=dataclasses.asdict(eval_score))
-                eval_scores.append(eval_score)
-
-                if self.args.save_steps is not None and (
-                    step > self.args.freeze_layers_n_steps and
-                    (step % self.args.save_steps == 0)):
-                    _, save_best_model = get_metrics(
-                        eval_scores=eval_scores,
-                        eval_metrics=self.args.eval_metrics)
-
-                    self.save_model_at_step(
-                        model=model,
-                        epoch=epoch,
-                        step=step,
-                        save_best_model=save_best_model)
-
-                model.train()
             step += 1
+
         if self.eval_data:
             return model, step, lrs, eval_scores
         return model, step, lrs
+
+    def train_batch(self, model, optimizer, batch, val_loader, epoch,
+                    step, eval_scores, train_losses, learning_rates):
+
+        model = self.modify_learning_rate_and_layers(
+            model=model,
+            optimizer=optimizer,
+            step=step)
+
+        append_json(
+            output_dir=self.metrics_dir,
+            filename='learning_rates',
+            data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+
+        # compute model output
+        output = model(
+            input_ids=batch["input_ids"].to(self.args.device),
+            attention_mask=batch["attention_mask"].to(self.args.device),
+            labels=batch["labels"].to(self.args.device))
+
+        loss = output.loss
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        self.scheduler.step()
+
+        if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
+
+            eval_score = self.evaluate(
+                model, val_loader)
+            eval_score.step = step
+            eval_score.epoch = epoch
+
+            append_json(output_dir=self.metrics_dir,
+                        filename='eval_scores',
+                        data=dataclasses.asdict(eval_score))
+            eval_scores.append(eval_score)
+
+            if self.args.save_steps is not None and (
+                step > self.args.freeze_layers_n_steps and
+                (step % self.args.save_steps == 0)):
+                _, save_best_model = get_metrics(
+                    eval_scores=eval_scores,
+                    eval_metrics=self.args.eval_metrics)
+
+                self.save_model_at_step(
+                    model=model,
+                    epoch=epoch,
+                    step=step,
+                    save_best_model=save_best_model)
+
+            model.train()
+
+        train_losses.append(loss.item())
+        append_json(output_dir=self.metrics_dir,
+                    filename='train_loss',
+                    data={'epoch': epoch,
+                          'step': step,
+                          'score': float(np.mean(train_losses))})
+        learning_rates.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+
+        return model, optimizer, eval_scores, train_losses, learning_rates
 
     def save_model_at_step(self, model, epoch, step,
                            save_best_model: bool):
@@ -288,27 +310,31 @@ class SequenceClassification:
         :return: mean loss, accuracy-score, f1-score
         """
         # set up preliminaries
+        if not next(model.parameters()).is_cuda:
+            model = model.to(self.args.device)
+
         model.eval()
-        model.to(self.args.device)
+
         y_true, y_pred, loss = [], [], []
 
-        # get model predictions and labels
-        for batch in tqdm(val_loader, unit="batch", desc="val"):
-            output = model(
-                input_ids=batch["input_ids"].to(self.args.device),
-                attention_mask=batch["attention_mask"].to(self.args.device),
-                labels=batch["labels"].to(self.args.device)
-            )
+        with torch.no_grad():
+            # get model predictions and labels
+            for batch in tqdm(val_loader, unit="batch", desc="val"):
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device)
+                )
 
-            batch_preds = np.argmax(
-                output.logits.detach().cpu().numpy(), axis=-1
-            )
-            batch_labels = batch["labels"].cpu().numpy()
-            batch_loss = output.loss.item()
+                batch_preds = np.argmax(
+                    output.logits.detach().cpu().numpy(), axis=-1
+                )
+                batch_labels = batch["labels"].cpu().numpy()
+                batch_loss = output.loss.item()
 
-            y_true.extend(batch_labels)
-            y_pred.extend(batch_preds)
-            loss.append(batch_loss)
+                y_true.extend(batch_labels)
+                y_pred.extend(batch_preds)
+                loss.append(batch_loss)
 
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
@@ -678,10 +704,6 @@ class SequenceClassificationDP(SequenceClassification):
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
-        if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 0
-            self.args.lr_freezed_warmup_steps = None
-            self.args.lr_freezed = None
 
     def train_model(self):
         """
@@ -777,49 +799,17 @@ class SequenceClassificationDP(SequenceClassification):
             for batch in tqdm(memory_safe_data_loader,
                               desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
-
-                model = self.modify_learning_rate_and_layers(
+                model, optimizer, eval_scores, train_losses, lrs = self.train_batch(
                     model=model,
                     optimizer=optimizer,
-                    step=step)
-
-                if self.args.freeze_layers and step == 0:
-                    model = self.freeze_layers(model)
-
-                if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-                    model = self.unfreeze_layers(model)
-                    self.scheduler = create_scheduler(
-                        optimizer,
-                        start_factor=(self.args.learning_rate / self.args.lr_freezed)
-                                     / self.args.lr_warmup_steps,
-                        end_factor=self.args.learning_rate / self.args.lr_freezed,
-                        total_iters=self.args.lr_warmup_steps)
-
-                if step == self.args.lr_start_decay:
-                    self.scheduler = create_scheduler(
-                        optimizer,
-                        start_factor=1,
-                        end_factor=self.args.learning_rate / (self.total_steps - step),
-                        total_iters=self.total_steps - self.args.lr_start_decay)
-
-                append_json(output_dir=self.metrics_dir,
-                            filename='learning_rates',
-                            data={'epoch': epoch, 'step': step,
-                                  'lr': get_lr(optimizer)[0]})
-                lrs.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-                # compute models
-                output = model(
-                    input_ids=batch["input_ids"].to(self.args.device),
-                    attention_mask=batch["attention_mask"].to(self.args.device),
-                    labels=batch["labels"].to(self.args.device))
-
-                loss = output.loss
-                loss.backward()
-                train_losses.append(loss.item())
-                optimizer.step()
-                optimizer.zero_grad()
-                self.scheduler.step()
+                    batch=batch,
+                    val_loader=val_loader,
+                    epoch=epoch,
+                    step=step,
+                    eval_scores=eval_scores,
+                    train_losses=train_losses,
+                    learning_rates=lrs
+                )
 
                 log_train_metrics_dp(
                     epoch,
@@ -830,39 +820,6 @@ class SequenceClassificationDP(SequenceClassification):
                     delta=self.args.delta,
                     logging_steps=self.args.logging_steps)
 
-                if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
-
-                    print(
-                        f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                        f"Loss: {np.mean(train_losses):.6f} "
-                        f"(ε = {self.privacy_engine.get_epsilon(self.args.delta):.2f}, "
-                        f"δ = {self.args.delta})"
-                    )
-                    eval_score = self.evaluate(
-                        model=model,
-                        val_loader=val_loader)
-                    eval_score.step = step
-                    eval_score.epoch = epoch
-
-                    append_json(output_dir=self.metrics_dir,
-                                filename='eval_scores',
-                                data=dataclasses.asdict(eval_score))
-                    eval_scores.append(eval_score)
-
-                    if self.args.save_steps is not None and (
-                        step > self.args.freeze_layers_n_steps and
-                        (step % self.args.save_steps == 0)):
-                        _, save_best_model = get_metrics(
-                            eval_scores=eval_scores,
-                            eval_metrics=self.args.eval_metrics)
-
-                        self.save_model_at_step(
-                            model=model._module,
-                            epoch=epoch,
-                            step=step,
-                            save_best_model=save_best_model)
-                    model.train()
                 step += 1
 
         if self.eval_data:
@@ -959,7 +916,7 @@ class SequenceClassificationDP(SequenceClassification):
     def unfreeze_layers(model):
         """
         Un-freeze all bert layers in model, such that we can train full model
-        :param model: Model of type GradSampleModule
+        :param model: of type GradSampleModule
         :return: un-freezed model
         """
         for name, param in model.named_parameters():

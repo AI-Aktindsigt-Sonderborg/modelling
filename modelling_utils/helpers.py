@@ -4,6 +4,11 @@ import os
 import sys
 from typing import List, Tuple
 
+import numpy as np
+from sklearn.metrics import accuracy_score, f1_score
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+import torch
 from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 
@@ -103,20 +108,6 @@ def log_train_metrics_dp(epoch: int, step: int, lr: float,
             f"(ε = {eps:.2f}, "
             f"δ = {delta})")
 
-
-# def get_best_metric(data: List[dict], threshold: int, max_better: bool = True):
-#     """
-#     Return best metric at step higher than threshold
-#     @param data: metric data
-#     @param threshold: Get only best metric above threshold
-#     @param max_better: True if higher is better
-#     @return: The best metric score
-#     """
-#     if max_better:
-#         return max([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
-#
-#     return min([x for x in data if x['step'] > threshold], key=lambda x: x['score'])
-#
 
 def save_key_metrics_mlm(output_dir: str, args,
                          best_metrics: dict,
