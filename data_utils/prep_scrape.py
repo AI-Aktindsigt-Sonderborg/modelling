@@ -15,11 +15,12 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from data_utils.data_prep_input_args import DataPrepArgParser
-from data_utils.helpers import write_json_lines, split_sentences, write_text_lines, score_gpt2, \
-    load_model_for_ppl, find_letters_and_word_count
-from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, PREP_DATA_DIR, \
-    CLASS_DATA_DIR
-from utils.helpers import TimeCode, read_jsonlines, save_json, append_json
+from data_utils.helpers import write_json_lines, split_sentences, \
+    write_text_lines, score_gpt2, load_model_for_ppl, \
+    find_letters_and_word_count
+from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, \
+    PREP_DATA_DIR, CLASS_DATA_DIR
+from utils.helpers import TimeCode, read_jsonlines, save_json
 from utils.helpers import count_num_lines
 
 
@@ -34,33 +35,18 @@ class RawScrapePreprocessing:
             name of the json line file to be used for training
     save_data: str
 
-    Methods
-    -------
-    from_raw_to_train_val()
-            Calls:
-                extract_danish_and_save_from_raw()
-                split_to_sentences()
-                split_train_val()
-    extract_danish_and_save_from_raw(confidence_threshold)
-            Takes raw scrape file(s), extracts danish text and save filtered
-    split_to_sentences(out_file_name, word_count_threshold)
-            Split all approved text blocks to sentences with self.sentence_splitter.
-    split_train_val(in_file, save_datasets, split, seed):
-            Split approved sentences to train and validation set
-    save_datasets(train, val)
-            Take train and validation data as input and saves to json-lines files compatible
-            with torch dataset
-
     Example call
     ------------
-    data_preprocessor = RawScrapePreprocessing(train_output='train_new_scrape.json',
-                                                val_output='val_new_scrape.json')
+    data_preprocessor = RawScrapePreprocessing(
+                    train_output='train_new_scrape.json',
+                    val_output='val_new_scrape.json')
     data_preprocessor.from_raw_to_train_val()
     """
 
     def __init__(self, args: argparse.Namespace):
         self.args = args
-        self.sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
+        self.sentence_splitter = nltk.data.load(
+            'tokenizers/punkt/danish.pickle')
         self.model_id = 'pere/norwegian-gpt2'
 
     def from_raw_to_train_val(self):
@@ -77,9 +63,11 @@ class RawScrapePreprocessing:
 
     def extract_danish_and_save_from_raw(self):
         """
-        Filters each raw scrape file, keeps line id and page_filtered_text where danish is detected
+        Filters each raw scrape file, keeps line id and page_filtered_text
+        where danish is detected
         and writes to json line file filtered_scrape/<source_name>_filtered
-        :param confidence_threshold: Keep all "danish-detected" sentences with a score above this
+        :param confidence_threshold: Keep all "danish-detected" sentences with
+        a score above this
         threshold
         """
 
@@ -94,37 +82,46 @@ class RawScrapePreprocessing:
                 total_lines = count_num_lines(file_path=in_file_path)
                 with open(in_file_path, 'rb') as file:
                     index: int
-                    for index, line in enumerate(tqdm(file,
-                                                      total=total_lines,
-                                                      desc=f'{filename}: {file_index + 1} of {file_count}',
-                                                      unit="line")):
+                    for index, line in enumerate(tqdm(
+                            file,
+                            total=total_lines,
+                            desc=f'{filename}: {file_index + 1} of {file_count}',
+                            unit="line")):
 
                         data_dict = json.loads(line)
 
                         if self.is_correct_danish(
-                            data_dict=data_dict,
-                            confidence_threshold=self.args.danish_threshold):
+                                data_dict=data_dict,
+                                confidence_threshold=self.args.danish_threshold):
 
-                            data_dict = self.fix_utf8_encodings(data_dict=data_dict)
-                            out_data.append({'id': index, 'url': data_dict['redirected_to_url'],
-                                             'sha512': data_dict['redirected_to_url_sha512'],
-                                             'text': data_dict['page_filtered_text']})
+                            data_dict = self.fix_utf8_encodings(
+                                data_dict=data_dict)
+                            out_data.append({'id': index, 'url': data_dict[
+                                'redirected_to_url'],
+                                             'sha512': data_dict[
+                                                 'redirected_to_url_sha512'],
+                                             'text': data_dict[
+                                                 'page_filtered_text']})
 
                         else:
                             false_lang_preds.append(1)
 
-                    assert total_lines == index + 1, {'Total lines and index dont match'}
+                    assert total_lines == index + 1, {
+                        'Total lines and index dont match'}
                     print(f'Observations discarded in '
                           f'{filtered_filename}: {np.sum(false_lang_preds)}')
-                    print(f'Urls approved in {filtered_filename}: '
-                          f'{index + 1 - np.sum(false_lang_preds)} of {index + 1}')
-                write_json_lines(out_dir=FILTERED_SCRAPE_DIR, filename=filtered_filename,
+                    print(
+                        f'Urls approved in {filtered_filename}: '
+                        f'{index + 1 - np.sum(false_lang_preds)} of {index + 1}')
+                write_json_lines(out_dir=FILTERED_SCRAPE_DIR,
+                                 filename=filtered_filename,
                                  data=out_data)
             else:
                 print(f'File {filename} is not a scrape file')
         print("Finished extracting text.")
 
-    def create_unique_sentences(self, out_file_name: str = 'unique_sentences.json'):
+    def create_unique_sentences(self,
+                                out_file_name: str = 'unique_sentences.json'):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
@@ -152,23 +149,29 @@ class RawScrapePreprocessing:
         with open(os.path.join(PREP_DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             file_count = len(os.listdir(FILTERED_SCRAPE_DIR))
-            for file_index, filename in enumerate(os.listdir(FILTERED_SCRAPE_DIR)):
+            for file_index, filename in enumerate(
+                    os.listdir(FILTERED_SCRAPE_DIR)):
                 if '_filtered.json' in filename:
                     per_muni_dump_data = []
                     # Create file for each municipality for testing
-                    with open(os.path.join(DATA_DIR, 'data_testing', f'unique_{filename}'), 'w',
+                    with open(os.path.join(DATA_DIR, 'data_testing',
+                                           f'unique_{filename}'), 'w',
                               encoding='utf-8') as muni_outfile:
 
-                        in_file_path = os.path.join(FILTERED_SCRAPE_DIR, filename)
+                        in_file_path = os.path.join(FILTERED_SCRAPE_DIR,
+                                                    filename)
                         total_lines = count_num_lines(file_path=in_file_path)
                         with open(in_file_path, 'r', encoding='utf-8') as file:
-                            for line in tqdm(file,
-                                             total=total_lines,
-                                             desc=f'{filename}: {file_index + 1} of {file_count}',
-                                             unit="line"):
+                            for line in tqdm(
+                                    file,
+                                    total=total_lines,
+                                    desc=f'{filename}: {file_index + 1} '
+                                         f'of {file_count}',
+                                    unit="line"):
                                 data_dict = json.loads(line)
 
-                                # Do initial sentence split - returns list of all sentences
+                                # Do initial sentence split - returns list of
+                                # all sentences
                                 sentences, disapproved_sentences = split_sentences(
                                     data_dict=data_dict,
                                     sentence_splitter=self.sentence_splitter,
@@ -176,7 +179,8 @@ class RawScrapePreprocessing:
                                     filename=filename)
 
                                 for i, sentence in enumerate(sentences):
-                                    # Strip sentence, search for letters and filter by word count
+                                    # Strip sentence, search for letters and
+                                    # filter by word count
                                     dump_data, seen = self.create_dump_data(
                                         data=data_dict,
                                         sentence_counter=i,
@@ -198,7 +202,8 @@ class RawScrapePreprocessing:
                                     else:
                                         if sentence.strip():
                                             disapproved_sentences.append(
-                                                f'{filename.split("_")[0]} - {data_dict["id"]} - '
+                                                f'{filename.split("_")[0]} - '
+                                                f'{data_dict["id"]} - '
                                                 f'{i} - {sentence}')
 
         write_text_lines(out_dir=DATA_DIR,
@@ -211,18 +216,18 @@ class RawScrapePreprocessing:
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
 
-    def create_dump_data(self, data: dict, sentence_counter: int, sentence: str, seen,
+    def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
+                         seen,
                          filename, model, tokenizer, class_data):
         final_sentence = sentence.strip()
         if find_letters_and_word_count(
-            text=final_sentence,
-            word_count_threshold=self.args.min_len):
+                text=final_sentence,
+                word_count_threshold=self.args.min_len):
 
             line_hash = hashlib.md5(final_sentence.encode()).digest()
             # add to unique sentences if not already exists
             if line_hash in seen:
                 return None, seen
-
 
             if line_hash in class_data:
                 seen.add(line_hash)
@@ -255,7 +260,8 @@ class RawScrapePreprocessing:
         :param seed: seed for reproducibility
         """
         sentences = []
-        with open(os.path.join(PREP_DATA_DIR, in_file), 'r', encoding='utf-8') as file:
+        with open(os.path.join(PREP_DATA_DIR, in_file), 'r',
+                  encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
                 sentences.append({'text': data_dict['text']})
@@ -267,7 +273,8 @@ class RawScrapePreprocessing:
         val = sentences[train_idx:]
         val = [x for x in val]
         if self.args.split_train_n_times > 0:
-            train_chunks = np.array_split(train_init, self.args.split_train_n_times)
+            train_chunks = np.array_split(train_init,
+                                          self.args.split_train_n_times)
             for i, train_chunk in enumerate(train_chunks):
                 train = [x for x in list(train_chunk)]
                 train_outfile = self.args.train_outfile + f'_{i}'
@@ -275,21 +282,25 @@ class RawScrapePreprocessing:
             self.save_datasets(val=val)
         else:
             train = [x for x in train_init]
-            self.save_datasets(train=train, val=val, train_outfile=self.args.train_outfile)
+            self.save_datasets(train=train, val=val,
+                               train_outfile=self.args.train_outfile)
 
     def save_datasets(self, train: List[dict] = None, val: List[dict] = None,
                       train_outfile: str = None):
         """
-        Take train and validation data as input and saves to json-lines files compatible with torch
+        Take train and validation data as input and saves to json-lines files
+        compatible with torch
         dataset
         :param train_outfile: name of train file
         :param train: List[str] where each element is a valid sentence for training
         :param val: List[str] where each element is a valid sentence for validation
         """
         if train and train_outfile:
-            write_json_lines(out_dir=DATA_DIR, filename=train_outfile, data=train)
+            write_json_lines(out_dir=DATA_DIR, filename=train_outfile,
+                             data=train)
         if val:
-            write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile, data=val)
+            write_json_lines(out_dir=DATA_DIR, filename=self.args.val_outfile,
+                             data=val)
 
     @staticmethod
     def is_correct_danish(data_dict: dict, confidence_threshold: int):
@@ -301,7 +312,8 @@ class RawScrapePreprocessing:
         """
         if "__label__da" not in data_dict['detected_page_lang']:
             return False
-        confidence = float(re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
+        confidence = float(
+            re.findall(r'\d+\.\d+', data_dict['detected_page_lang'])[0])
         discard_conditions = [confidence < confidence_threshold,
                               '<div ' in data_dict['page_filtered_text'],
                               'endif' in data_dict['page_filtered_text'],
@@ -324,15 +336,18 @@ class RawScrapePreprocessing:
         wrong_encodings = [['Ã¥', 'å'], ['Ã¸', 'ø'], ['Ã¦', 'æ']]
         for wrong_encoding in wrong_encodings:
             if wrong_encoding[0] in data_dict['page_filtered_text']:
-                data_dict['page_filtered_text'] = data_dict['page_filtered_text'].replace(
+                data_dict['page_filtered_text'] = data_dict[
+                    'page_filtered_text'].replace(
                     wrong_encoding[0],
                     wrong_encoding[1])
         return data_dict
 
     @staticmethod
-    def filter_ppl_scores(ppl_threshold: int = 10000, in_file_name: str = 'unique_sentences.json'):
+    def filter_ppl_scores(ppl_threshold: int = 10000,
+                          in_file_name: str = 'unique_sentences.json'):
         """
-        Filtering ppl scores from unique sentences - creates two files approved/disapproved
+        Filtering ppl scores from unique sentences - creates two files
+        approved/disapproved
         :param ppl_threshold: perplexity threshold - approve all below
         :param in_file_name: unique sentences file
         """
@@ -341,10 +356,11 @@ class RawScrapePreprocessing:
         total_lines = count_num_lines(file_path=in_file_path)
         print("Filtering perplexity scores...")
         with open(in_file_path, 'r', encoding='utf-8') as infile, \
-            open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
-                 'w', encoding='utf-8') as approved_sentences, \
-            open(os.path.join(PREP_DATA_DIR, 'disapproved_sentences_ppl.json'),
-                 'w', encoding='utf-8') as disapproved_sentences:
+                open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
+                     'w', encoding='utf-8') as approved_sentences, \
+                open(os.path.join(PREP_DATA_DIR,
+                                  'disapproved_sentences_ppl.json'),
+                     'w', encoding='utf-8') as disapproved_sentences:
 
             for line in tqdm(infile, total=total_lines,
                              desc=in_file_name, unit="line"):
@@ -361,7 +377,8 @@ class RawScrapePreprocessing:
 
 class ClassifiedScrapePreprocessing:
     """
-    Class to read raw excel file with classified KL categories and split to train and validation data
+    Class to read raw excel file with classified KL categories and split to
+    train and validation data
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -376,22 +393,25 @@ class ClassifiedScrapePreprocessing:
         :param drop_na: drop not classified sentences
         """
         # ToDo: find original ppl_filter - between 40 and 3000?
-        data = pd.read_excel(os.path.join(file_dir, 'raw', self.args.excel_classification_file),
-                             sheet_name='Klassificering',
-                             header=1)
+        data = pd.read_excel(
+            os.path.join(file_dir, 'raw', self.args.excel_classification_file),
+            sheet_name='Klassificering',
+            header=1)
         data['index'] = range(len(data))
         data['text_len'] = list(map(lambda x: len(str(x)), data['text']))
         if drop_na:
             data = data.dropna(subset=['klassifikation'])
         if ppl_filters:
-            data = data[(data['ppl_score'] > ppl_filters[0]) & (data['ppl_score'] < ppl_filters[1])]
+            data = data[(data['ppl_score'] > ppl_filters[0]) & (
+                    data['ppl_score'] < ppl_filters[1])]
 
         data_dicts = data.to_dict('records')
         save_json(output_dir=CLASS_DATA_DIR, data=data_dicts,
                   filename=self.args.classified_scrape_file)
 
     def read_classified_json(self):
-        return read_jsonlines(input_dir=CLASS_DATA_DIR, filename=self.args.classified_scrape_file)
+        return read_jsonlines(input_dir=CLASS_DATA_DIR,
+                              filename=self.args.classified_scrape_file)
 
     @staticmethod
     def group_data_by_class(list_data: List[dict]):
@@ -427,7 +447,8 @@ class ClassifiedScrapePreprocessing:
         """
          Read grouped data, split to train, val and test and save json
         :param class_grouped_data: grouped data as list og lists of dicts
-        :param train_size: float between 0 and 1 specifying the size of the train set where
+        :param train_size: float between 0 and 1 specifying the size of the
+        train set where
         1 is all data
         :param test_size: int >= 1 specifying the number of sentences in each class
         :param train_outfile: if train_outfile specified generate train set
@@ -436,7 +457,8 @@ class ClassifiedScrapePreprocessing:
         :return:
         """
         assert train_outfile and test_outfile, \
-            '\n At least train_outfile and test_outfile must be specified - see doc: \n' + \
+            '\n At least train_outfile and test_outfile must be specified - ' \
+            'see doc: \n' + \
             ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
         assert train_size and test_size, \
@@ -444,31 +466,44 @@ class ClassifiedScrapePreprocessing:
             ClassifiedScrapePreprocessing.train_val_test_to_json_split.__doc__
 
         if train_outfile and test_size and not val_outfile:
-            train_test = [train_test_split(x, test_size=test_size, random_state=1) for x in
-                          class_grouped_data]
-            train = list(itertools.chain.from_iterable([x[0] for x in train_test]))
-            test = list(itertools.chain.from_iterable([x[1] for x in train_test]))
+            train_test = [
+                train_test_split(x, test_size=test_size, random_state=1) for x
+                in
+                class_grouped_data]
+            train = list(
+                itertools.chain.from_iterable([x[0] for x in train_test]))
+            test = list(
+                itertools.chain.from_iterable([x[1] for x in train_test]))
 
         if train_outfile and val_outfile and test_outfile and train_size and test_size:
-            train_val = [train_test_split(x, train_size=train_size, random_state=1) for x in
-                         class_grouped_data]
-            train = list(itertools.chain.from_iterable([x[0] for x in train_val]))
-            val_tmp = list(itertools.chain.from_iterable([x[1] for x in train_val]))
+            train_val = [
+                train_test_split(x, train_size=train_size, random_state=1) for x
+                in
+                class_grouped_data]
+            train = list(
+                itertools.chain.from_iterable([x[0] for x in train_val]))
+            val_tmp = list(
+                itertools.chain.from_iterable([x[1] for x in train_val]))
 
-            val_grouped = ClassifiedScrapePreprocessing.group_data_by_class(val_tmp)
+            val_grouped = ClassifiedScrapePreprocessing.group_data_by_class(
+                val_tmp)
 
-            val_test = [train_test_split(x, test_size=test_size, random_state=1) for x in
+            val_test = [train_test_split(x, test_size=test_size, random_state=1)
+                        for x in
                         val_grouped]
 
             val = list(itertools.chain.from_iterable([x[0] for x in val_test]))
             test = list(itertools.chain.from_iterable([x[1] for x in val_test]))
 
         if train_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=train, filename=train_outfile)
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=train,
+                      filename=train_outfile)
         if val_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=val, filename=val_outfile)
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=val,
+                      filename=val_outfile)
         if test_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=test, filename=test_outfile)
+            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=test,
+                      filename=test_outfile)
         return print('datasets generated')
 
     @staticmethod
@@ -477,10 +512,12 @@ class ClassifiedScrapePreprocessing:
         for filename in os.listdir(data_dir):
             filepath = os.path.join(data_dir, filename)
             if os.path.isfile(filepath):
-                tmp_data = read_jsonlines(input_dir=data_dir, filename=filename.split('.')[0])
+                tmp_data = read_jsonlines(input_dir=data_dir,
+                                          filename=filename.split('.')[0])
                 for line in tmp_data:
                     if isinstance(line['text'], str):
-                        all_data.append({'label': line['klassifikation'], 'text': line['text']})
+                        all_data.append({'label': line['klassifikation'],
+                                         'text': line['text']})
                     else:
                         print(f'line {line} is empty')
         write_json_lines(out_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
@@ -515,5 +552,3 @@ if __name__ == '__main__':
                                                 test_outfile='test_classified',
                                                 train_size=0.9,
                                                 test_size=30)
-
-    print()

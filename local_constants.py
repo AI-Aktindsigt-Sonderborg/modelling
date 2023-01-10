@@ -1,6 +1,7 @@
 import os
 
-PROJECT_ROOT = os.path.dirname(os.path.abspath('../semantic-modelling/local_constants.py'))
+PROJECT_ROOT = os.path.dirname(
+    os.path.abspath('../semantic-modelling/local_constants.py'))
 MODEL_DIR = os.path.join(PROJECT_ROOT, 'models')
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 PLOTS_DIR = os.path.join(PROJECT_ROOT, 'plots')

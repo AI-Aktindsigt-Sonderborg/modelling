@@ -22,7 +22,8 @@ class DataPrepArgParser:
             type=float,
             default=0.6,
             metavar='<float>',
-            help='threshold to filter danish sentence predictions from raw scrape')
+            help='threshold to filter danish sentence predictions from raw '
+                 'scrape')
         self.parser.add_argument(
             '--min_len',
             type=int,

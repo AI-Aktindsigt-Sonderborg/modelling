@@ -5,20 +5,7 @@ from distutils.util import strtobool
 class MLMArgParser:
     """
     Class to handle input args for unsupervised Masked Language Modelling
-    Methods
-    -------
-    add_data_params()
-        add data parameters
-    add_model_params()
-        Add model parameters
-    add_training_params()
-        Add parameters relevant for training - including learning rate scheduling
-    add_eval_params()
-        Add parameters relevant for evaluation
-    add_dp_params()
-        Add parameters relevant for differential privacy
     """
-
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -73,8 +60,8 @@ class MLMArgParser:
             "--replace_head",
             type=lambda x: bool(strtobool(x)),
             default=True,
-            help="Whether to replace bert head. True is mandatory for MLM with DP - "
-                 "Also set freeze_layers to true if replace_head is true",
+            help="Whether to replace bert head. True is mandatory for MLM with"
+                 " DP - Also set freeze_layers to true if replace_head is true",
             metavar='<bool>')
         model_params.add_argument(
             '-fe', "--freeze_embeddings",
@@ -92,7 +79,8 @@ class MLMArgParser:
 
     def add_training_params(self):
         """
-        Add parameters relevant for training - including learning rate scheduling
+        Add parameters relevant for training - including learning rate
+        scheduling
         """
         training_params = self.parser.add_argument_group('training')
         training_params.add_argument(
@@ -235,7 +223,8 @@ class MLMArgParser:
             type=lambda x: bool(strtobool(x)),
             metavar='<bool>',
             default=True,
-            help="Whether to only save best model - overwrites save_steps if True")
+            help="Whether to only save best model - overwrites save_steps if "
+                 "True")
         eval_params.add_argument(
             "-ebs", "--eval_batch_size",
             type=int,
@@ -302,17 +291,9 @@ class MLMArgParser:
 
 class SequenceModellingArgParser(MLMArgParser):
     """
-    Class inherited from MLMArgParser to handle input args for supervised SequenceClassification
-    Methods
-    -------
-    add_data_params()
-        add data parameters
-    add_model_params()
-        Add model parameters
-    add_training_params()
-        Add parameters relevant for training - including learning rate scheduling
+    Class inherited from MLMArgParser to handle input args for supervised
+    SequenceClassification
     """
-
     def add_data_params(self):
         """
         Add data parameters
@@ -447,8 +428,10 @@ class SequenceModellingArgParser(MLMArgParser):
             default=True,
             metavar='<bool>',
             help="Whether to compute lr_warmup and decay automatically\n"
-                 "freeze_layers_n_steps = 10%% of total_steps\n (if freeze_layers true, else 0)"
-                 "lr_freezed_warmup_steps = 10%% of freeze_layers_n_steps (if fl true, else 0)\n"
+                 "freeze_layers_n_steps = 10%% of total_steps\n "
+                 "(if freeze_layers true, else 0)"
+                 "lr_freezed_warmup_steps = 10%% of freeze_layers_n_steps "
+                 "(if fl true, else 0)\n"
                  "lr_warmup_steps = 10%% of steps training full model\n"
                  "lr_start_decay = 50%% of training full model")
         lr_params.add_argument(

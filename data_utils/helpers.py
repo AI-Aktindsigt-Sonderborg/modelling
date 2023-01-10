@@ -49,22 +49,28 @@ def write_text_lines(out_dir: str, filename: str, data: List[str]):
         for entry in data:
             outfile.write(f"{entry}\n")
 
-def split_sentences(data_dict: dict, filename: str, sentence_splitter: object,
-                   disapproved_sentences: List[str]) -> Tuple[List[str], List[str]]:
+def split_sentences(
+        data_dict: dict,
+        filename: str,
+        sentence_splitter: object,
+        disapproved_sentences: List[str]) -> Tuple[List[str], List[str]]:
     """
     Takes raw html input text and splits to sentences
-    :param data_dict: Dictionary containing raw input text from filtered scrape file
+    :param data_dict: Dictionary containing raw input text from filtered scrape
+    file
     :param sentence_splitter: nltk.tokenize.punkt.PunktSentenceTokenizer
     :param disapproved_sentences: list of disapproved sentences
     :param filename: filename
     :return: list of sentences, list of disapproved sentences
     """
 
-    # Read canonical string representation of the object as we need special regex characters
+    # Read canonical string representation of the object as we need special
+    # regex characters
     prep_text = repr(data_dict['text'])
 
     # Define list of special chars to replace
-    special_chars = [['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'], ['”', '"', "'"],
+    special_chars = [['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
+                     ['”', '"', "'"],
                      ['NemID', 'MitID', 'minSU', 'LinkedIn']]
     for case in special_chars[0]:
         prep_text = prep_text.replace(case, ' ')
@@ -89,7 +95,8 @@ def split_sentences(data_dict: dict, filename: str, sentence_splitter: object,
     if len(find_wrong_break_ids) > 0:
         increment = 1
         for idx in find_wrong_break_ids:
-            prep_text = prep_text[:idx[0] + increment] + '\n' + prep_text[idx[0] + increment:]
+            prep_text = prep_text[:idx[0] + increment] + '\n'\
+                        + prep_text[idx[0] + increment:]
             increment += 1
 
     # split text with sentence_splitter and join by newlines
@@ -101,10 +108,13 @@ def split_sentences(data_dict: dict, filename: str, sentence_splitter: object,
 
     new_sentences = []
     for j, sentence in enumerate(sentences):
-        # Discard sentences where lower case letters are followed by capital letters
-        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]", sentence)]) > 0:
+        # Discard sentences where lower case letters are followed by capital
+        # letters
+        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
+                                                            sentence)]) > 0:
             disapproved_sentences.append(
-                f'{filename.split("_")[0]} - {data_dict["id"]} - {j} - {sentence}')
+                f'{filename.split("_")[0]} - {data_dict["id"]}'
+                f' - {j} -{sentence}')
         else:
             new_sentences.append(sentence)
 
@@ -135,7 +145,8 @@ def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
 
     return np.exp(result.cpu().numpy())
 
-def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2', device: str = 'cuda'):
+def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2',
+                       device: str = 'cuda'):
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     model = AutoModelWithLMHead.from_pretrained(model_id)

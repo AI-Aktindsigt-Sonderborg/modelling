@@ -52,7 +52,8 @@ class TimeCode:
         time_end = time.time()
         final_time_seconds = round(time_end - self.start_time, 2)
         final_time_minutes = round(final_time_seconds / 60, 2)
-        print_string = f"Time it took: {final_time_seconds} seconds, {final_time_minutes} minutes"
+        print_string = f"Time it took: {final_time_seconds} seconds," \
+                       f" {final_time_minutes} minutes"
         if prefix:
             print_string = prefix + print_string
         print(print_string)
@@ -65,7 +66,8 @@ def append_json(output_dir: str, data: dict, filename: str):
     :param data: List[dict]
     :param filename: output file name
     """
-    with open(os.path.join(output_dir, filename + '.json'), 'a', encoding='utf-8') as outfile:
+    with open(os.path.join(output_dir, filename + '.json'), 'a',
+              encoding='utf-8') as outfile:
         json.dump(data, outfile)
         outfile.write('\n')
 
