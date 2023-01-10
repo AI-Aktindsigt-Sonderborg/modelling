@@ -221,7 +221,7 @@ class MLMModelling:
                         filename='train_loss',
                         data={'epoch': epoch,
                               'step': step,
-                              'score': float(loss.item())})
+                              'score': float(np.mean(train_losses))})
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 
