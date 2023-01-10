@@ -3,7 +3,6 @@ import os
 import time
 from typing import Optional, List
 
-import numpy as np
 from opacus.validators import ModuleValidator
 
 
@@ -53,7 +52,8 @@ class TimeCode:
         time_end = time.time()
         final_time_seconds = round(time_end - self.start_time, 2)
         final_time_minutes = round(final_time_seconds / 60, 2)
-        print_string = f"Time it took: {final_time_seconds} seconds, {final_time_minutes} minutes"
+        print_string = f"Time it took: {final_time_seconds} seconds," \
+                       f" {final_time_minutes} minutes"
         if prefix:
             print_string = prefix + print_string
         print(print_string)
@@ -66,19 +66,10 @@ def append_json(output_dir: str, data: dict, filename: str):
     :param data: List[dict]
     :param filename: output file name
     """
-    with open(os.path.join(output_dir, filename + '.json'), 'a', encoding='utf-8') as outfile:
+    with open(os.path.join(output_dir, filename + '.json'), 'a',
+              encoding='utf-8') as outfile:
         json.dump(data, outfile)
         outfile.write('\n')
-
-
-def accuracy(preds: np.array, labels: np.array):
-    """
-    Compute accuracy on predictions and labels
-    :param preds: Predicted token
-    :param labels: Input labelled token
-    :return: Mean accuracy
-    """
-    return (preds == labels).mean()
 
 
 def save_json(output_dir: str, data: List[dict], filename: str):
@@ -94,6 +85,7 @@ def save_json(output_dir: str, data: List[dict], filename: str):
             json.dump(entry, outfile)
             outfile.write('\n')
 
+
 def read_jsonlines(input_dir: str, filename: str):
     """
     read json file to list of dicts
@@ -106,4 +98,16 @@ def read_jsonlines(input_dir: str, filename: str):
         for line in file:
             data_dict = json.loads(line)
             data.append(data_dict)
+    return data
+
+
+def read_json(filepath: str):
+    """
+    read json file to list of dicts
+    :param input_dir: directory to read file from
+    :param filename: input file name
+    """
+    data = []
+    with open(filepath, 'r', encoding='utf-8') as file:
+        data = json.load(file)
     return data

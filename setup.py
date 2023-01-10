@@ -5,8 +5,8 @@ import os
 
 import nltk
 
-from local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, \
-    PREP_DATA_DIR, PLOTS_DIR
+from local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR,\
+    SCRAPED_DATA_DIR, PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, CLASS_DATA_DIR
 
 # Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')
@@ -16,6 +16,11 @@ if not os.path.exists(DATA_DIR):
     # Create a new directory because it does not exist
     os.makedirs(DATA_DIR)
     print("Create data dir!")
+
+if not os.path.exists('metadata'):
+    # Create a new directory because it does not exist
+    os.makedirs('metadata')
+    print("Create metadata dir!")
 
 if not os.path.exists(MODEL_DIR):
     # Create a new directory because it does not exist
@@ -46,3 +51,23 @@ if not os.path.exists('data/internal_data'):
     # Create a new directory because it does not exist
     os.makedirs('data/internal_data')
     print("Create internal data dir!")
+
+if not os.path.exists(RESULTS_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(RESULTS_DIR)
+    print("Create results dir!")
+
+if not os.path.exists(CLASS_DATA_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(CLASS_DATA_DIR)
+    print("Create classified data dir!")
+
+if not os.path.exists(os.path.join(CLASS_DATA_DIR, 'raw')):
+    # Create a new directory because it does not exist
+    os.makedirs(os.path.join(CLASS_DATA_DIR, 'raw'))
+    print("Create raw classified data dir!")
+
+if not os.path.exists(os.path.join(CLASS_DATA_DIR, 'processed')):
+    # Create a new directory because it does not exist
+    os.makedirs(os.path.join(CLASS_DATA_DIR, 'processed'))
+    print("Create processed classified data dir!")
