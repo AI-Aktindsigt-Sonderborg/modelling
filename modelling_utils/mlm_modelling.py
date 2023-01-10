@@ -209,6 +209,7 @@ class MLMModelling:
             loss = output.loss
             loss.backward()
             train_losses.append(loss.item())
+
             optimizer.step()
             self.scheduler.step()
 
@@ -218,6 +219,11 @@ class MLMModelling:
                 lr=get_lr(optimizer)[0],
                 loss=float(np.mean(train_losses)),
                 logging_steps=self.args.logging_steps)
+            append_json(output_dir=self.metrics_dir,
+                        filename='train_loss',
+                        data={'epoch': epoch,
+                              'step': step,
+                              'score': float(loss.item())})
 
             if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 
@@ -246,6 +252,7 @@ class MLMModelling:
                         save_best_model=save_best_model)
                 model.train()
             step += 1
+
         if self.eval_data:
             return model, step, lrs, eval_scores
         return model, step, lrs
