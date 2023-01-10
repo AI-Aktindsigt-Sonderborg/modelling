@@ -680,6 +680,8 @@ class SequenceClassificationDP(SequenceClassification):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
+            self.args.lr_freezed_warmup_steps = None
+            self.args.lr_freezed = None
 
     def train_model(self):
         """

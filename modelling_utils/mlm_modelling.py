@@ -91,7 +91,7 @@ class MLMModelling:
         self.scheduler = None
 
         if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = None
+            self.args.freeze_layers_n_steps = 0
             self.args.lr_freezed_warmup_steps = None
             self.args.lr_freezed = None
 
