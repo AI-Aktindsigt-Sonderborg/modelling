@@ -199,6 +199,8 @@ class MLMModelling:
         learning_rates
         """
 
+        model.train()
+        
         model = self.modify_learning_rate_and_layers(
             model=model,
             optimizer=optimizer,
@@ -246,8 +248,6 @@ class MLMModelling:
                     epoch=epoch,
                     step=step,
                     save_best_model=save_best_model)
-
-            model.train()
 
         train_losses.append(loss.item())
         append_json(output_dir=self.metrics_dir,
