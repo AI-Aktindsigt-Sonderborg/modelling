@@ -19,14 +19,16 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, TrainingArguments, Trainer, \
+from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, \
+    TrainingArguments, Trainer, \
     DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
 
 from data_utils.custom_dataclasses import EvalScore
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler, get_lr, validate_model, get_metrics, \
+from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
+    get_metrics, \
     save_key_metrics_mlm, log_train_metrics, log_train_metrics_dp
 from utils.helpers import TimeCode, append_json
 from utils.visualization import plot_running_results
@@ -38,7 +40,8 @@ class MLMModelling:
 
     Attributes
     ----------
-    args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible arguments
+    args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for
+    possible arguments
 
     Methods
     -------
@@ -51,13 +54,15 @@ class MLMModelling:
     set_up_training()
         Load data and set up for training an MLM unsupervised model
     create_dummy_trainer(train_data_wrapped):
-        Create dummy trainer, such that we get optimizer and can save model object
+        Create dummy trainer, such that we get optimizer and can save model
+        object
     tokenize_and_wrap_data(data):
         Tokenize dataset with tokenize_function and wrap with DatasetWrapper
     load_data(train):
         Load data using datasets.load_dataset for training and evaluation
     load_model_and_replace_bert_head():
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+        Load BertForMaskedLM, replace head and freeze all params in embeddings
+        layer
 
     Static methods
     --------------
@@ -84,6 +89,14 @@ class MLMModelling:
         self.train_data = None
         self.eval_data = None
         self.model = None
+
+        if self.args.load_alvenir_pretrained:
+            self.model_path = os.path.join(MODEL_DIR,
+                                           self.args.model_name,
+                                           'best_model')
+        else:
+            self.model_path = self.args.model_name
+
         self.local_alvenir_model_path = None
         self.tokenizer = self.get_tokenizer()
 
@@ -99,7 +112,7 @@ class MLMModelling:
         """
         load data, set up training and train model
         """
-        model, optimizer, train_loader = self.set_up_training()
+        model, optimizer, train_loader = self.set_up_training
 
         code_timer = TimeCode()
         all_lrs = []
@@ -112,7 +125,8 @@ class MLMModelling:
                 shuffle=False)
 
             eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
+            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
+                              unit="epoch"):
                 model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
@@ -174,7 +188,8 @@ class MLMModelling:
         :param val_loader: If evaluate_during_training: DataLoader containing
         validation data
         :param step: Given step
-        :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
+        :return: if self.eval_data: return model, eval_losses, eval_accuracies,
+        step, lrs
         else: return model, step, lrs
         """
         model.train()
@@ -185,17 +200,18 @@ class MLMModelling:
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
-            model, optimizer, eval_scores, train_losses, lrs = self.train_batch(
-                model=model,
-                optimizer=optimizer,
-                batch=batch,
-                val_loader=val_loader,
-                epoch=epoch,
-                step=step,
-                eval_scores=eval_scores,
-                train_losses=train_losses,
-                learning_rates=lrs
-            )
+            model, optimizer, eval_scores, train_losses, lrs = \
+                self.train_batch(
+                    model=model,
+                    optimizer=optimizer,
+                    batch=batch,
+                    val_loader=val_loader,
+                    epoch=epoch,
+                    step=step,
+                    eval_scores=eval_scores,
+                    train_losses=train_losses,
+                    learning_rates=lrs
+                )
 
             log_train_metrics(
                 epoch,
@@ -210,8 +226,15 @@ class MLMModelling:
             return model, step, lrs, eval_scores
         return model, step, lrs
 
-    def train_batch(self, model, optimizer, batch, val_loader, epoch,
-                    step, eval_scores, train_losses, learning_rates):
+    def train_batch(self, model, optimizer, batch, val_loader: DataLoader,
+                    epoch: int, step: int, train_losses: List[float],
+                    learning_rates: List[dict],
+                    eval_scores: List[EvalScore] = None) -> tuple:
+        """
+        Method to train one batch of data
+        :return: tuple of model, optimizer, eval_scores, train_losses,
+        learning_rates
+        """
 
         model = self.modify_learning_rate_and_layers(
             model=model,
@@ -225,7 +248,8 @@ class MLMModelling:
 
         # compute model output
         output = model(input_ids=batch["input_ids"].to(self.args.device),
-                       attention_mask=batch["attention_mask"].to(self.args.device),
+                       attention_mask=batch["attention_mask"].to(
+                           self.args.device),
                        labels=batch["labels"].to(self.args.device))
 
         loss = output.loss
@@ -268,7 +292,8 @@ class MLMModelling:
                     data={'epoch': epoch,
                           'step': step,
                           'score': float(np.mean(train_losses))})
-        learning_rates.append({'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
+        learning_rates.append(
+            {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
         return model, optimizer, eval_scores, train_losses, learning_rates
 
@@ -295,9 +320,10 @@ class MLMModelling:
                             tokenizer=self.tokenizer,
                             step='/best_model')
 
+    @property
     def set_up_training(self):
         """
-        Load data and set up for training an MLM unsupervised model
+        Load data and set up for training an MLM model
         :return: model, optimizer and train_loader for training
         """
         self.load_data()
@@ -306,40 +332,19 @@ class MLMModelling:
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+            self.save_config(output_dir=self.output_dir,
+                             metrics_dir=self.metrics_dir,
                              args=self.args)
 
         train_data_wrapped, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.train_batch_size)
 
-        if self.args.load_alvenir_pretrained:
-            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
+        model = self.get_model()
 
-            lm_head = new_head.to(self.args.device)
-            model.cls = lm_head
-
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-
-        else:
-            if self.args.replace_head:
-                print('Replacing bert head')
-                model = self.load_model_and_replace_bert_head()
-
-            else:
-                model = BertForMaskedLM.from_pretrained(self.args.model_name)
-
-        dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
-                                                  model=model)
-
-        # train_loader = DataLoader(dataset=train_data_wrapped,
-        #                           batch_size=self.args.train_batch_size,
-        #                           collate_fn=self.data_collator)
+        dummy_trainer = self.create_dummy_trainer(
+            train_data_wrapped=train_data_wrapped,
+            model=model)
 
         optimizer = dummy_trainer.create_optimizer()
         if self.args.freeze_layers:
@@ -361,7 +366,8 @@ class MLMModelling:
 
     def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper, model):
         """
-        Create dummy trainer, such that we get optimizer and can save model object
+        Create dummy trainer, such that we get optimizer and can save model
+        object
         :param train_data_wrapped: Train data of type DatasetWrapper
         :param model: initial model
         :return: Trainer object
@@ -412,7 +418,8 @@ class MLMModelling:
             """
             # Remove empty lines
             examples['text'] = [
-                line for line in examples['text'] if len(line) > 0 and not line.isspace()
+                line for line in examples['text'] if
+                len(line) > 0 and not line.isspace()
             ]
 
             return self.tokenizer(
@@ -420,7 +427,8 @@ class MLMModelling:
                 padding='max_length',
                 truncation=True,
                 max_length=self.args.max_length,
-                # We use this option because DataCollatorForLanguageModeling (see below)
+                # We use this option because DataCollatorForLanguageModeling
+                # (see below)
                 # is more efficient when it receives the `special_tokens_mask`.
                 return_special_tokens_mask=True,
             )
@@ -448,8 +456,8 @@ class MLMModelling:
                 data_files=os.path.join(DATA_DIR, self.args.train_data),
                 split='train')
 
-            self.total_steps = int(
-                len(self.train_data) / self.args.train_batch_size * self.args.epochs)
+            self.total_steps = int(len(self.train_data) /
+                                   self.args.train_batch_size * self.args.epochs)
             self.args.total_steps = self.total_steps
 
             if self.args.compute_delta:
@@ -461,12 +469,48 @@ class MLMModelling:
                 data_files=os.path.join(DATA_DIR, self.args.eval_data),
                 split='train')
 
+    def get_model(self):
+        """
+        get model based on model type
+        :return: model
+        """
+
+        if self.args.load_alvenir_pretrained:
+            model = BertForMaskedLM.from_pretrained(
+                self.model_path,
+                local_files_only=self.args.load_alvenir_pretrained)
+            config = BertConfig.from_pretrained(
+                self.model_path,
+                local_files_only=self.args.load_alvenir_pretrained)
+            new_head = BertOnlyMLMHeadCustom(config)
+            new_head.load_state_dict(
+                torch.load(self.model_path + '/head_weights.json'))
+
+            lm_head = new_head.to(self.args.device)
+            model.cls = lm_head
+            # ToDo: For now we are freezing embedding layer until (maybe)
+            #  we have implemented grad sampler -
+            #  as this is not implemented in opacus
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
+            return model
+
+        if self.args.replace_head:
+            print('Replacing bert head')
+            return self.load_model_and_replace_bert_head()
+
+        return BertForMaskedLM.from_pretrained(
+            self.model_path,
+            local_files_only=self.args.load_alvenir_pretrained)
+
     def load_model_and_replace_bert_head(self):
         """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+        Load BertForMaskedLM, replace head and freeze all embedding-params
         """
-        model = BertForMaskedLM.from_pretrained(self.args.model_name)
-        config = BertConfig.from_pretrained(self.args.model_name)
+        model = BertForMaskedLM.from_pretrained(
+            self.model_path,
+            local_files_only=self.args.load_alvenir_pretrained)
+        config = BertConfig.from_pretrained(self.model_path)
         lm_head = BertOnlyMLMHeadCustom(config)
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
@@ -477,24 +521,36 @@ class MLMModelling:
         return model
 
     def compute_lr_automatically(self):
+        """
+          Compute the learning rate schedule automatically based on the number
+          of training steps.
+          This function sets several parameters in the `self.args` object,
+          including `lr_freezed_warmup_steps`, `lr_warmup_steps`, and
+          `lr_start_decay`. These parameters are used to control the learning
+          rate schedule during training.
+          If `self.args.freeze_layers` is true, `lr_freezed_warmup_steps` is
+          set to 10% of the number of steps used to train the frozen layers.
+          `lr_warmup_steps` is set to 10% of the total number of training steps,
+          after the frozen layers have been trained.
+          `lr_start_decay` is set to be half way through the remaining steps
+          after the frozen layers have been trained.
+          """
 
         if self.args.freeze_layers:
             self.args.lr_freezed_warmup_steps = \
                 int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
-        self.args.lr_warmup_steps = int(
-            np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
+        self.args.lr_warmup_steps = \
+            int(np.ceil(0.1 *(self.total_steps -
+                              self.args.freeze_layers_n_steps)))
         self.args.lr_start_decay = int(
             np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
                     0.5 + self.args.freeze_layers_n_steps))
 
     def get_tokenizer(self):
-        if self.args.load_alvenir_pretrained:
-            self.local_alvenir_model_path = os.path.join(MODEL_DIR, self.args.model_name,
-                                                         'best_model')
-            return AutoTokenizer.from_pretrained(self.local_alvenir_model_path)
-
-        return AutoTokenizer.from_pretrained(self.args.model_name)
+        return AutoTokenizer.from_pretrained(
+            self.model_path,
+            local_files_only=self.args.load_alvenir_pretrained)
 
     def get_data_collator(self):
         """
@@ -502,10 +558,14 @@ class MLMModelling:
         :return: DataCollator
         """
         if self.args.whole_word_mask:
-            return DataCollatorForWholeWordMask(tokenizer=self.tokenizer, mlm=True,
-                                                mlm_probability=self.args.mlm_prob)
-        return DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=True,
-                                               mlm_probability=self.args.mlm_prob)
+            return DataCollatorForWholeWordMask(
+                tokenizer=self.tokenizer,
+                mlm=True,
+                mlm_probability=self.args.mlm_prob)
+        return DataCollatorForLanguageModeling(
+            tokenizer=self.tokenizer,
+            mlm=True,
+            mlm_probability=self.args.mlm_prob)
 
     def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
         """
@@ -525,10 +585,10 @@ class MLMModelling:
         with torch.no_grad():
             # get model predictions and labels
             for batch in tqdm(val_loader, unit="batch", desc="Eval"):
-
-                output = model(input_ids=batch["input_ids"].to(self.args.device),
-                               attention_mask=batch["attention_mask"].to(self.args.device),
-                               labels=batch["labels"].to(self.args.device))
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device))
 
                 batch_loss = output.loss.item()
 
@@ -541,7 +601,8 @@ class MLMModelling:
                 # We ignore tokens with value "-100" as these are padding tokens
                 # set by the tokenizer.
                 # See nn.CrossEntropyLoss(): ignore_index for more information
-                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if xv != -100]
+                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
+                            if xv != -100]
 
                 batch_labels = np.array([x[0] for x in filtered]).astype(int)
                 batch_preds = np.array([x[1] for x in filtered]).astype(int)
@@ -602,7 +663,8 @@ class MLMModelling:
     @staticmethod
     def unfreeze_layers(model):
         """
-        Un-freeze all layers exept for embeddings in model, such that we can train full model
+        Un-freeze all layers exept for embeddings in model, such that we can
+        train full model
         :param model: A model of type BertForMaskedLM
         :return: un-freezed model
         """
@@ -624,7 +686,8 @@ class MLMModelling:
         :param output_dir: model directory
         :param data_collator:
         :param tokenizer:
-        :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
+        :param step: if saving during training step should be
+        '/epoch-{epoch}_step-{step}'
         """
         output_dir = output_dir + step
         trainer_test = Trainer(
@@ -634,11 +697,14 @@ class MLMModelling:
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
-        torch.save(model.cls.state_dict(), os.path.join(output_dir, 'head_weights.json'))
-        torch.save(model.state_dict(), os.path.join(output_dir, 'model_weights.json'))
+        torch.save(model.cls.state_dict(),
+                   os.path.join(output_dir, 'head_weights.json'))
+        torch.save(model.state_dict(),
+                   os.path.join(output_dir, 'model_weights.json'))
 
     @staticmethod
-    def save_config(output_dir: str, metrics_dir: str, args: argparse.Namespace):
+    def save_config(output_dir: str, metrics_dir: str,
+                    args: argparse.Namespace):
         """
         Save config file with input arguments
         :param output_dir: model directory
@@ -670,13 +736,14 @@ class MLMModelling:
 
 class MLMModellingDP(MLMModelling):
     """
-        Class inherited from MLMUnsupervisedModelling to train an unsupervised MLM model with
+        Class inherited from MLMUnsupervisedModelling to train an unsupervised
+        MLM model with
         differential privacy
 
         Attributes
         ----------
-        args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser for possible
-        arguments
+        args: parsed args from MLMArgParser - see utils.input_args.MLMArgParser
+        for possible arguments
         Methods
         -------
         train_model()
@@ -705,14 +772,6 @@ class MLMModellingDP(MLMModelling):
             modification of superclass save_model
         save_config(output_dir: str, args: argparse.Namespace)
             Save config file with input arguments
-        get_lr(optimizer: DPOptimizer)
-            Get current learning rate from optimizer
-        save_key_metrics(output_dir, args, best_acc, best_loss, filename)
-            Save important args and performance for benchmarking
-        save_json(output_dir, data, filename)
-            Save list of dicts to json dump
-        accuracy(preds, labels)
-            Compute accuracy on predictions and labels
         create_scheduler(optimizer, start_factor, end_factor, total_iters)
             Create scheduler for learning rate warmup and decay
         """
@@ -745,7 +804,8 @@ class MLMModellingDP(MLMModelling):
                 batch_size=self.args.eval_batch_size,
                 shuffle=False)
             eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
+            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
+                              unit="epoch"):
                 model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=dp_train_loader,
@@ -762,7 +822,8 @@ class MLMModellingDP(MLMModelling):
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)
 
-                save_key_metrics_mlm(output_dir=self.metrics_dir, args=self.args,
+                save_key_metrics_mlm(output_dir=self.metrics_dir,
+                                     args=self.args,
                                      best_metrics=best_metrics,
                                      total_steps=self.total_steps)
 
@@ -776,7 +837,8 @@ class MLMModellingDP(MLMModelling):
                     metrics=eval_scores)
 
         else:
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
+            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
+                              unit="epoch"):
                 model, step, lrs = self.train_epoch(model=model,
                                                     train_loader=dp_train_loader,
                                                     optimizer=dp_optimizer,
@@ -858,33 +920,15 @@ class MLMModellingDP(MLMModelling):
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+            self.save_config(output_dir=self.output_dir,
+                             metrics_dir=self.metrics_dir,
                              args=self.args)
 
         _, train_loader = self.create_data_loader(
             data=self.train_data,
             batch_size=self.args.lot_size)
 
-        if self.args.load_alvenir_pretrained:
-            model = BertForMaskedLM.from_pretrained(self.local_alvenir_model_path)
-            config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-            new_head = BertOnlyMLMHeadCustom(config)
-            new_head.load_state_dict(
-                torch.load(self.local_alvenir_model_path + '/head_weights.json'))
-
-            lm_head = new_head.to(self.args.device)
-            model.cls = lm_head
-            # ToDo: For now we are freezing embedding layer until (maybe) we have implemented
-            #  grad sampler - as this is not implemented in opacus
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-
-        else:
-            if self.args.replace_head:
-                print('Replacing bert head')
-                model = self.load_model_and_replace_bert_head()
-            else:
-                model = BertForMaskedLM.from_pretrained(self.args.model_name)
+        model = self.get_model()
 
         dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
             train_loader=train_loader,
@@ -919,7 +963,8 @@ class MLMModellingDP(MLMModelling):
         # validate if model works with opacus
         validate_model(model, strict_validation=True)
         # opacus version >= 1.0 requires to generate optimizer from model.parameters()
-        optimizer = torch.optim.AdamW(model.parameters(), lr=self.args.learning_rate)
+        optimizer = torch.optim.AdamW(model.parameters(),
+                                      lr=self.args.learning_rate)
 
         dp_model, dp_optimizer, dp_train_loader = \
             self.privacy_engine.make_private_with_epsilon(

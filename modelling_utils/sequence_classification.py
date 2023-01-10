@@ -82,7 +82,7 @@ class SequenceClassification:
         self.eval_data = None
         self.test_data = None
         self.model = None
-        self.local_alvenir_model_path = None
+
         self.label2id, self.id2label = self.label2id2label()
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
@@ -481,6 +481,12 @@ class SequenceClassification:
                 split='train')
 
     def label2id2label(self):
+        """
+        Generates a label-to-id and id-to-label mapping for the labels given in
+        `self.args.labels`.
+        :return: tuple: A tuple containing two dictionaries, the first being a
+        mapping of label to id and the second being a mapping of id to label.
+        """
         label2id, id2label = {}, {}
 
         for i, label in enumerate(self.args.labels):
@@ -489,7 +495,14 @@ class SequenceClassification:
         return label2id, id2label
 
     def compute_lr_automatically(self):
+        """
+          Compute the learning rate schedule automatically based on the number of training steps.
 
+          This function sets several parameters in the `self.args` object, including `lr_freezed_warmup_steps`, `lr_warmup_steps`, and `lr_start_decay`. These parameters are used to control the learning rate schedule during training.
+          If `self.args.freeze_layers` is true, `lr_freezed_warmup_steps` is set to 10% of the number of steps used to train the frozen layers.
+          `lr_warmup_steps` is set to 10% of the total number of training steps, after the frozen layers have been trained.
+          `lr_start_decay` is set to be half way through the remaining steps after the frozen layers have been trained.
+          """
         if self.args.freeze_layers:
             self.args.lr_freezed_warmup_steps = \
                 int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
@@ -828,7 +841,8 @@ class SequenceClassificationDP(SequenceClassification):
 
     def set_up_training(self):
         """
-        Load data and set up for training an unsupervised MLM model with differential privacy
+        Load data and set up for training an unsupervised MLM model with
+        differential privacy
         :return: model, optimizer and train_loader for DP training
         """
         self.load_data()
@@ -837,7 +851,8 @@ class SequenceClassificationDP(SequenceClassification):
             self.compute_lr_automatically()
 
         if self.args.save_config:
-            self.save_config(output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+            self.save_config(output_dir=self.output_dir,
+                             metrics_dir=self.metrics_dir,
                              args=self.args)
 
         _, train_loader = self.create_data_loader(
