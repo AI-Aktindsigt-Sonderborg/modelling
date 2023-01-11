@@ -12,12 +12,6 @@ class DataPrepArgParser:
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
         self.parser.add_argument(
-            '--save_data',
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            help='whether or not to add ppl_score to unique sentences',
-            metavar='<bool>')
-        self.parser.add_argument(
             '--danish_threshold',
             type=float,
             default=0.6,
@@ -52,13 +46,13 @@ class DataPrepArgParser:
             type=str,
             metavar='<str>',
             default='train',
-            help="Name of final training data file")
+            help="Name of final training data file fx 'train'")
         self.parser.add_argument(
             '--val_outfile',
             type=str,
             metavar='<str>',
             default='validation',
-            help="Name of final validation data file")
+            help="Name of final validation data file fx 'validation'")
         self.parser.add_argument(
             '-stnt', '--split_train_n_times',
             type=int,
