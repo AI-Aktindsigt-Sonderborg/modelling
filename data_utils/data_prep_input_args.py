@@ -83,3 +83,9 @@ class DataPrepArgParser:
             metavar='<str>',
             default='unlabelled',
             help="Type of data: 'unlabelled' or 'labelled'")
+        self.parser.add_argument(
+            '--lower_case',
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            help='whether or not to lower case all sentences',
+            metavar='<bool>')

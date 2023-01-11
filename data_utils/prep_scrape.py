@@ -152,7 +152,7 @@ class RawScrapePreprocessing:
             for file_index, filename in enumerate(
                     os.listdir(FILTERED_SCRAPE_DIR)):
                 if '_filtered.json' in filename:
-                    per_muni_dump_data = []
+
                     # Create file for each municipality for testing
                     with open(os.path.join(DATA_DIR, 'data_testing',
                                            f'unique_{filename}'), 'w',
@@ -191,7 +191,6 @@ class RawScrapePreprocessing:
                                         tokenizer=tokenizer,
                                         class_data=class_hash)
                                     if dump_data:
-                                        per_muni_dump_data.append(dump_data)
                                         json.dump(dump_data, outfile)
                                         outfile.write('\n')
                                         muni_outfile.write(
@@ -234,6 +233,8 @@ class RawScrapePreprocessing:
                 return None, seen
 
             seen.add(line_hash)
+            if self.args.lower_case:
+                final_sentence = final_sentence.lower()
 
             dump_data = {'id': data['id'], 'sentence': sentence_counter,
                          'kommune': filename.split('_')[0],
@@ -530,6 +531,7 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     # prep_args.data_type = 'labelled'
+    # prep_args.lower_case = True
     if prep_args.data_type == 'unlabelled':
         data_preprocessor = RawScrapePreprocessing(args=prep_args)
         data_preprocessor.create_unique_sentences()
