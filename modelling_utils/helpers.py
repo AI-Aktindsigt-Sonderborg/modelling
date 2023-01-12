@@ -20,6 +20,9 @@ def validate_model(model, strict_validation: bool = False):
         print("Model is compatible for DP with opacus.")
 
 
+
+
+
 def create_scheduler(optimizer, start_factor: float, end_factor: float,
                      total_iters: int):
     """

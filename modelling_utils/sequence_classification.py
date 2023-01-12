@@ -22,7 +22,7 @@ from transformers import AutoTokenizer, TrainingArguments, Trainer, \
     BertForSequenceClassification, \
     DataCollatorWithPadding
 
-from data_utils.custom_dataclasses import EvalScore
+from data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from data_utils.helpers import DatasetWrapper
 from local_constants import DATA_DIR, MODEL_DIR
 from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
@@ -189,7 +189,7 @@ class SequenceClassification:
 
     def train_batch(self, model, optimizer, batch, val_loader, epoch,
                     step, eval_scores, train_losses, learning_rates):
-        
+
         model.train()
 
         model = self.modify_learning_rate_and_layers(
@@ -227,8 +227,8 @@ class SequenceClassification:
             eval_scores.append(eval_score)
 
             if self.args.save_steps is not None and (
-                    step > self.args.freeze_layers_n_steps and
-                    (step % self.args.save_steps == 0)):
+                step > self.args.freeze_layers_n_steps and
+                (step % self.args.save_steps == 0)):
                 _, save_best_model = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)
@@ -276,7 +276,7 @@ class SequenceClassification:
                  conf_plot: bool = False) -> EvalScore:
         """
         :param model:
-        :param val_loader:
+        :param val_loader: DataLoader containing validation data
         :return: mean loss, accuracy-score, f1-score
         """
         # set up preliminaries
@@ -415,6 +415,65 @@ class SequenceClassification:
                                 truncation=True)
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
+
+    def predict(self, model, sentence: str, label: str):
+        tokenized = self.tokenizer([sentence],
+                                   padding='max_length',
+                                   max_length=self.args.max_length,
+                                   truncation=True,
+                                   return_tensors='pt')
+
+        decoded_text = self.tokenizer.decode(
+            token_ids=tokenized['input_ids'][0])
+
+        output = model(**tokenized.to(self.args.device),
+                       output_hidden_states=True,
+                       return_dict=True
+                       )
+        pred = output.logits.argmax(-1).detach().cpu().numpy()
+
+        pred_actual = self.id2label[pred[0]]
+        embedding = torch.mean(
+            output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+        return EmbeddingOutput(sentence=sentence,
+                               label=label,
+                               prediction=pred_actual,
+                               decoded_text=decoded_text,
+                               embedding=embedding)
+
+    def create_embeddings(self, data_loader: DataLoader, model):
+
+        assert data_loader.batch_size == 1, "batch size must be 1 for this demo"
+
+        model.eval()
+        model = model.to('cuda')
+
+        # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
+        results = []
+        with torch.no_grad():
+            for i, batch in enumerate(tqdm(data_loader, unit="batch", desc="Eval")):
+                # for batch in val_loader:
+                output = model(input_ids=batch["input_ids"].to(self.args.device),
+                               attention_mask=batch["attention_mask"].to(
+                                   self.args.device),
+                               labels=batch["labels"].to(self.args.device),
+                               output_hidden_states=True,
+                               return_dict=True)
+                pred = output.logits.argmax(-1).detach().cpu().numpy()[0]
+                pred_actual = self.id2label[pred]
+
+                decoded_text = self.tokenizer.decode(
+                    token_ids=batch['input_ids'][0])
+                embedding = torch.mean(
+                    output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+
+                results.append(EmbeddingOutput(sentence=self.test_data[i]['text'],
+                                               label=self.test_data[i]['label'],
+                                               prediction=pred_actual,
+                                               decoded_text=decoded_text,
+                                               embedding=embedding))
+
+        return results
 
     def load_data(self, train: bool = True, test: bool = False):
         """
@@ -575,7 +634,7 @@ class SequenceClassification:
         """
         for name, param in model.named_parameters():
             if not (name.startswith("bert.pooler") or name.startswith(
-                    "classifier")):
+                "classifier")):
                 param.requires_grad = False
         model.train()
         return model
@@ -762,9 +821,9 @@ class SequenceClassificationDP(SequenceClassification):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-                data_loader=train_loader,
-                max_physical_batch_size=self.args.train_batch_size,
-                optimizer=optimizer
+            data_loader=train_loader,
+            max_physical_batch_size=self.args.train_batch_size,
+            optimizer=optimizer
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader,

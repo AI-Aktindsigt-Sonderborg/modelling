@@ -15,12 +15,12 @@ LABELS = list(label_dict)
 args = sc_parser.parser.parse_args()
 
 # args.model_name = 'sarnikowski/convbert-small-da-cased'
-# args.model_name = 'last_model-2022-12-16_21-55-28'
+args.model_name = 'last_model-2022-12-21_10-53-25'
 args.labels = LABELS
 args.evaluate_during_training = False
-args.load_alvenir_pretrained = False
-args.device = 'cpu'
-args.test_data = 'test_local.json'
+args.load_alvenir_pretrained = True
+# args.device = 'cpu'
+# args.test_data = 'test_local.json'
 
 modelling = SequenceClassification(args)
 
@@ -31,13 +31,13 @@ test_loader = DataLoader(dataset=test_data_wrapped,
                          collate_fn=modelling.data_collator,
                          batch_size=modelling.args.eval_batch_size)
 
-model = modelling.get_model
+model = modelling.get_model()
 
-acc, f_1, loss = modelling.evaluate(
+eval_scores = modelling.evaluate(
     model=model,
     val_loader=test_loader,
     conf_plot=True)
 
-print(acc)
-print(f_1)
-print(loss)
+print(eval_scores)
+# print(f_1)
+# print(loss)

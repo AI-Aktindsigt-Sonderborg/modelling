@@ -1,7 +1,26 @@
 from dataclasses import dataclass
 from enum import Enum
 
+import numpy as np
 import torch
+
+
+@dataclass
+class EmbeddingOutput:
+    sentence: str = None
+    label: str = None
+    prediction: str = None
+    decoded_text: str = None
+    embedding: np.array = None
+
+@dataclass
+class CosineSimilarity:
+    input_sentence: str = None
+    reference_sentence: str = None
+    input_label: str = None
+    reference_label: str = None
+    cosine_sim: float = None
+
 
 
 @dataclass
