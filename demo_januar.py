@@ -1,4 +1,7 @@
+import sys
 from typing import List
+
+from pyinputplus import inputInt, inputBool, inputStr, inputChoice
 
 import pandas as pd
 from termcolor import colored, cprint
@@ -9,6 +12,12 @@ from torch.utils.data import DataLoader
 from data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
+
+import warnings
+
+import warnings
+
+warnings.filterwarnings("ignore")
 
 sc_parser = SequenceModellingArgParser()
 
@@ -32,7 +41,8 @@ args.load_alvenir_pretrained = True
 # args.device = 'cpu'
 # args.test_data = 'test_local.json'
 # ToDo: Figure out how to deal with max_length
-# args.max_length = 512
+args.max_length = None
+
 modelling = SequenceClassification(args)
 
 modelling.load_data(train=False, test=True)
@@ -49,31 +59,56 @@ embedding_outputs = modelling.create_embeddings(
     data_loader=test_loader,
     model=model)
 
-predefined_embeddings = pd.read_csv(
+predefined_sentences = pd.read_csv(
     'data/test_data/semantic_search_examples.csv',
     sep=';',
     encoding='utf-8').to_dict()
 
-predefined_labels = list(predefined_embeddings.keys())
+# predefined_labels = list(predefined_sentences.keys())
 
-user_input = input('Tryk j for at starte tutorial: ')
+user_input = inputChoice(
+    prompt="Tryk 'y' for at starte tutorial, 'n' for at afslutte:\n",
+    choices=['y', 'n'])
 
-while user_input != "s":
-    for i, predefined_label in enumerate(predefined_labels):
-        print(f'{i}: {predefined_label}\n')
-    user_input_label = input(
-        "Vælg en kategori fra kataloget (0-7) ('s' for at stoppe):\n")
+if user_input == "n":
+    sys.exit(0)
 
-    user_input_sentence = input("Vælg en sætning mellem 0 og 3:\n")
+while user_input != "n":
 
-    if (0 <= int(user_input_label) <= 7) and (0 <= int(user_input_sentence) <=3):
-        input_sentence = predefined_embeddings[
-            predefined_labels[int(user_input_label)]][int(user_input_sentence)]
+    init_choice_input = inputChoice(
+        prompt="skriv selv en sætning ('s') eller vælg fra kataloget ('k')?\n",
+        choices=['s', 'k'])
+
+    if init_choice_input == 'k':
+        label_prompt = "Vælg en kategori fra kataloget (0-7):\n"
+        for i, predefined_label in enumerate(LABELS):
+            label_prompt += f'{i}: {predefined_label}\n'
+
+        user_input_label = inputInt(
+            prompt=label_prompt, min=0, max=7)
+        input_label = LABELS[int(user_input_label)]
+        sentence_prompt = f"Vælg en sætning fra {bcolors.OKBLUE}" \
+                          f"{LABELS[user_input_label]}{bcolors.ENDC} " \
+                          f"mellem 0 og 3:\n"
+        for id in predefined_sentences[LABELS[user_input_label]]:
+            sentence_prompt += \
+                f'{id}: ' \
+                f'{predefined_sentences[LABELS[user_input_label]][id]}\n'
+
+        user_input_sentence_int = inputInt(
+            prompt=sentence_prompt, min=0, max=3)
+
+        input_sentence = predefined_sentences[
+            LABELS[int(user_input_label)]][int(user_input_sentence_int)]
+    elif init_choice_input == 's':
+        input_sentence_str = input('Skriv sætning:\n')
+        input_sentence = str(input_sentence_str)
+        input_label = ""
 
     input_embedding = modelling.predict(
         model=model,
         sentence=input_sentence,
-        label=predefined_labels[int(user_input_label)-1])
+        label=input_label)
 
     cosine_sims = []
     for i, embedding_output in enumerate(embedding_outputs):
@@ -90,15 +125,28 @@ while user_input != "s":
                               reverse=True)[:top_n]
 
     print(
-        f'{bcolors.BOLD}Input sætning:{bcolors.ENDC} {top_n_embeddings[0].input_sentence}\n')
+        f'{bcolors.BOLD}Input sætning:{bcolors.ENDC} '
+        f'{top_n_embeddings[0].input_sentence}\n'
+        f'Kategori: {bcolors.OKBLUE}{top_n_embeddings[0].input_label}{bcolors.ENDC}')
+
     print(f'{bcolors.BOLD}Top {top_n} mest similære sætninger:\n{bcolors.ENDC}')
 
     for i, embedding in enumerate(top_n_embeddings):
+        if embedding.cosine_sim < 0.5:
+            print_sim_color = bcolors.FAIL
+        else:
+            print_sim_color = bcolors.OKGREEN
         print(
-            f'{bcolors.BOLD} {i} {bcolors.ENDC}: {embedding.reference_sentence}\n '
-            f'{bcolors.BOLD} Kategori: {bcolors.ENDC}{bcolors.OKBLUE}{embedding.reference_label}\n')
+            f'{bcolors.BOLD}{i+1}{bcolors.ENDC}: {embedding.reference_sentence}\n'
+            f'{bcolors.BOLD} Kategori: {bcolors.ENDC}{bcolors.OKBLUE}'
+            f'{embedding.reference_label}{bcolors.ENDC}\n'
+            f'{bcolors.BOLD} Semantisk lighed: {bcolors.ENDC}'
+            f'{print_sim_color}{embedding.cosine_sim}')
         print(bcolors.ENDC)
     # Plot pca af et lille udsnit fra hvert kategori
     code_timer.how_long_since_start()
 
-    user_input = input("Start forfra? - 'j' for ja, 's' for at stoppe):\n")
+    user_input = inputChoice(
+        prompt="Prøv et nyt eksempel?\n Tryk 'y' for ja, 'n' for at afslutte: ",
+        choices=['y', 'n'])
+

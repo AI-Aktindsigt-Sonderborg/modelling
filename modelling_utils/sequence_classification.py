@@ -11,6 +11,7 @@ from typing import List
 import numpy as np
 import torch
 from datasets import load_dataset, ClassLabel
+from nltk import word_tokenize
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -404,15 +405,20 @@ class SequenceClassification:
         @param batch: batch of data
         @return: tokens for each batch
         """
+        # ToDo: split into words before feeding tokenizer?
+        #  use fx word_tokenize(line, language='danish') from nltk
+
         batch['text'] = [
-            line for line in batch['text'] if
+             line for line in batch['text'] if
             len(line) > 0 and not line.isspace()
         ]
 
         tokens = self.tokenizer(batch['text'],
                                 padding='max_length',
                                 max_length=self.args.max_length,
-                                truncation=True)
+                                truncation=True,
+                                # is_split_into_words=True
+                                )
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
 
