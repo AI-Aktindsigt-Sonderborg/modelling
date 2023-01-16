@@ -1,21 +1,14 @@
 import sys
-from typing import List
-
-from pyinputplus import inputInt, inputBool, inputStr, inputChoice
+import warnings
 
 import pandas as pd
-from termcolor import colored, cprint
-from utils.helpers import TimeCode, bcolors
+from pyinputplus import inputInt, inputChoice
 from scipy.spatial.distance import cosine
-from torch.utils.data import DataLoader
 
 from data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
-
-import warnings
-
-import warnings
+from utils.helpers import TimeCode, bcolors
 
 warnings.filterwarnings("ignore")
 
@@ -41,23 +34,25 @@ args.load_alvenir_pretrained = True
 # args.device = 'cpu'
 # args.test_data = 'test_local.json'
 # ToDo: Figure out how to deal with max_length
-args.max_length = None
+args.max_length = 64
 
 modelling = SequenceClassification(args)
 
 modelling.load_data(train=False, test=True)
 
-test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.test_data)
-test_loader = DataLoader(dataset=test_data_wrapped,
-                         # collate_fn=modelling.data_collator,
-                         batch_size=1,
-                         shuffle=False)
+# test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.test_data)
+# test_loader = DataLoader(dataset=test_data_wrapped,
+#                          # collate_fn=modelling.data_collator,
+#                          batch_size=1,
+#                          shuffle=False)
 
 model = modelling.get_model()
 
-embedding_outputs = modelling.create_embeddings(
-    data_loader=test_loader,
+embedding_outputs = modelling.create_embeddings_windowed(
     model=model)
+
+# ToDo: experiment with pca stuff?
+# plot_pca_for_demo(modelling=modelling, embedding_outputs=embedding_outputs)
 
 predefined_sentences = pd.read_csv(
     'data/test_data/semantic_search_examples.csv',
@@ -137,7 +132,7 @@ while user_input != "n":
         else:
             print_sim_color = bcolors.OKGREEN
         print(
-            f'{bcolors.BOLD}{i+1}{bcolors.ENDC}: {embedding.reference_sentence}\n'
+            f'{bcolors.BOLD}{i + 1}{bcolors.ENDC}: {embedding.reference_sentence}\n'
             f'{bcolors.BOLD} Kategori: {bcolors.ENDC}{bcolors.OKBLUE}'
             f'{embedding.reference_label}{bcolors.ENDC}\n'
             f'{bcolors.BOLD} Semantisk lighed: {bcolors.ENDC}'
@@ -149,4 +144,3 @@ while user_input != "n":
     user_input = inputChoice(
         prompt="Prøv et nyt eksempel?\n Tryk 'y' for ja, 'n' for at afslutte: ",
         choices=['y', 'n'])
-

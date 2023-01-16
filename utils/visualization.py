@@ -1,10 +1,13 @@
 import os
 from typing import List
 
+import numpy as np
 import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
+from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import StandardScaler
 
 from data_utils.custom_dataclasses import EvalScore
 
@@ -88,3 +91,62 @@ def plot_confusion_matrix(
         plt.savefig(f'plots/conf_plot_{model_name.replace("/", "_")}')
     else:
         plt.show()
+
+
+def plot_pca_for_demo(embedding_outputs, modelling):
+    X = np.array([x.embedding for x in embedding_outputs])
+    y_true = [int(modelling.label2id[x.label]) for x in embedding_outputs]
+    y_pred = [int(modelling.label2id[x.prediction]) for x in embedding_outputs]
+
+    sc = StandardScaler(with_mean=False)
+    sc.fit(X)
+    X_std = sc.transform(X)
+
+    pca = PCA(n_components=10)
+    X_pca = pca.fit_transform(X_std)
+
+    exp_var_pca = pca.explained_variance_ratio_
+
+    cum_sum_eigenvalues = np.cumsum(exp_var_pca)
+    plt.bar(range(0, len(exp_var_pca)), exp_var_pca, alpha=0.5, align='center',
+            label='Individual explained variance')
+    plt.step(range(0, len(cum_sum_eigenvalues)), cum_sum_eigenvalues,
+             where='mid', label='Cumulative explained variance')
+    plt.ylabel('Explained variance ratio')
+    plt.xlabel('Principal component index')
+    plt.legend(loc='best')
+    plt.tight_layout()
+    plt.show()
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], c=y_true, cmap='rainbow')
+    # ax.set_xlabel('PCA 1')
+    # ax.set_ylabel('PCA 2')
+    # ax.set_zlabel('PCA 3')
+    # plt.title('True labels')
+    # plt.show()
+    #
+    # # Create a 3D scatter plot of the PCA transformed data
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    # ax.scatter(X_pca[:, 0], X_pca[:, 1], X_pca[:, 2], c=y_pred, cmap='rainbow')
+    # ax.set_xlabel('PCA 1')
+    # ax.set_ylabel('PCA 2')
+    # ax.set_zlabel('PCA 3')
+    # plt.title('Predicted labels')
+    # plt.show()
+
+    # Create a scatter plot of the PCA transformed data
+    plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y_true, cmap='rainbow')
+    plt.xlabel('PCA 1')
+    plt.ylabel('PCA 2')
+    plt.title('True labels')
+    plt.show()
+
+    # Create a scatter plot of the PCA transformed data
+    plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y_pred, cmap='rainbow')
+    plt.xlabel('PCA 1')
+    plt.ylabel('PCA 2')
+    plt.title('Predicted labels')
+    plt.show()

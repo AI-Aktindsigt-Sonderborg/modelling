@@ -409,7 +409,7 @@ class SequenceClassification:
         #  use fx word_tokenize(line, language='danish') from nltk
 
         batch['text'] = [
-             line for line in batch['text'] if
+            line for line in batch['text'] if
             len(line) > 0 and not line.isspace()
         ]
 
@@ -422,7 +422,43 @@ class SequenceClassification:
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
 
-    def predict(self, model, sentence: str, label: str):
+    def tokenize2(self, batch):
+        """
+        Tokenize each batch in dataset
+        @param batch: batch of data
+        @return: tokens for each batch
+        """
+        # ToDo: split into words before feeding tokenizer?
+        #  use fx word_tokenize(line, language='danish') from nltk
+
+        batch['text'] = [
+            line for line in batch['text'] if
+            len(line) > 0 and not line.isspace()
+        ]
+
+        tokens = self.tokenizer(batch["text"],
+                                max_length=self.args.max_length,
+                                padding='max_length',
+                                truncation=True,
+                                return_overflowing_tokens=True,
+                                return_offsets_mapping=True,
+                                stride=32)
+        token_labels_mapping = []
+        for sample_mapping in tokens['overflow_to_sample_mapping']:
+            token_labels_mapping.append(batch['label'][sample_mapping])
+
+        tokens['labels'] = self.class_labels.str2int(token_labels_mapping)
+        return tokens
+
+    def predict(self, model, sentence: str,
+                label: str = None) -> EmbeddingOutput:
+        """
+        Predict class from input sentence
+        :param model: model
+        :param sentence: input sentence
+        :param label: label if known
+        :return: Output including sentence embedding and prediction
+        """
         tokenized = self.tokenizer([sentence],
                                    padding='max_length',
                                    max_length=self.args.max_length,
@@ -447,6 +483,71 @@ class SequenceClassification:
                                decoded_text=decoded_text,
                                embedding=embedding)
 
+    def create_embeddings_windowed(self, model):
+
+        tokenized = self.test_data.map(
+            self.tokenize2,
+            batched=True,
+            remove_columns=self.test_data.column_names,
+            load_from_cache_file=False,
+            desc="Running tokenizer on dataset line_by_line",
+        )
+        overflows = [x['overflow_to_sample_mapping'] for x in tokenized]
+        tokenized.set_format('torch')
+        wrapped = DatasetWrapper(tokenized)
+        test_loader = DataLoader(dataset=wrapped,
+                                 # collate_fn=modelling.data_collator,
+                                 batch_size=1,
+                                 shuffle=False)
+
+        model.eval()
+        model = model.to('cuda')
+
+        # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
+        results = []
+        tmp_results = []
+        with torch.no_grad():
+            for i, batch in enumerate(
+                tqdm(test_loader, unit="batch", desc="Eval")):
+                # for batch in val_loader:
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(
+                        self.args.device),
+                    labels=batch["labels"].to(self.args.device),
+                    output_hidden_states=True,
+                    return_dict=True)
+                pred = output.logits.argmax(-1).detach().cpu().numpy()[0]
+                pred_actual = self.id2label[pred]
+
+                decoded_text = self.tokenizer.decode(
+                    token_ids=batch['input_ids'][0])
+                embedding = torch.mean(
+                    output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+
+                tmp_results.append([overflows[i], embedding, pred, decoded_text,])
+
+        grouped = [[x for x in tmp_results if x[0] == y] for y in
+                   {x for x in overflows}]
+
+        for i, data_batch in enumerate(grouped):
+            if len(data_batch) > 1:
+                new_embedding = np.mean([x[1] for x in data_batch], axis=0)
+                pred = data_batch[0][2]
+                pred_actual = self.id2label[pred]
+                decoded_text = ' '.join([x[3] for x in data_batch])
+            else:
+                new_embedding = data_batch[0][1]
+
+            results.append(
+                EmbeddingOutput(sentence=self.test_data[i]['text'],
+                                label=self.test_data[i]['label'],
+                                prediction=pred_actual,
+                                decoded_text=decoded_text,
+                                embedding=new_embedding))
+
+        return results
+
     def create_embeddings(self, data_loader: DataLoader, model):
 
         assert data_loader.batch_size == 1, "batch size must be 1 for this demo"
@@ -456,15 +557,18 @@ class SequenceClassification:
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         results = []
+        tmp_results = []
         with torch.no_grad():
-            for i, batch in enumerate(tqdm(data_loader, unit="batch", desc="Eval")):
+            for i, batch in enumerate(
+                tqdm(data_loader, unit="batch", desc="Eval")):
                 # for batch in val_loader:
-                output = model(input_ids=batch["input_ids"].to(self.args.device),
-                               attention_mask=batch["attention_mask"].to(
-                                   self.args.device),
-                               labels=batch["labels"].to(self.args.device),
-                               output_hidden_states=True,
-                               return_dict=True)
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(
+                        self.args.device),
+                    labels=batch["labels"].to(self.args.device),
+                    output_hidden_states=True,
+                    return_dict=True)
                 pred = output.logits.argmax(-1).detach().cpu().numpy()[0]
                 pred_actual = self.id2label[pred]
 
@@ -473,11 +577,12 @@ class SequenceClassification:
                 embedding = torch.mean(
                     output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
 
-                results.append(EmbeddingOutput(sentence=self.test_data[i]['text'],
-                                               label=self.test_data[i]['label'],
-                                               prediction=pred_actual,
-                                               decoded_text=decoded_text,
-                                               embedding=embedding))
+                results.append(
+                    EmbeddingOutput(sentence=self.test_data[i]['text'],
+                                    label=self.test_data[i]['label'],
+                                    prediction=pred_actual,
+                                    decoded_text=decoded_text,
+                                    embedding=embedding))
 
         return results
 
