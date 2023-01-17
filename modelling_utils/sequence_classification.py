@@ -3,6 +3,7 @@ import argparse
 import dataclasses
 import json
 import os
+import pickle
 import shutil
 import sys
 from datetime import datetime
@@ -483,7 +484,7 @@ class SequenceClassification:
                                decoded_text=decoded_text,
                                embedding=embedding)
 
-    def create_embeddings_windowed(self, model):
+    def create_embeddings_windowed(self, model, save_dict: bool = False):
 
         tokenized = self.test_data.map(
             self.tokenize2,
@@ -545,6 +546,9 @@ class SequenceClassification:
                                 prediction=pred_actual,
                                 decoded_text=decoded_text,
                                 embedding=new_embedding))
+            if save_dict:
+                with open("data/test_data/test_embeddings", "wb") as fp:
+                    pickle.dump(results, fp)
 
         return results
 

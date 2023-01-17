@@ -1,14 +1,19 @@
 import sys
 import warnings
 
+import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from pyinputplus import inputInt, inputChoice
 from scipy.spatial.distance import cosine
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
 from utils.helpers import TimeCode, bcolors
+from utils.visualization import plot_pca_for_demo
 
 warnings.filterwarnings("ignore")
 
@@ -51,8 +56,9 @@ model = modelling.get_model()
 embedding_outputs = modelling.create_embeddings_windowed(
     model=model)
 
-# ToDo: experiment with pca stuff?
-# plot_pca_for_demo(modelling=modelling, embedding_outputs=embedding_outputs)
+X = np.array([x.embedding for x in embedding_outputs]).astype(float)
+y_true = [int(modelling.label2id[x.label]) for x in embedding_outputs]
+y_pred = [int(modelling.label2id[x.prediction]) for x in embedding_outputs]
 
 predefined_sentences = pd.read_csv(
     'data/test_data/semantic_search_examples.csv',
