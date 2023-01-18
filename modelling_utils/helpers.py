@@ -47,7 +47,7 @@ def create_data_loader(data_wrapped, batch_size: int,
     :param shuffle: whether to shuffle data
     :return: Tuple of tokenized DataWrapper object of Dataset and DataLoader
     """
-    # data_wrapped = self.tokenize_and_wrap_data(data=data)
+
     data_loader = DataLoader(dataset=data_wrapped,
                              collate_fn=data_collator,
                              batch_size=batch_size,

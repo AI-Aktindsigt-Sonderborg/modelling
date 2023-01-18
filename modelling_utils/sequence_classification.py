@@ -58,7 +58,9 @@ class SequenceClassification:
             names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MODEL_DIR, self.args.model_name, 'best_model')
+            self.model_path = os.path.join(MODEL_DIR,
+                                           self.args.model_name,
+                                           'best_model')
         else:
             self.model_path = self.args.model_name
 
