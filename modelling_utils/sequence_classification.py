@@ -58,7 +58,7 @@ class SequenceClassification:
             names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MODEL_DIR, self.args.model_name)
+            self.model_path = os.path.join(MODEL_DIR, self.args.model_name, 'best_model')
         else:
             self.model_path = self.args.model_name
 
@@ -698,7 +698,7 @@ class SequenceClassification:
         return AutoTokenizer.from_pretrained(
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
-
+            # ToDo: Consider do_lower_case=True, otherwise lowercase training data
     def get_data_collator(self):
         return DataCollatorWithPadding(tokenizer=self.tokenizer)
 
