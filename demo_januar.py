@@ -1,3 +1,5 @@
+# pylint: skip-file
+import pickle
 import sys
 import warnings
 
@@ -13,7 +15,6 @@ from data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
 from utils.helpers import TimeCode, bcolors
-from utils.visualization import plot_pca_for_demo
 
 warnings.filterwarnings("ignore")
 
@@ -53,8 +54,11 @@ modelling.load_data(train=False, test=True)
 
 model = modelling.get_model()
 
-embedding_outputs = modelling.create_embeddings_windowed(
-    model=model)
+# embedding_outputs = modelling.create_embeddings_windowed(
+#     model=model)
+
+with open("data/test_data/test_embeddings", "rb") as fp:
+    embedding_outputs = pickle.load(fp)
 
 X = np.array([x.embedding for x in embedding_outputs]).astype(float)
 y_true = [int(modelling.label2id[x.label]) for x in embedding_outputs]
@@ -101,15 +105,22 @@ while user_input != "n":
 
         input_sentence = predefined_sentences[
             LABELS[int(user_input_label)]][int(user_input_sentence_int)]
+
+        del user_input_sentence_int
+
     elif init_choice_input == 's':
         input_sentence_str = input('Skriv sætning:\n')
+        assert isinstance(input_sentence_str, str)
         input_sentence = str(input_sentence_str)
         input_label = ""
+
+        del input_sentence_str
 
     input_embedding = modelling.predict(
         model=model,
         sentence=input_sentence,
         label=input_label)
+
 
     cosine_sims = []
     for i, embedding_output in enumerate(embedding_outputs):
@@ -146,6 +157,8 @@ while user_input != "n":
         print(bcolors.ENDC)
     # Plot pca af et lille udsnit fra hvert kategori
     code_timer.how_long_since_start()
+
+    del init_choice_input
 
     user_input = inputChoice(
         prompt="Prøv et nyt eksempel?\n Tryk 'y' for ja, 'n' for at afslutte: ",

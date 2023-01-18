@@ -1,3 +1,4 @@
+# pylint: skip-file
 import pickle
 import sys
 import warnings
@@ -14,7 +15,7 @@ from data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
 from utils.helpers import TimeCode, bcolors
-from utils.visualization import plot_pca_for_demo
+
 
 warnings.filterwarnings("ignore")
 
@@ -115,7 +116,3 @@ plt.title('Test sæt visualiseret.\n'
 plt.legend()
 plt.legend()
 plt.show()
-
-
-
-# plot_pca_for_demo(modelling=modelling, embedding_outputs=embedding_outputs)

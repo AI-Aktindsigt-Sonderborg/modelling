@@ -468,7 +468,7 @@ class SequenceClassification:
 
         decoded_text = self.tokenizer.decode(
             token_ids=tokenized['input_ids'][0])
-
+        model.to(self.args.device)
         output = model(**tokenized.to(self.args.device),
                        output_hidden_states=True,
                        return_dict=True
