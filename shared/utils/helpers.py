@@ -111,6 +111,8 @@ def read_json(filepath: str):
     with open(filepath, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
+
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'

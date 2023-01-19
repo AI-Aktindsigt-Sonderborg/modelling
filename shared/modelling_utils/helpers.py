@@ -7,7 +7,7 @@ from opacus.validators import ModuleValidator
 from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 
-from data_utils.custom_dataclasses import EvalScore
+from shared.data_utils.custom_dataclasses import EvalScore
 
 
 def validate_model(model, strict_validation: bool = False):

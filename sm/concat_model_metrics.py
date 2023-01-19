@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from local_constants import MODEL_DIR
-from utils.helpers import read_json
+from shared.utils.helpers import read_json
 
 
 def all_metrics_to_csv():

@@ -9,16 +9,15 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
 
-from data_utils.custom_dataclasses import EvalScore
-
+from shared.data_utils.custom_dataclasses import EvalScore
 
 def plot_running_results(
-        output_dir: str,
-        epochs: int,
-        metrics: List[EvalScore],
-        lrs,
-        epsilon: str = "",
-        delta: str = ""):
+    output_dir: str,
+    epochs: int,
+    metrics: List[EvalScore],
+    lrs,
+    epsilon: str = "",
+    delta: str = ""):
     """
     Plot results from customized model training
     @param output_dir: directory
@@ -31,7 +30,8 @@ def plot_running_results(
     @param delta: Delta for title
     """
     file_path = os.path.join(output_dir, 'results')
-    title = os.path.join(f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
+    title = os.path.join(
+        f'Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}')
     plt.ioff()
 
     metric_steps = [x.step for x in metrics]
@@ -41,15 +41,6 @@ def plot_running_results(
 
     learning_rate_steps = [int(x['step']) for x in lrs]
     learning_rates = [x['lr'] for x in lrs]
-
-    # accuracy_steps = [int(x['step']) for x in accs]
-    # accuracies = [x['score'] for x in accs]
-
-    # losses_steps = [int(x['step']) for x in loss]
-    # losses = [x['score'] for x in loss]
-
-    # f1_steps = [int(x['step']) for x in f1]
-    # f1s = [x['score'] for x in f1]
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle(title, fontsize=14)
@@ -70,12 +61,12 @@ def plot_running_results(
 
 
 def plot_confusion_matrix(
-        y_true,
-        y_pred,
-        labels,
-        model_name: str,
-        normalize: str = 'true',
-        save_fig: bool = True):
+    y_true,
+    y_pred,
+    labels,
+    model_name: str,
+    normalize: str = 'true',
+    save_fig: bool = True):
     """Function is self-explanatory"""
 
     conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,

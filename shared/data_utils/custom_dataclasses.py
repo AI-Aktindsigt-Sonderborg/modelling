@@ -13,6 +13,7 @@ class EmbeddingOutput:
     decoded_text: str = None
     embedding: np.array = None
 
+
 @dataclass
 class CosineSimilarity:
     input_sentence: str = None
@@ -22,13 +23,13 @@ class CosineSimilarity:
     cosine_sim: float = None
 
 
-
 @dataclass
 class PredictionOutput:
     prediction: str = None
     logits: torch.Tensor = None
     softmax: dict = None
     class_ids: int = None
+
 
 @dataclass
 class EvalScore:

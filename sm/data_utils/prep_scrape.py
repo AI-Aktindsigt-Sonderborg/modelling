@@ -20,8 +20,8 @@ from data_utils.helpers import write_json_lines, split_sentences, \
     find_letters_and_word_count
 from local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, SCRAPED_DATA_DIR, \
     PREP_DATA_DIR, CLASS_DATA_DIR
-from utils.helpers import TimeCode, read_jsonlines, save_json
-from utils.helpers import count_num_lines
+from shared.utils.helpers import TimeCode, read_jsonlines, save_json
+from shared.utils.helpers import count_num_lines
 
 
 class RawScrapePreprocessing:
