@@ -609,7 +609,7 @@ class SequenceClassification:
             self.args.total_steps = self.total_steps
 
             if self.args.compute_delta:
-                self.args.delta = 1 / (2 * len(self.train_data))
+                self.args.delta = 1 / (len(self.train_data))
 
         if self.args.evaluate_during_training:
             self.eval_data = load_dataset(
@@ -1038,7 +1038,8 @@ class SequenceClassificationDP(SequenceClassification):
         # model.parameters()
         optimizer = torch.optim.AdamW(
             model.parameters(),
-            lr=self.args.learning_rate)
+            lr=self.args.learning_rate,
+            weight_decay=self.args.weight_decay) # eps = 1e-8 default
 
         dp_model, dp_optimizer, dp_train_loader = \
             self.privacy_engine.make_private_with_epsilon(
