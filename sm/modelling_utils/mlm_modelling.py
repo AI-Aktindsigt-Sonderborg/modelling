@@ -20,37 +20,29 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import BertConfig, BertForMaskedLM, AutoTokenizer, \
-    TrainingArguments, Trainer, \
-    DataCollatorForWholeWordMask, DataCollatorForLanguageModeling
+    TrainingArguments, Trainer, DataCollatorForWholeWordMask,\
+    DataCollatorForLanguageModeling
 
-from data_utils.custom_dataclasses import EvalScore
-from data_utils.helpers import DatasetWrapper
-from local_constants import DATA_DIR, MODEL_DIR
-from modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
-    get_metrics, \
-    save_key_metrics_mlm, log_train_metrics, log_train_metrics_dp, \
-    create_data_loader
+from shared.data_utils.custom_dataclasses import EvalScore
+from shared.data_utils.helpers import DatasetWrapper
+from sm.local_constants import DATA_DIR, MODEL_DIR
+from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
+from shared.modelling_utils.helpers import create_scheduler, get_lr,\
+    validate_model, get_metrics, save_key_metrics_mlm, log_train_metrics,\
+    log_train_metrics_dp, create_data_loader
 from shared.utils.helpers import TimeCode, append_json
 from shared.utils.visualization import plot_running_results
+from shared.modelling_utils.modelling import Modelling
 
-
-class MLMModelling:
+class MLMModelling(Modelling):
     """
     Class to train an MLM unsupervised model
     """
 
     def __init__(self, args: argparse.Namespace):
-        self.total_steps = None
-        self.args = args
-        self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
-                           f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        self.args.output_name = self.output_name
+        super().__init__(args=args)
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
-        self.train_data = None
-        self.eval_data = None
-        self.model = None
 
         if self.args.load_alvenir_pretrained:
             self.model_path = os.path.join(MODEL_DIR,
@@ -59,16 +51,9 @@ class MLMModelling:
         else:
             self.model_path = self.args.model_name
 
-        self.local_alvenir_model_path = None
         self.tokenizer = self.get_tokenizer()
-
         self.data_collator = self.get_data_collator()
-        self.scheduler = None
 
-        if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 0
-            self.args.lr_freezed_warmup_steps = None
-            self.args.lr_freezed = None
 
     def train_model(self):
         """

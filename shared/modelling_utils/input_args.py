@@ -28,25 +28,25 @@ class ModellingArgParser:
         Add model parameters
         """
         model_params = self.parser.add_argument_group('modelling')
-        model_params.add_argument(
-            "-lap", "--load_alvenir_pretrained",
-            type=lambda x: bool(strtobool(x)),
-            metavar='<bool>',
-            default=True,
-            help="Whether to load local alvenir model")
+        model_params.add_argument("--model_type",
+                                  type=str,
+                                  help="Choose between models of types 'MLM', "
+                                       "'SM' or 'NER'",
+                                  metavar="<str>")
         model_params.add_argument(
             "-mn", "--model_name",
             type=str,
             default='NbAiLab/nb-bert-base',
             help="foundation model from huggingface",
-            metavar='<str>', )
+            metavar='<str>')
+
+
         model_params.add_argument(
             "--save_config",
             type=lambda x: bool(strtobool(x)),
             default=True,
             help="Whether to save input args to file",
             metavar='<bool>')
-
         model_params.add_argument(
             '-fe', "--freeze_embeddings",
             type=lambda x: bool(strtobool(x)),
@@ -60,6 +60,21 @@ class ModellingArgParser:
             default=True,
             metavar='<bool>',
             help="Whether to save final model after training.")
+        model_params.add_argument(
+            "-fl", "--freeze_layers",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<bool>',
+            help="whether to freeze all bert layers until "
+                 "freeze_layers_n_steps is reached."
+                 "True is mandatory for DP at the moment")
+        model_params.add_argument(
+            "-flns", "--freeze_layers_n_steps",
+            type=int,
+            default=0,
+            help="number of steps to train head only",
+            metavar='<int>')
+
 
     def add_training_params(self):
         """

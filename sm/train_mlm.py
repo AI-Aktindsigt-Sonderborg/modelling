@@ -1,6 +1,6 @@
 
-from modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
-from modelling_utils.input_args import MLMArgParser
+from sm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
+from sm.modelling_utils.input_args import MLMArgParser
 
 mlm_parser = MLMArgParser()
 args = mlm_parser.parser.parse_args()
