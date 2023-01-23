@@ -21,10 +21,11 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, TrainingArguments, Trainer, \
     BertForSequenceClassification, \
-    DataCollatorWithPadding
+    DataCollatorWithPadding, AutoModel
 
 from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from shared.data_utils.helpers import DatasetWrapper
+from shared.modelling_utils.modelling import Modelling
 from sm.local_constants import DATA_DIR, MODEL_DIR
 from shared.modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
     get_metrics, save_key_metrics_sc, log_train_metrics, log_train_metrics_dp, \
@@ -33,14 +34,16 @@ from shared.utils.helpers import TimeCode, append_json
 from shared.utils.visualization import plot_running_results, plot_confusion_matrix
 
 
-class SequenceClassification:
+class SequenceClassification(Modelling):
     """
     Class to train a SequenceClassification model
     """
 
     def __init__(self, args: argparse.Namespace):
-        self.total_steps = None
+        super().__init__(args=args)
         self.args = args
+        self.total_steps = None
+
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
@@ -49,7 +52,6 @@ class SequenceClassification:
         self.train_data = None
         self.eval_data = None
         self.test_data = None
-        self.model = None
 
         self.label2id, self.id2label = self.label2id2label()
         self.class_labels = ClassLabel(
@@ -166,7 +168,8 @@ class SequenceClassification:
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
-            model, optimizer, eval_scores, train_losses, lrs = self.train_batch(
+            model, optimizer, eval_scores, train_losses, lrs =\
+                self.train_batch(
                 model=model,
                 optimizer=optimizer,
                 batch=batch,
@@ -710,36 +713,6 @@ class SequenceClassification:
             id2label=self.id2label,
             local_files_only=self.args.load_alvenir_pretrained)
 
-    def modify_learning_rate_and_layers(self, model, optimizer, step: int):
-        """
-        Modify learning rate and freeze/unfreeze layers based on input args,
-        learning rate scheduler and current step
-        :return: Modified model
-        """
-
-        if self.args.freeze_layers and step == 0:
-            model = self.freeze_layers(model)
-
-        if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-            model = self.unfreeze_layers(model)
-            # ToDo: Below operation only works if lr is lower than lr_freezed:
-            #  fix this - also for SeqModelling
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=(self.args.learning_rate / self.args.lr_freezed)
-                             / self.args.lr_warmup_steps,
-                end_factor=self.args.learning_rate / self.args.lr_freezed,
-                total_iters=self.args.lr_warmup_steps)
-
-        if step == self.args.lr_start_decay:
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=1,
-                end_factor=self.args.learning_rate / (self.total_steps - step),
-                total_iters=self.total_steps - step
-            )
-        return model
-
     @staticmethod
     def freeze_layers(model):
         """
@@ -770,7 +743,7 @@ class SequenceClassification:
         return model
 
     @staticmethod
-    def save_model(model: BertForSequenceClassification, output_dir: str,
+    def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
                    step: str = ""):
@@ -794,36 +767,7 @@ class SequenceClassification:
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
 
-    @staticmethod
-    def save_config(output_dir: str, metrics_dir: str,
-                    args: argparse.Namespace):
-        """
-        Save config file with input arguments
-        :param output_dir: model directory
-        :param args: input args
-        """
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        if not os.path.exists(metrics_dir):
-            os.makedirs(metrics_dir)
-
-        with open(os.path.join(metrics_dir, 'training_run_config.json'), 'w',
-                  encoding='utf-8') as outfile:
-            json.dump(args.__dict__, outfile, indent=2)
-
-        if args.print_only_args:
-            metrics_path = os.path.dirname(os.path.abspath(metrics_dir))
-            print('Training arguments:\n')
-            for arg in args.__dict__:
-                print(f'{arg}: {args.__dict__[arg]}')
-
-            print('\nDeleting model path...')
-            shutil.rmtree(metrics_path)
-
-            print('\nExiting.')
-            sys.exit(0)
 
 
 class SequenceClassificationDP(SequenceClassification):

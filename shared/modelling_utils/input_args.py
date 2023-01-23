@@ -28,18 +28,6 @@ class ModellingArgParser:
         Add model parameters
         """
         model_params = self.parser.add_argument_group('modelling')
-        model_params.add_argument("--model_type",
-                                  type=str,
-                                  help="Choose between models of types 'MLM', "
-                                       "'SM' or 'NER'",
-                                  metavar="<str>")
-        model_params.add_argument(
-            "-mn", "--model_name",
-            type=str,
-            default='NbAiLab/nb-bert-base',
-            help="foundation model from huggingface",
-            metavar='<str>')
-
 
         model_params.add_argument(
             "--save_config",

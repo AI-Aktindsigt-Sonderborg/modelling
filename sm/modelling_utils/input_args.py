@@ -26,12 +26,12 @@ class MLMArgParser(ModellingArgParser):
             metavar='<bool>',
             default=False,
             help="Whether to load local alvenir model")
-        # mlm_params.add_argument(
-        #     "-mn", "--model_name",
-        #     type=str,
-        #     default='NbAiLab/nb-bert-base',
-        #     help="foundation model from huggingface",
-        #     metavar='<str>')
+        mlm_params.add_argument(
+            "-mn", "--model_name",
+            type=str,
+            default='NbAiLab/nb-bert-base',
+            help="foundation model from huggingface",
+            metavar='<str>')
         mlm_params.add_argument(
             "--whole_word_mask",
             type=lambda x: bool(strtobool(x)),

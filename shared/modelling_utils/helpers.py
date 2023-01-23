@@ -128,7 +128,7 @@ def log_train_metrics_dp(epoch: int, step: int, lr: float,
             f"δ = {delta})")
 
 
-def save_key_metrics_mlm(output_dir: str, args,
+def save_key_metrics(output_dir: str, args,
                          best_metrics: dict,
                          total_steps: int, filename: str = 'key_metrics'):
     """
