@@ -21,7 +21,8 @@ from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import create_scheduler, get_lr, \
-    validate_model, get_metrics, log_train_metrics_dp, create_data_loader
+    validate_model, get_metrics, log_train_metrics_dp, create_data_loader, \
+    save_key_metrics
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.helpers import TimeCode
 from shared.utils.visualization import plot_running_results
@@ -325,7 +326,7 @@ class MLMModellingDP(MLMModelling):
                 save_key_metrics(output_dir=self.metrics_dir,
                                      args=self.args,
                                      best_metrics=best_metrics,
-                                     total_steps=self.total_steps)
+                                     total_steps=self.args.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(

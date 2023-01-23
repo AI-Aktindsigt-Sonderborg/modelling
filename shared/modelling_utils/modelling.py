@@ -278,7 +278,7 @@ class Modelling:
                 save_key_metrics(output_dir=self.metrics_dir,
                                      args=self.args,
                                      best_metrics=best_metrics,
-                                     total_steps=self.total_steps)
+                                     total_steps=self.args.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
