@@ -10,20 +10,25 @@ from typing import List
 import numpy as np
 import torch
 from datasets import load_dataset
+from opacus import PrivacyEngine
+from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import Trainer, TrainingArguments, AutoModel, AutoTokenizer
+from transformers import Trainer, TrainingArguments, AutoModel, AutoTokenizer, \
+    DataCollator
 
-from shared.data_utils.custom_dataclasses import EvalScore
+from shared.data_utils.custom_dataclasses import EvalScore, ModellingData
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
-    create_data_loader, get_lr, get_metrics, log_train_metrics, save_key_metrics
+    create_data_loader, get_lr, get_metrics, log_train_metrics, \
+    save_key_metrics, validate_model
 from shared.utils.helpers import append_json, TimeCode
 from shared.utils.visualization import plot_running_results
 
 
 class Modelling:
     def __init__(self, args: argparse.Namespace):
+
         self.args = args
         # self.total_steps = None
 
@@ -31,21 +36,24 @@ class Modelling:
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
 
-        self.train_data = None
-        self.eval_data = None
-        self.test_data = None
-
+        self.privacy_engine = None
         self.model = None
         self.scheduler = None
         self.output_dir = None
         self.metrics_dir = None
+        self.tokenizer = None
         self.data_collator = None
+        self.data = ModellingData
 
-
+        # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
             self.args.lr_freezed_warmup_steps = None
             self.args.lr_freezed = None
+
+        if not self.args.differential_privacy:
+            self.args.train_batch_size = self.args.lot_size
+
 
     def load_data(self, train: bool = True, test: bool = False):
         """
@@ -54,34 +62,48 @@ class Modelling:
         :param test: Whether to load test data
         """
         if train:
-            self.train_data = load_dataset(
+            self.data.train = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
-            self.args.total_steps = int(len(self.train_data)
-                                   / self.args.train_batch_size
-                                   * self.args.epochs)
+            self.args.total_steps = int(len(self.data.train)
+                                        / self.args.train_batch_size
+                                        * self.args.epochs)
             # self.args.total_steps = self.total_steps
 
             if self.args.compute_delta:
                 # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
-                self.args.delta = 1 / (len(self.train_data))
+                self.args.delta = 1 / (len(self.data.train))
 
         if self.args.evaluate_during_training:
-            self.eval_data = load_dataset(
+            self.data.eval = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.eval_data),
                 split='train')
 
         if test:
-            self.test_data = load_dataset(
+            self.data.test = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.test_data),
                 split='train')
 
+    def label2id2label(self):
+        """
+        Generates a label-to-id and id-to-label mapping for the labels given in
+        `self.args.labels`.
+        :return: tuple: A tuple containing two dictionaries, the first being a
+        mapping of label to id and the second being a mapping of id to label.
+        """
+        label2id, id2label = {}, {}
+
+        for i, label in enumerate(self.args.labels):
+            label2id[label] = str(i)
+            id2label[i] = label
+        return label2id, id2label
+
     def set_up_training(self) -> tuple:
         """
-        Load data and set up for training an MLM model
+        Load data and set up for training
         :return: model, optimizer and train_loader for training
         """
         self.load_data()
@@ -95,17 +117,26 @@ class Modelling:
                              args=self.args)
 
         train_data_wrapped, train_loader = create_data_loader(
-            data_wrapped=self.tokenize_and_wrap_data(self.train_data),
-            batch_size=self.args.train_batch_size,
+            data_wrapped=self.tokenize_and_wrap_data(self.data.train),
+            batch_size=self.args.lot_size,
             data_collator=self.data_collator)
 
         model = self.get_model()
 
-        dummy_trainer = self.create_dummy_trainer(
-            train_data_wrapped=train_data_wrapped,
-            model=model)
+        if self.args.freeze_embeddings:
+            for param in model.bert.embeddings.parameters():
+                param.requires_grad = False
 
-        optimizer = dummy_trainer.create_optimizer()
+        if self.args.differential_privacy:
+            model, optimizer, train_loader = self.set_up_privacy(
+                train_loader=train_loader,
+                model=model)
+        else:
+            dummy_trainer = self.create_dummy_trainer(
+                train_data_wrapped=train_data_wrapped,
+                model=model)
+            optimizer = dummy_trainer.create_optimizer()
+
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(
                 optimizer,
@@ -151,6 +182,7 @@ class Modelling:
             data_collator=self.data_collator,
             tokenizer=self.tokenizer
         )
+
     def compute_lr_automatically(self):
         """
           Compute the learning rate schedule automatically based on the number
@@ -250,9 +282,9 @@ class Modelling:
         all_lrs = []
         step = 0
 
-        if self.eval_data:
+        if self.data.eval:
             _, eval_loader = create_data_loader(
-                data_wrapped=self.tokenize_and_wrap_data(self.eval_data),
+                data_wrapped=self.tokenize_and_wrap_data(self.data.eval),
                 batch_size=self.args.eval_batch_size,
                 data_collator=self.data_collator,
                 shuffle=False)
@@ -276,9 +308,9 @@ class Modelling:
                     eval_metrics=self.args.eval_metrics)
 
                 save_key_metrics(output_dir=self.metrics_dir,
-                                     args=self.args,
-                                     best_metrics=best_metrics,
-                                     total_steps=self.args.total_steps)
+                                 args=self.args,
+                                 best_metrics=best_metrics,
+                                 total_steps=self.args.total_steps)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -333,7 +365,7 @@ class Modelling:
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
                           unit="batch"):
-            model, optimizer, eval_scores, train_losses, lrs =\
+            model, optimizer, eval_scores, train_losses, lrs = \
                 self.train_batch(
                     model=model,
                     optimizer=optimizer,
@@ -355,9 +387,10 @@ class Modelling:
 
             step += 1
 
-        if self.eval_data:
+        if self.data.eval:
             return model, step, lrs, eval_scores
         return model, step, lrs
+
     def train_batch(self, model, optimizer, batch, val_loader: DataLoader,
                     epoch: int, step: int, train_losses: List[float],
                     learning_rates: List[dict],
@@ -451,15 +484,61 @@ class Modelling:
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
                             step='/best_model')
+
+    def get_data_collator(self):
+        """
+        Get default data collator - depends on model type
+        :return: DataCollator
+        """
+        return DataCollator(tokenizer=self.tokenizer)
+
     def get_tokenizer(self):
+        """
+        Get default tokenizer - depends on model type
+        """
         return AutoTokenizer.from_pretrained(
-            self.model_path,
+            self.args.model_name,
             local_files_only=self.args.load_alvenir_pretrained)
+
     def tokenize_and_wrap_data(self, data):
         pass
 
     def get_model(self):
         return AutoModel.from_pretrained(self.args.model_name)
+
+    def set_up_privacy(self, train_loader: DataLoader, model):
+        """
+        Set up privacy engine for private training
+        :param train_loader: DataLoader for training
+        :return: model, optimizer and train loader for private training
+        """
+        self.privacy_engine = PrivacyEngine()
+
+        model = model.train()
+
+        # validate if model works with opacus
+        validate_model(model, strict_validation=True)
+        # opacus version >= 1.0 requires to generate optimizer from
+        # model.parameters()
+        optimizer = torch.optim.AdamW(model.parameters(),
+                                      lr=self.args.learning_rate,
+                                      weight_decay=self.args.weight_decay)
+
+        dp_model, dp_optimizer, dp_train_loader = \
+            self.privacy_engine.make_private_with_epsilon(
+                module=model,
+                optimizer=optimizer,
+                data_loader=train_loader,
+                epochs=self.args.epochs,
+                target_epsilon=self.args.epsilon,
+                target_delta=self.args.delta,
+                max_grad_norm=self.args.max_grad_norm,
+                # ToDo: hooks is the original opacus grad sampler. If we want
+                #  to try new features, then see
+                #  https://github.com/pytorch/opacus/releases
+                grad_sample_mode="hooks"
+            )
+        return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
     def freeze_layers(model):
@@ -513,3 +592,48 @@ class Modelling:
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
+
+    def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
+        """
+        :param model:
+        :param val_loader: DataLoader containing validation data
+        :return: mean loss, accuracy-score, f1-score
+        """
+        # set up preliminaries
+        if not next(model.parameters()).is_cuda:
+            model = model.to(self.args.device)
+
+        model.eval()
+
+        y_true, y_pred, loss = [], [], []
+
+        with torch.no_grad():
+            # get model predictions and labels
+            for batch in tqdm(val_loader, unit="batch", desc="val"):
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device)
+                )
+
+                batch_preds = np.argmax(
+                    output.logits.detach().cpu().numpy(), axis=-1
+                )
+                batch_labels = batch["labels"].cpu().numpy()
+                batch_loss = output.loss.item()
+
+                y_true.extend(batch_labels)
+                y_pred.extend(batch_preds)
+                loss.append(batch_loss)
+
+        # calculate metrics of interest
+        acc = accuracy_score(y_true, y_pred)
+        f_1 = f1_score(y_true, y_pred, average='macro')
+        loss = float(np.mean(loss))
+
+        print(f"\n"
+              f"eval loss: {loss} \t"
+              f"eval acc: {acc}"
+              f"eval f1: {f_1}")
+
+        return EvalScore(accuracy=acc, f_1=f_1, loss=loss)

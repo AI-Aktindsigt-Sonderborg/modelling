@@ -148,7 +148,7 @@ def save_key_metrics(output_dir: str, args,
                'eval_batch_size': args.eval_batch_size,
                'max_length': args.max_length,
                'lr_warmup_steps': args.lr_warmup_steps,
-               'replace_head': args.replace_head,
+               # 'replace_head': args.replace_head,
                'freeze_layers_n_steps': args.freeze_layers_n_steps,
                'lr_freezed': args.lr_freezed,
                'lr_freezed_warmup_steps': args.lr_freezed_warmup_steps,
@@ -156,9 +156,15 @@ def save_key_metrics(output_dir: str, args,
                'epsilon': args.epsilon,
                'delta': args.delta,
                'lot_size': args.lot_size,
-               'whole_word_mask': args.whole_word_mask,
                'train_data': args.train_data,
                'total_steps': total_steps}
+
+    if 'replace_head' in list(args.__dict__):
+        metrics['replace_head'] = args.replace_head
+
+    if 'whole_word_mask' in list(args.__dict__):
+        metrics['whole_word_mask'] = args.whole_word_mask
+
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:

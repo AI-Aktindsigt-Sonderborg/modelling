@@ -1,17 +1,14 @@
 # pylint: disable=protected-access
 import argparse
 import dataclasses
-import json
 import os
 import pickle
-import shutil
-import sys
 from datetime import datetime
 from typing import List
 
 import numpy as np
 import torch
-from datasets import load_dataset, ClassLabel
+from datasets import ClassLabel
 from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -21,17 +18,19 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, TrainingArguments, Trainer, \
     BertForSequenceClassification, \
-    DataCollatorWithPadding, AutoModel
+    DataCollatorWithPadding
 
 from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.modelling import Modelling
-from sm.local_constants import DATA_DIR, MODEL_DIR
-from shared.modelling_utils.helpers import create_scheduler, get_lr, validate_model, \
+from shared.modelling_utils.helpers import create_scheduler, get_lr, \
+    validate_model, \
     get_metrics, save_key_metrics_sc, log_train_metrics, log_train_metrics_dp, \
     create_data_loader
+from shared.modelling_utils.modelling import Modelling
 from shared.utils.helpers import TimeCode, append_json
-from shared.utils.visualization import plot_running_results, plot_confusion_matrix
+from shared.utils.visualization import plot_running_results, \
+    plot_confusion_matrix
+from sm.local_constants import MODEL_DIR, DATA_DIR
 
 
 class SequenceClassification(Modelling):
@@ -41,19 +40,18 @@ class SequenceClassification(Modelling):
 
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
-        self.args = args
-        self.total_steps = None
+        # self.args = args
+        # self.total_steps = None
 
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
-        self.train_data = None
-        self.eval_data = None
-        self.test_data = None
+        self.data_dir = DATA_DIR
 
         self.label2id, self.id2label = self.label2id2label()
+
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
@@ -68,221 +66,12 @@ class SequenceClassification(Modelling):
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
 
-        self.scheduler = None
-        # ToDo: Experiment with freezing layers - see SPRIN-159
-        if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 0
-            self.args.lr_freezed_warmup_steps = None
-            self.args.lr_freezed = None
-
-    def train_model(self):
-        """
-        load data, set up training and train model
-        """
-        model, optimizer, train_loader = self.set_up_training()
-
-        code_timer = TimeCode()
-        all_lrs = []
-        step = 0
-
-        if self.eval_data:
-            _, eval_loader = create_data_loader(
-                data_wrapped=self.tokenize_and_wrap_data(self.eval_data),
-                batch_size=self.args.eval_batch_size,
-                data_collator=self.data_collator,
-                shuffle=False)
-
-            eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs, eval_scores = self.train_epoch(
-                    model=model,
-                    train_loader=train_loader,
-                    optimizer=optimizer,
-                    val_loader=eval_loader,
-                    epoch=epoch + 1,
-                    step=step,
-                    eval_scores=eval_scores)
-                all_lrs.extend(lrs)
-
-            if step > self.args.freeze_layers_n_steps:
-                best_metrics, _ = get_metrics(
-                    eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
-
-                save_key_metrics_sc(output_dir=self.metrics_dir,
-                                    args=self.args,
-                                    best_metrics=best_metrics,
-                                    total_steps=self.total_steps)
-
-            if self.args.make_plots:
-                plot_running_results(
-                    output_dir=self.metrics_dir,
-                    epochs=self.args.epochs,
-                    lrs=all_lrs, metrics=eval_scores)
-
-        else:
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs = self.train_epoch(model=model,
-                                                    train_loader=train_loader,
-                                                    optimizer=optimizer,
-                                                    step=step)
-                all_lrs.append(lrs)
-        code_timer.how_long_since_start()
-        if self.args.save_model_at_end:
-            self.save_model(
-                model=model,
-                output_dir=self.output_dir,
-                data_collator=self.data_collator,
-                tokenizer=self.tokenizer
-            )
-        self.model = model
-
-    def train_epoch(self,
-                    model: BertForSequenceClassification,
-                    train_loader: DataLoader,
-                    optimizer, epoch: int = None,
-                    val_loader: DataLoader = None,
-                    step: int = 0,
-                    eval_scores: List[EvalScore] = None):
-        """
-        Train one epoch
-        :param eval_scores: eval_scores of type List[EvalScore]
-        :param model: Model of type BertForMaskedLM
-        :param train_loader: Data loader of type DataLoader
-        :param optimizer: Default is AdamW optimizer
-        :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
-        :param step: Given step
-        :return: if self.eval_data:
-            return model, eval_accuracies, eval_f1s, eval_losses, step, lrs
-        else: return model, step, lrs
-        """
-        model.train()
-        model = model.to(self.args.device)
-        train_losses = []
-        lrs = []
-
-        for batch in tqdm(train_loader,
-                          desc=f'Train epoch {epoch} of {self.args.epochs}',
-                          unit="batch"):
-            model, optimizer, eval_scores, train_losses, lrs =\
-                self.train_batch(
-                model=model,
-                optimizer=optimizer,
-                batch=batch,
-                val_loader=val_loader,
-                epoch=epoch,
-                step=step,
-                eval_scores=eval_scores,
-                train_losses=train_losses,
-                learning_rates=lrs
-            )
-
-            log_train_metrics(
-                epoch,
-                step,
-                lr=get_lr(optimizer)[0],
-                loss=float(np.mean(train_losses)),
-                logging_steps=self.args.logging_steps)
-            step += 1
-
-        if self.eval_data:
-            return model, step, lrs, eval_scores
-        return model, step, lrs
-
-    def train_batch(self, model, optimizer, batch, val_loader, epoch,
-                    step, eval_scores, train_losses, learning_rates):
-
-        model.train()
-
-        model = self.modify_learning_rate_and_layers(
-            model=model,
-            optimizer=optimizer,
-            step=step)
-
-        append_json(
-            output_dir=self.metrics_dir,
-            filename='learning_rates',
-            data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-        # compute model output
-        output = model(
-            input_ids=batch["input_ids"].to(self.args.device),
-            attention_mask=batch["attention_mask"].to(self.args.device),
-            labels=batch["labels"].to(self.args.device))
-
-        loss = output.loss
-        loss.backward()
-        optimizer.step()
-        optimizer.zero_grad()
-        self.scheduler.step()
-
-        if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
-
-            eval_score = self.evaluate(
-                model, val_loader)
-            eval_score.step = step
-            eval_score.epoch = epoch
-
-            append_json(output_dir=self.metrics_dir,
-                        filename='eval_scores',
-                        data=dataclasses.asdict(eval_score))
-            eval_scores.append(eval_score)
-
-            if self.args.save_steps is not None and (
-                step > self.args.freeze_layers_n_steps and
-                (step % self.args.save_steps == 0)):
-                _, save_best_model = get_metrics(
-                    eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
-
-                self.save_model_at_step(
-                    model=model,
-                    epoch=epoch,
-                    step=step,
-                    save_best_model=save_best_model)
-
-        train_losses.append(loss.item())
-        append_json(output_dir=self.metrics_dir,
-                    filename='train_loss',
-                    data={'epoch': epoch,
-                          'step': step,
-                          'score': float(np.mean(train_losses))})
-        learning_rates.append(
-            {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-        return model, optimizer, eval_scores, train_losses, learning_rates
-
-    def save_model_at_step(self, model, epoch, step,
-                           save_best_model: bool):
-        """
-        Save model at step and overwrite best_model if the model
-        have improved evaluation performance.
-        :param model: Current model
-        :param epoch: Current epoch
-        :param step: Current step
-        """
-
-        if not self.args.save_only_best_model:
-            self.save_model(model, output_dir=self.output_dir,
-                            data_collator=self.data_collator,
-                            tokenizer=self.tokenizer,
-                            step=f'/epoch-{epoch}_step-{step}')
-
-        if save_best_model:
-            self.save_model(model, output_dir=self.output_dir,
-                            data_collator=self.data_collator,
-                            tokenizer=self.tokenizer,
-                            step='/best_model')
-
     def evaluate(self, model, val_loader: DataLoader,
                  conf_plot: bool = False) -> EvalScore:
         """
-        :param model:
+        :param model: Model
         :param val_loader: DataLoader containing validation data
+        :param conf_plot: whether to plot confusion_matrix
         :return: mean loss, accuracy-score, f1-score
         """
         # set up preliminaries
@@ -332,56 +121,6 @@ class SequenceClassification(Modelling):
                 labels=self.args.labels,
                 model_name=self.args.model_name)
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
-
-    def set_up_training(self):
-        """
-        Load data and set up for training a sequence classification model
-        :return: model, optimizer and train_loader for training
-        """
-        self.load_data()
-
-        if self.args.auto_lr_scheduling:
-            self.compute_lr_automatically()
-
-        if self.args.save_config:
-            self.save_config(output_dir=self.output_dir,
-                             metrics_dir=self.metrics_dir,
-                             args=self.args)
-
-        train_data_wrapped, train_loader = create_data_loader(
-            data_wrapped=self.tokenize_and_wrap_data(self.train_data),
-            batch_size=self.args.train_batch_size,
-            data_collator=self.data_collator)
-
-        model = self.get_model()
-
-        if self.args.freeze_embeddings:
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-
-        dummy_trainer = self.create_dummy_trainer(
-            train_data_wrapped=train_data_wrapped,
-            model=model)
-
-        # ToDo: Notice optimizer not the same as with DP
-        optimizer = dummy_trainer.create_optimizer()
-
-        if self.args.freeze_layers:
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=self.args.lr_freezed /
-                             self.args.lr_freezed_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_freezed_warmup_steps)
-        else:
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=self.args.learning_rate /
-                             self.args.lr_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_warmup_steps)
-
-        return model, optimizer, train_loader
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -528,7 +267,8 @@ class SequenceClassification(Modelling):
                 embedding = torch.mean(
                     output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
 
-                tmp_results.append([overflows[i], embedding, pred, decoded_text,])
+                tmp_results.append(
+                    [overflows[i], embedding, pred, decoded_text, ])
 
         grouped = [[x for x in tmp_results if x[0] == y] for y in
                    {x for x in overflows}]
@@ -543,8 +283,8 @@ class SequenceClassification(Modelling):
                 new_embedding = data_batch[0][1]
 
             results.append(
-                EmbeddingOutput(sentence=self.test_data[i]['text'],
-                                label=self.test_data[i]['label'],
+                EmbeddingOutput(sentence=self.data.test[i]['text'],
+                                label=self.data.test[i]['label'],
                                 prediction=pred_actual,
                                 decoded_text=decoded_text,
                                 embedding=new_embedding))
@@ -584,124 +324,20 @@ class SequenceClassification(Modelling):
                     output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
 
                 results.append(
-                    EmbeddingOutput(sentence=self.test_data[i]['text'],
-                                    label=self.test_data[i]['label'],
+                    EmbeddingOutput(sentence=self.data.test[i]['text'],
+                                    label=self.data.test[i]['label'],
                                     prediction=pred_actual,
                                     decoded_text=decoded_text,
                                     embedding=embedding))
 
         return results
 
-    def load_data(self, train: bool = True, test: bool = False):
-        """
-        Load data using datasets.load_dataset for training and evaluation
-        :param train: Whether to train model
-        :param test: Whether to load test data
-        """
-        if train:
-            self.train_data = load_dataset(
-                'json',
-                data_files=os.path.join(DATA_DIR, self.args.train_data),
-                split='train')
-            self.total_steps = int(len(self.train_data)
-                                   / self.args.train_batch_size
-                                   * self.args.epochs)
-            self.args.total_steps = self.total_steps
-
-            if self.args.compute_delta:
-                # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
-                self.args.delta = 1 / (len(self.train_data))
-
-        if self.args.evaluate_during_training:
-            self.eval_data = load_dataset(
-                'json',
-                data_files=os.path.join(DATA_DIR, self.args.eval_data),
-                split='train')
-
-        if test:
-            self.test_data = load_dataset(
-                'json',
-                data_files=os.path.join(DATA_DIR, self.args.test_data),
-                split='train')
-
-    def label2id2label(self):
-        """
-        Generates a label-to-id and id-to-label mapping for the labels given in
-        `self.args.labels`.
-        :return: tuple: A tuple containing two dictionaries, the first being a
-        mapping of label to id and the second being a mapping of id to label.
-        """
-        label2id, id2label = {}, {}
-
-        for i, label in enumerate(self.args.labels):
-            label2id[label] = str(i)
-            id2label[i] = label
-        return label2id, id2label
-
-    def compute_lr_automatically(self):
-        """
-          Compute the learning rate schedule automatically based on the number
-          of training steps.
-
-          This function sets several parameters in the `self.args` object,
-          including `lr_freezed_warmup_steps`, `lr_warmup_steps`, and
-          `lr_start_decay`. These parameters are used to control the learning
-          rate schedule during training.
-
-          If `self.args.freeze_layers` is true, `lr_freezed_warmup_steps` is
-          set to 10% of the number of steps used to train the frozen layers.
-
-          `lr_warmup_steps` is set to 10% of the total number of training steps,
-          after the frozen layers have been trained.
-
-          `lr_start_decay` is set to be half-way through the remaining steps
-          after the frozen layers have been trained.
-          """
-        if self.args.freeze_layers:
-            self.args.lr_freezed_warmup_steps = \
-                int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
-
-        self.args.lr_warmup_steps = \
-            int(np.ceil(
-                0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
-        self.args.lr_start_decay = int(
-            np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
-                    0.5 + self.args.freeze_layers_n_steps))
-
-    def create_dummy_trainer(self, train_data_wrapped: DatasetWrapper, model):
-        """
-        Create dummy trainer, such that we get optimizer and can save model
-        object
-        :param train_data_wrapped: Train data of type DatasetWrapper
-        :param model: initial model
-        :return: Trainer object
-        """
-        if self.args.freeze_layers:
-            learning_rate_init: float = self.args.lr_freezed
-        else:
-            learning_rate_init: float = self.args.learning_rate
-
-        training_args = TrainingArguments(
-            output_dir=self.output_dir,
-            learning_rate=learning_rate_init,
-            weight_decay=self.args.weight_decay,
-            fp16=self.args.use_fp16,
-        )
-
-        # Dummy training for optimizer
-        return Trainer(
-            model=model,
-            args=training_args,
-            train_dataset=train_data_wrapped,
-            data_collator=self.data_collator,
-            tokenizer=self.tokenizer
-        )
-
     def get_tokenizer(self):
         return AutoTokenizer.from_pretrained(
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
-            # ToDo: Consider do_lower_case=True, otherwise lowercase training data
+        # ToDo: Consider do_lower_case=True, otherwise lowercase training data
+
     def get_data_collator(self):
         return DataCollatorWithPadding(tokenizer=self.tokenizer)
 
@@ -721,8 +357,8 @@ class SequenceClassification(Modelling):
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if not (name.startswith("bert.pooler") or name.startswith(
-                "classifier")):
+            if not (name.startswith("bert.pooler") or
+                    name.startswith("classifier")):
                 param.requires_grad = False
         model.train()
         return model
@@ -768,8 +404,6 @@ class SequenceClassification(Modelling):
                    os.path.join(output_dir, 'model_weights.json'))
 
 
-
-
 class SequenceClassificationDP(SequenceClassification):
     """
         Class inherited from SequenceClassification to train a
@@ -779,82 +413,13 @@ class SequenceClassificationDP(SequenceClassification):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
 
-        self.privacy_engine = None
+        # self.privacy_engine = None
         self.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
                            f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
         self.args.output_name = self.output_name
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
-
-    def train_model(self):
-        """
-        Load data, set up private training and train with differential privacy
-        """
-        model, dp_optimizer, dp_train_loader = self.set_up_training()
-
-        code_timer = TimeCode()
-        all_lrs = []
-        step = 0
-
-        if self.eval_data:
-            _, eval_loader = create_data_loader(
-                data_wrapped=self.tokenize_and_wrap_data(self.eval_data),
-                batch_size=self.args.eval_batch_size,
-                data_collator=self.data_collator,
-                shuffle=False)
-
-            eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs, eval_scores = self.train_epoch(
-                    model=model,
-                    train_loader=dp_train_loader,
-                    optimizer=dp_optimizer,
-                    val_loader=eval_loader,
-                    epoch=epoch + 1,
-                    step=step,
-                    eval_scores=eval_scores)
-
-                all_lrs.extend(lrs)
-
-            if step > self.args.freeze_layers_n_steps:
-                best_metrics, _ = get_metrics(
-                    eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
-
-                save_key_metrics_sc(output_dir=self.metrics_dir,
-                                    args=self.args,
-                                    best_metrics=best_metrics,
-                                    total_steps=self.total_steps)
-
-            if self.args.make_plots:
-                plot_running_results(
-                    output_dir=self.metrics_dir,
-                    epsilon=str(self.args.epsilon),
-                    delta=str(self.args.delta),
-                    epochs=self.args.epochs,
-                    lrs=all_lrs, metrics=eval_scores)
-
-        else:
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs = self.train_epoch(
-                    model=model,
-                    train_loader=dp_train_loader,
-                    optimizer=dp_optimizer,
-                    step=step)
-
-                all_lrs.append(lrs)
-        code_timer.how_long_since_start()
-        if self.args.save_model_at_end:
-            self.save_model(
-                model=model._module,
-                output_dir=self.output_dir,
-                data_collator=self.data_collator,
-                tokenizer=self.tokenizer
-            )
-        self.model = model
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
@@ -912,89 +477,9 @@ class SequenceClassificationDP(SequenceClassification):
 
                 step += 1
 
-        if self.eval_data:
+        if self.data.eval:
             return model, step, lrs, eval_scores
         return model, step, lrs
-
-    def set_up_training(self):
-        """
-        Load data and set up for training an unsupervised MLM model with
-        differential privacy
-        :return: model, optimizer and train_loader for DP training
-        """
-        self.load_data()
-
-        if self.args.auto_lr_scheduling:
-            self.compute_lr_automatically()
-
-        if self.args.save_config:
-            self.save_config(output_dir=self.output_dir,
-                             metrics_dir=self.metrics_dir,
-                             args=self.args)
-
-        _, train_loader = create_data_loader(
-            data_wrapped=self.tokenize_and_wrap_data(self.train_data),
-            batch_size=self.args.lot_size,
-            data_collator=self.data_collator)
-
-        model = self.get_model()
-
-        if self.args.freeze_embeddings:
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
-            train_loader=train_loader,
-            model=model)
-
-        if self.args.freeze_layers:
-            self.scheduler = create_scheduler(
-                dp_optimizer,
-                start_factor=self.args.lr_freezed /
-                             self.args.lr_freezed_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_freezed_warmup_steps)
-        else:
-            self.scheduler = create_scheduler(
-                dp_optimizer,
-                start_factor=self.args.learning_rate /
-                             self.args.lr_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_warmup_steps)
-
-        return dp_model, dp_optimizer, dp_train_loader
-
-    def set_up_privacy(self, train_loader: DataLoader, model):
-        """
-        Set up privacy engine for private training
-        :param train_loader: DataLoader for training
-        :return: model, optimizer and train loader for private training
-        """
-        self.privacy_engine = PrivacyEngine()
-
-        model = model.train()
-
-        # validate if model works with opacus
-        validate_model(model, strict_validation=True)
-        # new opacus version requires to generate optimizer from
-        # model.parameters()
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=self.args.learning_rate,
-            weight_decay=self.args.weight_decay) # eps = 1e-8 default
-
-        dp_model, dp_optimizer, dp_train_loader = \
-            self.privacy_engine.make_private_with_epsilon(
-                module=model,
-                optimizer=optimizer,
-                data_loader=train_loader,
-                epochs=self.args.epochs,
-                target_epsilon=self.args.epsilon,
-                target_delta=self.args.delta,
-                max_grad_norm=self.args.max_grad_norm
-            )
-
-        return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
     def freeze_layers(model):

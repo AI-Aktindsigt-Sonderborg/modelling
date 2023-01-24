@@ -3,6 +3,7 @@ from enum import Enum
 
 import numpy as np
 import torch
+from datasets import Dataset
 
 
 @dataclass
@@ -39,6 +40,11 @@ class EvalScore:
     accuracy: float = None
     f_1: dict = None
 
+@dataclass
+class ModellingData:
+    train: Dataset = None
+    eval: Dataset = None
+    test: Dataset = None
 
 class DataType(Enum):
     TRAIN = 'train.json'

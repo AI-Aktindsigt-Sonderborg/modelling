@@ -6,7 +6,7 @@ from typing import List
 
 import numpy as np
 import torch
-from opacus import PrivacyEngine, GradSampleModule
+from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
@@ -20,12 +20,9 @@ from transformers import BertConfig, BertForMaskedLM, TrainingArguments, \
 from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from shared.modelling_utils.helpers import create_scheduler, get_lr, \
-    validate_model, get_metrics, log_train_metrics_dp, create_data_loader, \
-    save_key_metrics
+from shared.modelling_utils.helpers import get_lr, \
+    log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import TimeCode
-from shared.utils.visualization import plot_running_results
 from sm.local_constants import DATA_DIR, MODEL_DIR
 
 
@@ -36,6 +33,7 @@ class MLMModelling(Modelling):
 
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
+
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.data_dir = DATA_DIR
@@ -287,75 +285,6 @@ class MLMModellingDP(MLMModelling):
         self.output_dir = os.path.join(MODEL_DIR, self.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-    def train_model(self):
-        """
-        Load data, set up private training and train with differential privacy
-        """
-        model, dp_optimizer, dp_train_loader = self.set_up_training()
-
-        code_timer = TimeCode()
-        all_lrs = []
-        step = 0
-
-        if self.eval_data:
-            _, eval_loader = create_data_loader(
-                data_wrapped=self.tokenize_and_wrap_data(self.eval_data),
-                batch_size=self.args.eval_batch_size,
-                data_collator=self.data_collator,
-                shuffle=False)
-
-            eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs, eval_scores = self.train_epoch(
-                    model=model,
-                    train_loader=dp_train_loader,
-                    optimizer=dp_optimizer,
-                    val_loader=eval_loader,
-                    epoch=epoch + 1,
-                    step=step,
-                    eval_scores=eval_scores)
-
-                all_lrs.extend(lrs)
-
-            if step > self.args.freeze_layers_n_steps:
-                best_metrics, _ = get_metrics(
-                    eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
-
-                save_key_metrics(output_dir=self.metrics_dir,
-                                     args=self.args,
-                                     best_metrics=best_metrics,
-                                     total_steps=self.args.total_steps)
-
-            if self.args.make_plots:
-                plot_running_results(
-                    output_dir=self.metrics_dir,
-                    epsilon=str(self.args.epsilon),
-                    delta=str(self.args.delta),
-                    epochs=self.args.epochs,
-                    lrs=all_lrs,
-                    metrics=eval_scores)
-
-        else:
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, step, lrs = self.train_epoch(
-                    model=model,
-                    train_loader=dp_train_loader,
-                    optimizer=dp_optimizer,
-                    step=step)
-                all_lrs.append(lrs)
-        code_timer.how_long_since_start()
-        if self.args.save_model_at_end:
-            self.save_model(
-                model=model._module,
-                output_dir=self.output_dir,
-                data_collator=self.data_collator,
-                tokenizer=self.tokenizer
-            )
-        self.model = model
-
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
@@ -379,11 +308,10 @@ class MLMModellingDP(MLMModelling):
         train_losses = []
         lrs = []
         with BatchMemoryManager(
-                data_loader=train_loader,
-                max_physical_batch_size=self.args.train_batch_size,
-                optimizer=optimizer
+            data_loader=train_loader,
+            max_physical_batch_size=self.args.train_batch_size,
+            optimizer=optimizer
         ) as memory_safe_data_loader:
-
             for batch in tqdm(memory_safe_data_loader,
                               desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
@@ -411,87 +339,9 @@ class MLMModellingDP(MLMModelling):
 
                 step += 1
 
-        if self.eval_data:
+        if self.data.eval:
             return model, step, lrs, eval_scores
         return model, step, lrs
-
-    def set_up_training(self) -> tuple:
-        """
-        Load data and set up for training an unsupervised MLM model with
-        differential privacy
-        :return: model, optimizer and train_loader for DP training
-        """
-        self.load_data()
-
-        if self.args.auto_lr_scheduling:
-            self.compute_lr_automatically()
-
-        if self.args.save_config:
-            self.save_config(output_dir=self.output_dir,
-                             metrics_dir=self.metrics_dir,
-                             args=self.args)
-
-        _, train_loader = create_data_loader(
-            data_wrapped=self.tokenize_and_wrap_data(self.train_data),
-            batch_size=self.args.lot_size,
-            data_collator=self.data_collator)
-
-        model = self.get_model()
-
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
-            train_loader=train_loader,
-            model=model)
-
-        if self.args.freeze_layers:
-            self.scheduler = create_scheduler(
-                dp_optimizer,
-                start_factor=self.args.lr_freezed /
-                             self.args.lr_freezed_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_freezed_warmup_steps)
-        else:
-            self.scheduler = create_scheduler(
-                dp_optimizer,
-                start_factor=self.args.learning_rate /
-                             self.args.lr_warmup_steps,
-                end_factor=1,
-                total_iters=self.args.lr_warmup_steps)
-
-        return dp_model, dp_optimizer, dp_train_loader
-
-    def set_up_privacy(self, train_loader: DataLoader, model):
-        """
-        Set up privacy engine for private training
-        :param train_loader: DataLoader for training
-        :return: model, optimizer and train loader for private training
-        """
-        self.privacy_engine = PrivacyEngine()
-
-        model = model.train()
-
-        # validate if model works with opacus
-        validate_model(model, strict_validation=True)
-        # opacus version >= 1.0 requires to generate optimizer from
-        # model.parameters()
-        optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=self.args.learning_rate)
-
-        dp_model, dp_optimizer, dp_train_loader = \
-            self.privacy_engine.make_private_with_epsilon(
-                module=model,
-                optimizer=optimizer,
-                data_loader=train_loader,
-                epochs=self.args.epochs,
-                target_epsilon=self.args.epsilon,
-                target_delta=self.args.delta,
-                max_grad_norm=self.args.max_grad_norm,
-                # ToDo: hooks is the original opacus grad sampler. If we want
-                #  to try new features, then see
-                #  https://github.com/pytorch/opacus/releases
-                grad_sample_mode="hooks"
-            )
-        self.privacy_engine.get_epsilon(self.args.delta)
-        return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
     def freeze_layers(model):
