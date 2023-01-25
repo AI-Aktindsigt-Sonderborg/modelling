@@ -1,6 +1,5 @@
 # pylint: disable=protected-access
 import argparse
-import dataclasses
 import os
 import pickle
 from datetime import datetime
@@ -9,7 +8,7 @@ from typing import List
 import numpy as np
 import torch
 from datasets import ClassLabel
-from opacus import PrivacyEngine, GradSampleModule
+from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
@@ -22,14 +21,10 @@ from transformers import AutoTokenizer, TrainingArguments, Trainer, \
 
 from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.helpers import create_scheduler, get_lr, \
-    validate_model, \
-    get_metrics, save_key_metrics_sc, log_train_metrics, log_train_metrics_dp, \
-    create_data_loader
+from shared.modelling_utils.helpers import get_lr, \
+    log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import TimeCode, append_json
-from shared.utils.visualization import plot_running_results, \
-    plot_confusion_matrix
+from shared.utils.visualization import plot_confusion_matrix
 from sm.local_constants import MODEL_DIR, DATA_DIR
 
 

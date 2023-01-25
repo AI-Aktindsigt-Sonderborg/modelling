@@ -11,11 +11,6 @@ class MLMArgParser(ModellingArgParser):
     def __init__(self):
         super().__init__()
 
-        # self.parser = argparse.ArgumentParser(
-        #     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        # self.parser.add_argument("-p", '--print_only_args', action='store_true',
-        #                          help="whether to only print args and exit")
-
         self.add_mlm_params()
 
     def add_mlm_params(self):

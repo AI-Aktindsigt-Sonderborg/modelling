@@ -30,7 +30,6 @@ class Modelling:
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
-        # self.total_steps = None
 
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
