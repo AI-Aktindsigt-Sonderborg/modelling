@@ -31,9 +31,8 @@ class Modelling:
 
         self.args = args
 
-        self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
+        self.args.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        self.args.output_name = self.output_name
 
         self.privacy_engine = None
         self.model = None
@@ -70,9 +69,11 @@ class Modelling:
                                         * self.args.epochs)
             # self.args.total_steps = self.total_steps
 
-            if self.args.compute_delta:
+            if self.args.differential_privacy and self.args.compute_delta:
                 # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
                 self.args.delta = 1 / (len(self.data.train))
+            else:
+                self.args.delta = None
 
         if self.args.evaluate_during_training:
             self.data.eval = load_dataset(

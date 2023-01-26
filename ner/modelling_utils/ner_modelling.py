@@ -15,6 +15,7 @@ from opacus import PrivacyEngine, GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
+from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
@@ -23,6 +24,9 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
     get_dane_val
 from ner.local_constants import MODEL_DIR
+from ner.modelling_utils.helpers import align_labels_with_tokens
+from shared.data_utils.custom_dataclasses import EvalScore
+from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import create_scheduler, get_lr, \
     validate_model
@@ -32,19 +36,18 @@ from shared.utils.helpers import append_json
 
 class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
+        super().__init__(args=args)
 
-        self.args = args
 
-        self.args.output_name = self.output_name
 
-        self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        self.label_list, self.id2label, self.label2id = get_label_list()
+        self.args.labels, self.id2label, self.label2id = get_label_list()
 
         self.class_labels = ClassLabel(
-            num_classes=len(self.label_list),
-            names=self.label_list)
+            num_classes=len(self.args.labels),
+            names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
             self.model_path = os.path.join(MODEL_DIR,
@@ -56,105 +59,83 @@ class NERModelling(Modelling):
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
 
-        self.model = AutoModelForTokenClassification.from_pretrained(
-            self.local_alvenir_model_path,
-            local_files_only=self.args.load_alvenir_pretrained,
-            num_labels=len(self.label_list),
-            id2label=self.id2label,
-            label2id=self.label2id)
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.local_alvenir_model_path,
-            local_files_only=self.args.load_alvenir_pretrained)
 
-        config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        self.model.cls = lm_head
-
-        self.model = AutoModelForTokenClassification.from_pretrained(
-            self.args.model_name,
-            local_files_only=self.args.load_alvenir_pretrained,
-            num_labels=len(self.label_list),
-            id2label=self.id2label,
-            label2id=self.label2id)
-        self.tokenizer = AutoTokenizer.from_pretrained(self.args.model_name)
-
-        # self.label_list = list(self.ner_mapping.values())
-
-        self.data_collator = self.get_data_collator
-        self.scheduler = None
-
-        self.scheduler = None
-        # ToDo: Experiment with freezing layers - see SPRIN-159
-        if not self.args.freeze_layers:
-            self.args.freeze_layers_n_steps = 0
-            self.args.lr_freezed_warmup_steps = None
-            self.args.lr_freezed = None
-
-    def evaluate(self, model, val_loader: DataLoader):
+    def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
         """
         Evaluate model at given step
+        :param device:
         :param model:
         :param val_loader:
         :return: mean eval loss and mean accuracy
         """
-        model.eval()
         if not next(model.parameters()).is_cuda:
             model = model.to(self.args.device)
-        loss_arr = []
-        accuracy_arr = []
 
-        # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
-        for batch in tqdm(val_loader, unit="batch", desc="Eval"):
-            # for batch in val_loader:
-            output = model(input_ids=batch["input_ids"].to(self.args.device),
-                           attention_mask=batch["attention_mask"].to(
-                               self.args.device),
-                           labels=batch["labels"].to(self.args.device))
+        model.eval()
 
-            preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
-            labels = batch["labels"].cpu().numpy()
+        y_true, y_pred, loss = [], [], []
 
-            labels_flat = labels.flatten()
+        with torch.no_grad():
+            # get model predictions and labels
+            for batch in tqdm(val_loader, unit="batch", desc="Eval"):
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(self.args.device),
+                    labels=batch["labels"].to(self.args.device))
 
-            preds_flat = preds.flatten()
+                batch_loss = output.loss.item()
 
-            # We ignore tokens with value "-100" as these are padding tokens set by the tokenizer.
-            # See nn.CrossEntropyLoss(): ignore_index for more information
-            # ToDo: get f1 score instead of accuracy and remove
-            filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat) if
-                        xv != -100 or xv != 0]
+                preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
+                labels = batch["labels"].cpu().numpy()
 
-            eval_acc = accuracy(np.array([x[1] for x in filtered]),
-                                np.array([x[0] for x in filtered]))
-            eval_loss = output.loss.item()
+                labels_flat = labels.flatten()
+                preds_flat = preds.flatten()
 
-            if not np.isnan(eval_loss):
-                loss_arr.append(eval_loss)
-            if not np.isnan(eval_acc):
-                accuracy_arr.append(eval_acc)
+                # We ignore tokens with value "-100" as these are padding tokens
+                # set by the tokenizer.
+                # See nn.CrossEntropyLoss(): ignore_index for more information
+                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
+                            if xv != -100]
 
-            sleep(0.001)
+                batch_labels = np.array([x[0] for x in filtered]).astype(int)
+                batch_preds = np.array([x[1] for x in filtered]).astype(int)
 
-        return np.mean(loss_arr), np.mean(accuracy_arr)
+                y_true.extend(batch_labels)
+                y_pred.extend(batch_preds)
+                loss.append(batch_loss)
 
-    def load_data(self, train: bool = True):
+        # calculate metrics of interest
+        acc = accuracy_score(y_true, y_pred)
+        f_1 = f1_score(y_true, y_pred, average='macro')
+        loss = float(np.mean(loss))
+
+        print(f"\n"
+              f"eval loss: {loss} \t"
+              f"eval acc: {acc}"
+              f"eval f1: {f_1}")
+
+        return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
+
+    def load_data(self, train: bool = True, test: bool = False):
 
         if train:
             self.data.train = get_dane_train(subset=None)
-            print(f'len train: {len(self.train_data)}')
-            self.total_steps = int(
-                len(self.train_data) / self.args.train_batch_size * self.args.epochs)
-            self.args.total_steps = self.total_steps
-            print(f'total steps: {self.total_steps}')
+            print(f'len train: {len(self.data.train)}')
+            self.args.total_steps = int(
+                len(self.data.train) / self.args.train_batch_size
+                * self.args.epochs)
 
-        if self.args.compute_delta:
+            print(f'total steps: {self.args.total_steps}')
+
+        if self.args.differential_privacy and self.args.compute_delta:
             self.args.delta = 1 / len(self.data.train)
             print(f'delta:{self.args.delta}')
+        else:
+            self.args.delta = None
 
         if self.args.evaluate_during_training:
-            self.eval_data = get_dane_val(subset=None)
-            print(f'len eval: {len(self.eval_data)}')
+            self.data.eval = get_dane_val(subset=None)
+            print(f'len eval: {len(self.data.eval)}')
 
     def load_model_and_replace_bert_head(self):
         """
@@ -170,13 +151,47 @@ class NERModelling(Modelling):
         return model
 
     def tokenize_and_wrap_data(self, data: Dataset):
+
+
+        def tokenize_and_align_labels(examples):
+            tokenized_inputs = self.tokenizer(
+                examples["tokens"],
+                truncation=True,
+                is_split_into_words=True,
+                padding='max_length',
+                max_length=self.args.max_length
+            )
+            all_labels = examples["ner_tags"]
+            new_labels = []
+            for i, labels in enumerate(all_labels):
+                word_ids = tokenized_inputs.word_ids(i)
+                new_labels.append(align_labels_with_tokens(labels, word_ids))
+
+            tokenized_inputs["labels"] = new_labels
+            return tokenized_inputs
+
+        tokenized = data.map(
+            tokenize_and_align_labels,
+            batched=True,
+            remove_columns=data.column_names,
+            desc="Running tokenizer on dataset line_by_line",
+        )
+
+        tokenized.set_format('torch')
+        wrapped = DatasetWrapper(tokenized)
+
+        return wrapped
+
+
+    def tokenize_and_wrap_data_old(self, data: Dataset):
         """
         Tokenize dataset with tokenize_function and wrap with DatasetWrapper
         :param data: Dataset
         :return: DatasetWrapper(Dataset)
         """
 
-        def tokenize_and_align_labels(examples):
+
+        def tokenize_and_align_labels_old(examples):
             # print(examples['tokens'])
             tokenized_inputs = self.tokenizer(examples["tokens"],
                                               truncation=True,
@@ -214,7 +229,7 @@ class NERModelling(Modelling):
 
             return tokenized_inputs
 
-        tokenized_dataset = data.map(tokenize_and_align_labels, batched=True)
+        tokenized_dataset = data.map(tokenize_and_align_labels_old, batched=True)
         # tokenized_dataset_new = tokenized_dataset.remove_columns(
         #     )
         if self.args.train_data == 'wikiann':
@@ -229,41 +244,6 @@ class NERModelling(Modelling):
         # wrapped = DatasetWrapper(tokenized_dataset_new)
 
         return tokenized_dataset_new
-
-    def compute_lr_automatically(self):
-
-        if self.args.freeze_layers:
-            # self.args.freeze_layers_n_steps = 20000
-            self.args.lr_freezed_warmup_steps = int(
-                np.ceil(0.1 * self.args.freeze_layers_n_steps))
-
-        self.args.lr_warmup_steps = int(
-            np.ceil(0.1 * (self.total_steps - self.args.freeze_layers_n_steps)))
-        self.args.lr_start_decay = int(
-            np.ceil((self.total_steps - self.args.freeze_layers_n_steps) *
-                    0.5 + self.args.freeze_layers_n_steps))
-
-    def save_model_at_step(self, model, epoch, step,
-                           save_best_model: bool):
-        """
-        Save model at step and overwrite best_model if the model
-        have improved evaluation performance.
-        :param model: Current model
-        :param epoch: Current epoch
-        :param step: Current step
-        """
-
-        if not self.args.save_only_best_model:
-            self.save_model(model, output_dir=self.output_dir,
-                            data_collator=self.data_collator,
-                            tokenizer=self.tokenizer,
-                            step=f'/epoch-{epoch}_step-{step}')
-
-        if save_best_model:
-            self.save_model(model, output_dir=self.output_dir,
-                            data_collator=self.data_collator,
-                            tokenizer=self.tokenizer,
-                            step='/best_model')
 
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data
@@ -285,36 +265,6 @@ class NERModelling(Modelling):
             label2id=self.label2id,
             id2label=self.id2label,
             local_files_only=self.args.load_alvenir_pretrained)
-
-    def modify_learning_rate_and_layers(self, model, optimizer, step: int):
-        """
-        Modify learning rate and freeze/unfreeze layers based on input args,
-        learning rate scheduler and current step
-        :return: Modified model
-        """
-
-        if self.args.freeze_layers and step == 0:
-            model = self.freeze_layers(model)
-
-        if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-            model = self.unfreeze_layers(model)
-            # ToDo: Below operation only works if lr is lower than lr_freezed:
-            #  fix this - also for SeqModelling
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=(self.args.learning_rate / self.args.lr_freezed)
-                             / self.args.lr_warmup_steps,
-                end_factor=self.args.learning_rate / self.args.lr_freezed,
-                total_iters=self.args.lr_warmup_steps)
-
-        if step == self.args.lr_start_decay:
-            self.scheduler = create_scheduler(
-                optimizer,
-                start_factor=1,
-                end_factor=self.args.learning_rate / (self.total_steps - step),
-                total_iters=self.total_steps - step
-            )
-        return model
 
     @staticmethod
     def freeze_layers(model):
@@ -561,106 +511,6 @@ class NERModellingDP(NERModelling):
         if self.eval_data:
             return model, eval_losses, eval_accuracies, step, lrs
         return model, step, lrs
-
-    def set_up_training(self):
-        """
-
-        :return:
-        """
-
-        self.load_data()
-
-        if self.args.auto_lr_scheduling:
-            self.compute_lr_automatically()
-
-        if self.args.save_config:
-            self.save_config(output_dir=self.output_dir,
-                             metrics_dir=self.metrics_dir,
-                             args=self.args)
-
-        train_data_wrapped = self.tokenize_and_wrap_data(data=self.train_data)
-
-        if self.args.load_alvenir_pretrained:
-            model = AutoModelForTokenClassification.from_pretrained(
-                self.local_alvenir_model_path, num_labels=len(self.label_list),
-                id2label=self.id2label, label2id=self.label2id)
-            # config = BertConfig.from_pretrained(self.local_alvenir_model_path)
-            # new_head = BertOnlyMLMHeadCustom(config)
-            # new_head.load_state_dict(
-            #     torch.load(self.local_alvenir_model_path + '/head_weights.json'))
-            # lm_head = new_head.to(self.args.device)
-            # model.cls = lm_head
-
-            for param in model.bert.embeddings.parameters():
-                param.requires_grad = False
-
-        else:
-            if self.args.replace_head:
-                print('Replacing bert head')
-                model = self.load_model_and_replace_bert_head()
-
-            else:
-                model = AutoModelForTokenClassification.from_pretrained(
-                    self.args.model_name,
-                    num_labels=len(
-                        self.label_list),
-                    id2label=self.id2label,
-                    label2id=self.label2id)
-                if self.args.freeze_embeddings:
-                    for param in model.bert.embeddings.parameters():
-                        param.requires_grad = False
-
-        # dummy_trainer = self.create_dummy_trainer(train_data_wrapped=train_data_wrapped,
-        #                                           model=model)
-
-        train_loader = DataLoader(dataset=train_data_wrapped,
-                                  batch_size=self.args.lot_size,
-                                  collate_fn=self.data_collator)
-
-        dp_model, dp_optimizer, dp_train_loader = self.set_up_privacy(
-            train_loader=train_loader,
-            model=model)
-
-        if self.args.freeze_layers:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.lr_freezed /
-                                                           self.args.lr_freezed_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_freezed_warmup_steps)
-        else:
-            self.scheduler = create_scheduler(dp_optimizer,
-                                              start_factor=self.args.learning_rate /
-                                                           self.args.lr_warmup_steps,
-                                              end_factor=1,
-                                              total_iters=self.args.lr_warmup_steps)
-
-        return dp_model, dp_optimizer, dp_train_loader
-
-    def set_up_privacy(self, train_loader: DataLoader, model):
-        """
-        Set up privacy engine for private training
-        :param train_loader: DataLoader for training
-        :return: model, optimizer and train loader for private training
-        """
-        self.privacy_engine = PrivacyEngine()
-
-        model = model.train()
-
-        # validate if model works with opacus
-        validate_model(model, strict_validation=True)
-        # new opacus version requires to generate optimizer from model.parameters()
-        optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=self.args.learning_rate)
-        dp_model, dp_optimizer, dp_train_loader = self.privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            epochs=self.args.epochs,
-            target_epsilon=self.args.epsilon,
-            target_delta=self.args.delta,
-            max_grad_norm=self.args.max_grad_norm
-        )
-        return dp_model, dp_optimizer, dp_train_loader
 
     @staticmethod
     def save_model(model: GradSampleModule, output_dir: str, data_collator,
