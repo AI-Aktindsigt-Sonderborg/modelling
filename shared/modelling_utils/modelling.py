@@ -67,13 +67,15 @@ class Modelling:
             self.args.total_steps = int(len(self.data.train)
                                         / self.args.train_batch_size
                                         * self.args.epochs)
-            # self.args.total_steps = self.total_steps
 
             if self.args.differential_privacy and self.args.compute_delta:
                 # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
                 self.args.delta = 1 / (len(self.data.train))
             else:
                 self.args.delta = None
+                self.args.compute_delta = None
+                self.args.epsilon = None
+                self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
             self.data.eval = load_dataset(

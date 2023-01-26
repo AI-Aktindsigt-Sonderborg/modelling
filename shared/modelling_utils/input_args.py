@@ -162,6 +162,7 @@ class ModellingArgParser:
         Add parameters relevant for evaluation
         """
         eval_params = self.parser.add_argument_group('evaluation')
+        #Fixme: If evaluate_steps > total steps, get_metrics will fail
         eval_params.add_argument(
             "-esteps", "--evaluate_steps",
             type=int,
