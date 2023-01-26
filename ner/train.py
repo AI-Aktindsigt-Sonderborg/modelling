@@ -1,5 +1,5 @@
-from modelling_utils.ner_modelling import NERModelling, NERModellingDP
-from modelling_utils.input_args import NERArgParser
+from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
+from ner.modelling_utils.input_args import NERArgParser
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
