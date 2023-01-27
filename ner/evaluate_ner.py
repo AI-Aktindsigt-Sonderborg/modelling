@@ -12,6 +12,7 @@ args = sc_parser.parser.parse_args()
 # args.model_name = 'last_model-2022-12-21_10-53-25'
 args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
+args.differential_privacy = False
 
 modelling = NERModelling(args)
 

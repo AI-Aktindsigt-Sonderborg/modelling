@@ -1,15 +1,13 @@
 import os
 from typing import List
 
-import numpy as np
 import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
-from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import StandardScaler
-from sm.local_constants import PLOTS_DIR
+
 from shared.data_utils.custom_dataclasses import EvalScore
+
 
 def plot_running_results(
     output_dir: str,
@@ -64,6 +62,7 @@ def plot_confusion_matrix(
     y_true,
     y_pred,
     labels,
+    plots_dir: str,
     model_name: str,
     normalize: str = 'true',
     save_fig: bool = True):
@@ -79,7 +78,7 @@ def plot_confusion_matrix(
 
     plt.tight_layout()
     if save_fig:
-        plt.savefig(os.path.join(PLOTS_DIR,
+        plt.savefig(os.path.join(plots_dir,
                                  f'conf_plot_{model_name.replace("/", "_")}'))
     else:
         plt.show()

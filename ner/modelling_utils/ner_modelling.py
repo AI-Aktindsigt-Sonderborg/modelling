@@ -33,13 +33,12 @@ from shared.modelling_utils.helpers import create_scheduler, get_lr, \
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.helpers import append_json
 from shared.utils.visualization import plot_confusion_matrix
+from ner.local_constants import PLOTS_DIR
 
 
 class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
-
-
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
@@ -59,7 +58,6 @@ class NERModelling(Modelling):
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
-
 
     def evaluate(self, model, val_loader: DataLoader,
                  conf_plot: bool = False) -> EvalScore:
@@ -124,7 +122,8 @@ class NERModelling(Modelling):
                 y_true=y_true_plot,
                 y_pred=y_pred_plot,
                 labels=self.args.labels,
-                model_name=self.args.model_name)
+                model_name=self.args.model_name,
+                plots_dir=PLOTS_DIR)
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
@@ -170,7 +169,6 @@ class NERModelling(Modelling):
 
     def tokenize_and_wrap_data(self, data: Dataset):
 
-
         def tokenize_and_align_labels(examples):
             tokenized_inputs = self.tokenizer(
                 examples["tokens"],
@@ -200,14 +198,12 @@ class NERModelling(Modelling):
 
         return wrapped
 
-
     def tokenize_and_wrap_data_old(self, data: Dataset):
         """
         Tokenize dataset with tokenize_function and wrap with DatasetWrapper
         :param data: Dataset
         :return: DatasetWrapper(Dataset)
         """
-
 
         def tokenize_and_align_labels_old(examples):
             # print(examples['tokens'])
@@ -247,7 +243,8 @@ class NERModelling(Modelling):
 
             return tokenized_inputs
 
-        tokenized_dataset = data.map(tokenize_and_align_labels_old, batched=True)
+        tokenized_dataset = data.map(tokenize_and_align_labels_old,
+                                     batched=True)
         # tokenized_dataset_new = tokenized_dataset.remove_columns(
         #     )
         if self.args.train_data == 'wikiann':
