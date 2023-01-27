@@ -22,7 +22,7 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, Trainer, TrainingArguments, BertConfig
 
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
-    get_dane_val
+    get_dane_val, get_dane_test
 from ner.local_constants import MODEL_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from shared.data_utils.custom_dataclasses import EvalScore
@@ -32,6 +32,7 @@ from shared.modelling_utils.helpers import create_scheduler, get_lr, \
     validate_model
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.helpers import append_json
+from shared.utils.visualization import plot_confusion_matrix
 
 
 class NERModelling(Modelling):
@@ -60,7 +61,8 @@ class NERModelling(Modelling):
         self.data_collator = self.get_data_collator()
 
 
-    def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
+    def evaluate(self, model, val_loader: DataLoader,
+                 conf_plot: bool = False) -> EvalScore:
         """
         Evaluate model at given step
         :param device:
@@ -114,6 +116,16 @@ class NERModelling(Modelling):
               f"eval acc: {acc}"
               f"eval f1: {f_1}")
 
+        if conf_plot:
+            y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
+            y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
+
+            plot_confusion_matrix(
+                y_true=y_true_plot,
+                y_pred=y_pred_plot,
+                labels=self.args.labels,
+                model_name=self.args.model_name)
+
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)
 
     def load_data(self, train: bool = True, test: bool = False):
@@ -127,15 +139,21 @@ class NERModelling(Modelling):
 
             print(f'total steps: {self.args.total_steps}')
 
-        if self.args.differential_privacy and self.args.compute_delta:
-            self.args.delta = 1 / len(self.data.train)
-            print(f'delta:{self.args.delta}')
-        else:
-            self.args.delta = None
+            if self.args.differential_privacy and self.args.compute_delta:
+                self.args.delta = 1 / len(self.data.train)
+                print(f'delta:{self.args.delta}')
+            else:
+                self.args.delta = None
+                self.args.compute_delta = None
+                self.args.epsilon = None
+                self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
             self.data.eval = get_dane_val(subset=None)
             print(f'len eval: {len(self.data.eval)}')
+
+        if test:
+            self.data.test = get_dane_test(subset=None)
 
     def load_model_and_replace_bert_head(self):
         """

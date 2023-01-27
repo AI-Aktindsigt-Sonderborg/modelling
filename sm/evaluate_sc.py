@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 
-from modelling_utils.input_args import SequenceModellingArgParser
-from modelling_utils.sequence_classification import SequenceClassification
+from sm.modelling_utils.input_args import SequenceModellingArgParser
+from sm.modelling_utils.sequence_classification import SequenceClassification
 
 sc_parser = SequenceModellingArgParser()
 
@@ -26,7 +26,7 @@ modelling = SequenceClassification(args)
 
 modelling.load_data(train=False, test=True)
 
-test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.test_data)
+test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.data.test)
 test_loader = DataLoader(dataset=test_data_wrapped,
                          collate_fn=modelling.data_collator,
                          batch_size=modelling.args.eval_batch_size)

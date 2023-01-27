@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import StandardScaler
-
+from sm.local_constants import PLOTS_DIR
 from shared.data_utils.custom_dataclasses import EvalScore
 
 def plot_running_results(
@@ -79,6 +79,7 @@ def plot_confusion_matrix(
 
     plt.tight_layout()
     if save_fig:
-        plt.savefig(f'plots/conf_plot_{model_name.replace("/", "_")}')
+        plt.savefig(os.path.join(PLOTS_DIR,
+                                 f'conf_plot_{model_name.replace("/", "_")}'))
     else:
         plt.show()
