@@ -52,6 +52,23 @@ class DataType(Enum):
     TEST = 'test.json'
 
 
+# class HFModel(Enum):
+#     red = 1
+#     blue = 2
+#     green = 3
+#
+#     def __str__(self):
+#         return self.name
+#
+#     @staticmethod
+#     def from_string(s):
+#         try:
+#             return HFModel[s]
+#         except KeyError:
+#             raise ValueError()
+
+
+
 class LoadModelType(Enum):
     TRAIN = 1
     EVAL = 2
