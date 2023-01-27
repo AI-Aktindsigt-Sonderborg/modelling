@@ -25,7 +25,7 @@ from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
-from sm.local_constants import MODEL_DIR, DATA_DIR
+from sc.local_constants import MODEL_DIR, DATA_DIR
 
 
 class SequenceClassification(Modelling):

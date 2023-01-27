@@ -4,9 +4,6 @@ from ner.modelling_utils.input_args import NERArgParser
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
 
-# args.differential_privacy = False
-# args.load_alvenir_pretrained = False
-# args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
 if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):

@@ -29,7 +29,7 @@ from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import create_scheduler, get_lr, \
-    validate_model
+    validate_model, log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.helpers import append_json
 from shared.utils.visualization import plot_confusion_matrix
@@ -377,52 +377,23 @@ class NERModellingDP(NERModelling):
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
 
-    def train_model(self):
-
-        model, dp_optimizer, dp_train_loader = self.set_up_training()
-
-        all_lrs = []
-        step = 0
-
-        if self.eval_data:
-            eval_data_wrapped = self.tokenize_and_wrap_data(data=self.eval_data)
-            eval_loader = DataLoader(dataset=eval_data_wrapped,
-                                     collate_fn=self.data_collator,
-                                     batch_size=self.args.eval_batch_size)
-            losses = []
-            accuracies = []
-
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
-                              unit="epoch"):
-                model, losses, accuracies, step, lrs = self.train_epoch(
-                    model=model,
-                    train_loader=dp_train_loader,
-                    optimizer=dp_optimizer,
-                    val_loader=eval_loader,
-                    epoch=epoch + 1,
-                    step=step,
-                    eval_losses=losses,
-                    eval_accuracies=accuracies)
-                all_lrs.extend(lrs)
-
-        print('dp model is training')
-
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
-                    step: int = 0, eval_losses: List[dict] = None,
-                    eval_accuracies: List[dict] = None):
+                    step: int = 0, eval_scores: List[EvalScore] = None):
         """
-        Train one epoch
-        :param eval_accuracies:
-        :param eval_losses:
-        :param model: Model
-        :param train_loader: Data loader of type DataLoader
-        :param optimizer: Default is AdamW optimizer
+        Train one epoch with DP - modification of superclass train_epoch
+        :param eval_scores: eval_scores
+        :param model: Differentially private model wrapped in GradSampleModule
+        :param train_loader: Differentially private data loader of type
+        DPDataLoader
+        :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing validation data
+        :param val_loader: If evaluate_during_training: DataLoader containing
+        validation data
         :param step: Given step
-        :return: if self.eval_data: return model, eval_losses, eval_accuracies, step, lrs
+        :return: if self.eval_data: return model, eval_losses, eval_accuracies,
+        step, lrs
         else: return model, step, lrs
         """
         model.train()
@@ -436,121 +407,35 @@ class NERModellingDP(NERModelling):
         ) as memory_safe_data_loader:
 
             for batch in tqdm(memory_safe_data_loader,
-                              desc=f'Train epoch {epoch} of {self.args.epochs}',
+                              desc=f'Epoch {epoch} of {self.args.epochs}',
                               unit="batch"):
-
-                if self.args.freeze_layers and step == 0:
-                    model = self.freeze_layers(model)
-
-                if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
-                    model = self.unfreeze_layers(model)
-                    # ToDo: Below operation only works if lr is lower than lr_freezed: fix this
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=(
-                                                                       self.args.learning_rate
-                                                                       / self.args.lr_freezed)
-                                                                   / self.args.lr_warmup_steps,
-                                                      end_factor=self.args.learning_rate
-                                                                 / self.args.lr_freezed,
-                                                      total_iters=self.args.lr_warmup_steps)
-
-                if step == self.args.lr_start_decay:
-                    self.scheduler = create_scheduler(optimizer,
-                                                      start_factor=1,
-                                                      end_factor=self.args.learning_rate / (
-                                                          self.total_steps - step),
-                                                      total_iters=self.total_steps - step
-                                                      )
-                append_json(output_dir=self.metrics_dir,
-                            filename='learning_rates',
-                            data={'epoch': epoch, 'step': step,
-                                  'lr': get_lr(optimizer)[0]})
-                lrs.append(
-                    {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
-
-                optimizer.zero_grad()
-
-                # compute model output
-                output = model(
-                    input_ids=batch["input_ids"].to(self.args.device),
-                    attention_mask=batch["attention_mask"].to(self.args.device),
-                    labels=batch["labels"].to(self.args.device))
-
-                loss = output.loss
-                loss.backward()
-                train_losses.append(loss.item())
-                optimizer.step()
-                self.scheduler.step()
-
-                if step % self.args.logging_steps == 0 and not step % self.args.evaluate_steps == 0:
-                    print(
-                        f"\n\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                        f"Loss: {np.mean(train_losses):.6f} "
+                model, optimizer, eval_scores, train_losses, lrs = \
+                    self.train_batch(
+                        model=model,
+                        optimizer=optimizer,
+                        batch=batch,
+                        val_loader=val_loader,
+                        epoch=epoch,
+                        step=step,
+                        eval_scores=eval_scores,
+                        train_losses=train_losses,
+                        learning_rates=lrs
                     )
 
-                if val_loader and (
-                    step > 0 and (step % self.args.evaluate_steps == 0)):
-                    print(
-                        f"\tTrain Epoch: {epoch} \t"
-                        f"Step: {step} \t LR: {get_lr(optimizer)[0]}\t"
-                        f"Loss: {np.mean(train_losses):.6f} "
-                    )
+                log_train_metrics_dp(
+                    epoch,
+                    step,
+                    lr=get_lr(optimizer)[0],
+                    loss=float(np.mean(train_losses)),
+                    eps=self.privacy_engine.get_epsilon(self.args.delta),
+                    delta=self.args.delta,
+                    logging_steps=self.args.logging_steps)
 
-                    eval_loss, eval_accuracy = self.evaluate(model, val_loader)
-
-                    print(
-                        f"\n"
-                        f"eval loss: {eval_loss} \t"
-                        f"eval acc: {eval_accuracy}"
-                    )
-                    append_json(output_dir=self.metrics_dir,
-                                filename='eval_losses',
-                                data={'epoch': epoch, 'step': step,
-                                      'loss': eval_loss})
-                    append_json(output_dir=self.metrics_dir,
-                                filename='accuracies',
-                                data={'epoch': epoch, 'step': step,
-                                      'acc': eval_accuracy})
-                    eval_losses.append(
-                        {'epoch': epoch, 'step': step, 'loss': eval_loss})
-                    eval_accuracies.append(
-                        {'epoch': epoch, 'step': step, 'acc': eval_accuracy})
-
-                    if self.args.save_steps is not None and (
-                        step > 0 and (step % self.args.save_steps == 0)):
-                        self.save_model_at_step(model, epoch, step, eval_losses,
-                                                eval_accuracies)
-                    model.train()
                 step += 1
-        if self.eval_data:
-            return model, eval_losses, eval_accuracies, step, lrs
-        return model, step, lrs
 
-    @staticmethod
-    def save_model(model: GradSampleModule, output_dir: str, data_collator,
-                   tokenizer,
-                   step: str = ""):
-        """
-        Wrap model in trainer class and save to pytorch object
-        :param model: GradSampleModule to save
-        :param output_dir: model directory
-        :param data_collator:
-        :param tokenizer:
-        :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
-        """
-        output_dir = output_dir + step
-        trainer_test = Trainer(
-            model=model._module,
-            args=TrainingArguments(output_dir=output_dir),
-            data_collator=data_collator,
-            tokenizer=tokenizer
-        )
-        trainer_test.save_model(output_dir=output_dir)
-        torch.save(model._module.cls.state_dict(),
-                   os.path.join(output_dir, 'head_weights.json'))
-        torch.save(model._module.state_dict(),
-                   os.path.join(output_dir, 'model_weights.json'))
+        if self.data.eval:
+            return model, step, lrs, eval_scores
+        return model, step, lrs
 
     @staticmethod
     def freeze_layers(model):

@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 
-from sm.modelling_utils.input_args import SequenceModellingArgParser
-from sm.modelling_utils.sequence_classification import SequenceClassification
+from sc.modelling_utils.input_args import SequenceModellingArgParser
+from sc.modelling_utils.sequence_classification import SequenceClassification
 
 sc_parser = SequenceModellingArgParser()
 
