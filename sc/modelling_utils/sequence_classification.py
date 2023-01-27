@@ -26,6 +26,7 @@ from shared.modelling_utils.helpers import get_lr, \
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
 from sc.local_constants import MODEL_DIR, DATA_DIR
+from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 
 
 class SequenceClassification(Modelling):
@@ -52,7 +53,7 @@ class SequenceClassification(Modelling):
             names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MODEL_DIR,
+            self.model_path = os.path.join(MLM_MODEL_DIR,
                                            self.args.model_name,
                                            'best_model')
         else:
@@ -298,7 +299,6 @@ class SequenceClassification(Modelling):
 
         # with tqdm(val_loader, unit="batch", desc="Batch") as batches:
         results = []
-        tmp_results = []
         with torch.no_grad():
             for i, batch in enumerate(
                 tqdm(data_loader, unit="batch", desc="Eval")):

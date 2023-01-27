@@ -40,7 +40,7 @@ class ClassifiedScrapePreprocessing:
             data = data.dropna(subset=['klassifikation'])
         if ppl_filters:
             data = data[(data['ppl_score'] > ppl_filters[0]) & (
-                    data['ppl_score'] < ppl_filters[1])]
+                data['ppl_score'] < ppl_filters[1])]
 
         data_dicts = data.to_dict('records')
         save_json(output_dir=CLASS_DATA_DIR, data=data_dicts,
@@ -163,7 +163,6 @@ class ClassifiedScrapePreprocessing:
 
 
 if __name__ == '__main__':
-
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
 

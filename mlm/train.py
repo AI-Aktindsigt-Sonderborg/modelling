@@ -1,4 +1,3 @@
-
 from sm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
 from sm.modelling_utils.input_args import MLMArgParser
 
@@ -18,7 +17,8 @@ if args.differential_privacy:
         mlm_parser.parser.exit()
     elif not (args.replace_head is True and args.freeze_layers is True
               and args.freeze_embeddings is True):
-        print(mlm_parser.parser._option_string_actions['--freeze_embeddings'].help)
+        print(mlm_parser.parser._option_string_actions[
+                  '--freeze_embeddings'].help)
         print('exiting - try again')
         mlm_parser.parser.exit()
 

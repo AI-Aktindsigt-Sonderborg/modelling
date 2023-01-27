@@ -1,7 +1,6 @@
 import json
 import os
-import re
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 import torch
@@ -24,6 +23,7 @@ class DatasetWrapper(Dataset):
     def __len__(self):
         return len(self.dataset)
 
+
 def write_json_lines(out_dir: str, filename: str, data: List[dict]):
     """
     Write json_lines_file based on list of dictionaries
@@ -37,6 +37,7 @@ def write_json_lines(out_dir: str, filename: str, data: List[dict]):
             json.dump(entry, outfile)
             outfile.write('\n')
 
+
 def write_text_lines(out_dir: str, filename: str, data: List[str]):
     """
     Write text file based on list of strings
@@ -48,6 +49,7 @@ def write_text_lines(out_dir: str, filename: str, data: List[str]):
               encoding='utf-8') as outfile:
         for entry in data:
             outfile.write(f"{entry}\n")
+
 
 def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
     """
@@ -72,6 +74,7 @@ def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
         result = model(tensor_input, labels=tensor_input).loss
 
     return np.exp(result.cpu().numpy())
+
 
 def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2',
                        device: str = 'cuda'):

@@ -11,14 +11,14 @@ from modelling_utils.ner_modelling import NERModelling
 
 os.environ["WANDB_DISABLED"] = "true"
 
-
 metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
 # args.load_alvenir_pretrained = False
 
-OUTPUT_DIR = "models/" + args.model_name.replace('/', '_') + '_ner_finetuned' + args.out_suffix
+OUTPUT_DIR = "models/" + args.model_name.replace('/',
+                                                 '_') + '_ner_finetuned' + args.out_suffix
 
 label_list, id2label, label2id = get_label_list()
 
@@ -34,12 +34,14 @@ def compute_metrics(eval_preds):
     predictions = np.argmax(logits, axis=-1)
 
     # Remove ignored index (special tokens) and convert to labels
-    true_labels = [[label_names[l] for l in label if l != -100] for label in labels]
+    true_labels = [[label_names[l] for l in label if l != -100] for label in
+                   labels]
     true_predictions = [
         [label_names[p] for (p, l) in zip(prediction, label) if l != -100]
         for prediction, label in zip(predictions, labels)
     ]
-    all_metrics = metric.compute(predictions=true_predictions, references=true_labels)
+    all_metrics = metric.compute(predictions=true_predictions,
+                                 references=true_labels)
     return {
         "precision": all_metrics["overall_precision"],
         "recall": all_metrics["overall_recall"],

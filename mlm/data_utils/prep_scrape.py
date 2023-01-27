@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
 from mlm.data_utils.helpers import split_sentences
-from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR,\
+from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, \
     SCRAPED_DATA_DIR, PREP_DATA_DIR
 from sc.local_constants import CLASS_DATA_DIR
 from shared.data_utils.helpers import write_json_lines, \

@@ -5,8 +5,9 @@ import os
 
 import nltk
 
-from sc.local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR,\
-    SCRAPED_DATA_DIR, PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, CLASS_DATA_DIR, PROJECT_ROOT
+from sc.local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR, \
+    SCRAPED_DATA_DIR, PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, CLASS_DATA_DIR, \
+    PROJECT_ROOT
 
 # Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')

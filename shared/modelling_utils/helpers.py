@@ -20,9 +20,6 @@ def validate_model(model, strict_validation: bool = False):
         print("Model is compatible for DP with opacus.")
 
 
-
-
-
 def create_scheduler(optimizer, start_factor: float, end_factor: float,
                      total_iters: int):
     """
@@ -129,8 +126,8 @@ def log_train_metrics_dp(epoch: int, step: int, lr: float,
 
 
 def save_key_metrics(output_dir: str, args,
-                         best_metrics: dict,
-                         total_steps: int, filename: str = 'key_metrics'):
+                     best_metrics: dict,
+                     total_steps: int, filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
     :param output_dir: output directory
@@ -163,7 +160,6 @@ def save_key_metrics(output_dir: str, args,
 
     if 'whole_word_mask' in list(args.__dict__):
         metrics['whole_word_mask'] = args.whole_word_mask
-
 
     with open(os.path.join(output_dir, filename + '.json'), 'w',
               encoding='utf-8') as outfile:

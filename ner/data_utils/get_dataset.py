@@ -1,12 +1,14 @@
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
+
 def get_wikiann_train(subset: int = None):
     if subset:
         dataset = load_dataset('wikiann', 'da', split=f"train[:{subset}%]")
     else:
         dataset = load_dataset('wikiann', 'da', split="train")
     return dataset
+
 
 def get_dane_train(subset: int = None):
     if subset:
@@ -15,6 +17,7 @@ def get_dane_train(subset: int = None):
         dataset = load_dataset('dane', 'da', split="train")
     return dataset
 
+
 def get_dane_val(subset: int = None):
     if subset:
         dataset = load_dataset('dane', 'da', split=f"validation[:{subset}%]")
@@ -22,12 +25,14 @@ def get_dane_val(subset: int = None):
         dataset = load_dataset('dane', 'da', split="validation")
     return dataset
 
+
 def get_dane_test(subset: int = None):
     if subset:
         dataset = load_dataset('dane', 'da', split=f"test[:{subset}%]")
     else:
         dataset = load_dataset('dane', 'da', split="test")
     return dataset
+
 
 def get_wikiann_val(subset: int = None):
     if subset:
@@ -39,12 +44,14 @@ def get_wikiann_val(subset: int = None):
 
 def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
     def tokenize_and_align_labels(examples):
-        tokenized_inputs = tokenizer(examples["tokens"], truncation=True, is_split_into_words=True)
+        tokenized_inputs = tokenizer(examples["tokens"], truncation=True,
+                                     is_split_into_words=True)
 
         labels = []
         labels_tokenized = []
         for i, label in enumerate(examples["ner_tags"]):
-            label_tokenized = tokenizer.tokenize(' '.join(examples['tokens'][i]))
+            label_tokenized = tokenizer.tokenize(
+                ' '.join(examples['tokens'][i]))
             label_tokenized.insert(0, "-100")
             label_tokenized.append("-100")
 
@@ -70,13 +77,17 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
         return tokenized_inputs
 
     tokenized_dataset = dataset.map(tokenize_and_align_labels, batched=True)
-    tokenized_dataset_new = tokenized_dataset.remove_columns(["spans", "langs", "ner_tags",
-                                                              "labels_tokenized", "tokens"])
+    tokenized_dataset_new = tokenized_dataset.remove_columns(
+        ["spans", "langs", "ner_tags",
+         "labels_tokenized", "tokens"])
     return tokenized_dataset_new
 
+
 def get_label_list():
-    label_list = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'B-MISC', 'I-MISC']
-    id2label = {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG', 5: 'B-LOC', 6: 'I-LOC', 7: 'B-MISC',
-                   8: 'I-MISC'}
+    label_list = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC',
+                  'B-MISC', 'I-MISC']
+    id2label = {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG',
+                5: 'B-LOC', 6: 'I-LOC', 7: 'B-MISC',
+                8: 'I-MISC'}
     label2id = {v: k for k, v in id2label.items()}
     return label_list, id2label, label2id

@@ -5,13 +5,12 @@ import os
 import shutil
 import sys
 from datetime import datetime
-from time import sleep
 from typing import List
 
 import numpy as np
 import torch
 from datasets import ClassLabel
-from opacus import PrivacyEngine, GradSampleModule
+from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
@@ -21,19 +20,19 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, Trainer, TrainingArguments, BertConfig
 
+from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
     get_dane_val, get_dane_test
 from ner.local_constants import MODEL_DIR
+from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
-from shared.modelling_utils.helpers import create_scheduler, get_lr, \
-    validate_model, log_train_metrics_dp
+from shared.modelling_utils.helpers import get_lr, \
+    log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import append_json
 from shared.utils.visualization import plot_confusion_matrix
-from ner.local_constants import PLOTS_DIR
 
 
 class NERModelling(Modelling):
@@ -50,7 +49,7 @@ class NERModelling(Modelling):
             names=self.args.labels)
 
         if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MODEL_DIR,
+            self.model_path = os.path.join(MLM_MODEL_DIR,
                                            self.args.model_name,
                                            'best_model')
         else:
