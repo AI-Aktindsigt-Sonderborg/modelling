@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from sc.local_constants import MODEL_DIR
+from local_constants import MODEL_DIR
 from shared.utils.helpers import read_json
 
 
@@ -48,7 +48,7 @@ def all_metrics_to_csv():
 
     df = pd.DataFrame.from_records(all_data)
 
-    df.to_csv('sc/metadata/model_metrics.csv', sep='\t')
+    df.to_csv('metadata/model_metrics.csv', sep='\t')
     df.to_excel('metadata/model_metrics.xlsx', index=False)
 
 

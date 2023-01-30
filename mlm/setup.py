@@ -5,8 +5,9 @@ import os
 
 import nltk
 
-from mlm.local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR,\
-    SCRAPED_DATA_DIR, PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, PROJECT_ROOT
+from mlm.local_constants import DATA_DIR, MODEL_DIR, FILTERED_SCRAPE_DIR, \
+    SCRAPED_DATA_DIR, PREP_DATA_DIR, PLOTS_DIR, RESULTS_DIR, PROJECT_ROOT, \
+    METADATA_DIR
 
 # Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')
@@ -56,3 +57,8 @@ if not os.path.exists(RESULTS_DIR):
     # Create a new directory because it does not exist
     os.makedirs(RESULTS_DIR)
     print("Create results dir!")
+
+if not os.path.exists(METADATA_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(METADATA_DIR)
+    print("Create metadata dir!")

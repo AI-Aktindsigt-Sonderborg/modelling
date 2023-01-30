@@ -17,15 +17,13 @@ ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
 # args.load_alvenir_pretrained = False
 
-OUTPUT_DIR = "models/" + args.model_name.replace('/',
-                                                 '_') + '_ner_finetuned' + args.out_suffix
 
 label_list, id2label, label2id = get_label_list()
 
 ner_modelling = NERModelling(args=args)
 
 ner_modelling.load_data()
-ner_feature = ner_modelling.train_data.features["ner_tags"]
+ner_feature = ner_modelling.data.train.features["ner_tags"]
 label_names = ner_feature.feature.names
 
 
@@ -50,12 +48,6 @@ def compute_metrics(eval_preds):
     }
 
 
-# test stuff
-# inputs = ner_modelling.tokenizer(ner_modelling.train_data[0]["tokens"], is_split_into_words=True)
-# labels = ner_modelling.train_data[0]['ner_tags']
-# word_ids = inputs.word_ids()
-# tokenized_test = align_labels_with_tokens(labels, word_ids)
-
 def tokenize_and_align_labels(examples):
     tokenized_inputs = ner_modelling.tokenizer(
         examples["tokens"], truncation=True, is_split_into_words=True
@@ -70,23 +62,20 @@ def tokenize_and_align_labels(examples):
     return tokenized_inputs
 
 
-tokenized_train = ner_modelling.train_data.map(
+tokenized_train = ner_modelling.data.train.map(
     tokenize_and_align_labels,
     batched=True,
-    remove_columns=ner_modelling.train_data.column_names,
+    remove_columns=ner_modelling.data.train.column_names,
 )
 
-tokenized_eval = ner_modelling.eval_data.map(
+tokenized_eval = ner_modelling.data.eval.map(
     tokenize_and_align_labels,
     batched=True,
-    remove_columns=ner_modelling.eval_data.column_names,
+    remove_columns=ner_modelling.data.eval.column_names,
 )
-
-# train_data_wrapped = ner_modelling.tokenize_and_wrap_data(ner_modelling.train_data)
-# eval_data_wrapped = ner_modelling.tokenize_and_wrap_data(ner_modelling.eval_data)
 
 training_args = TrainingArguments(
-    output_dir=OUTPUT_DIR,
+    output_dir=ner_modelling.output_dir,
     # overwrite_output_dir=True,
     num_train_epochs=args.epochs,
     evaluation_strategy='steps',
@@ -94,10 +83,10 @@ training_args = TrainingArguments(
     # weight_decay=0.01,
     # initial_learning_rate=0.0002,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
-    per_device_train_batch_size=32,
-    per_device_eval_batch_size=32,
+    per_device_train_batch_size=args.train_batch_size,
+    per_device_eval_batch_size=args.eval_batch_size,
     save_steps=50,
-    warmup_steps=1000,
+    warmup_steps=args.lr_warmup_steps,
     do_eval=True,
     do_predict=True,
     metric_for_best_model="eval_f1",
@@ -121,7 +110,7 @@ trainer = Trainer(
 
 trainer.train()
 
-trainer.save_model(OUTPUT_DIR)
+trainer.save_model(ner_modelling.output_dir)
 trainer.save_state()
 
 model_eval = trainer.evaluate()

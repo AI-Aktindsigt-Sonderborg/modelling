@@ -6,7 +6,7 @@ import os
 import nltk
 
 from ner.local_constants import DATA_DIR, MODEL_DIR, PREP_DATA_DIR, \
-    PLOTS_DIR
+    PLOTS_DIR, METADATA_DIR
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -30,3 +30,8 @@ if not os.path.exists(PREP_DATA_DIR):
     # Create a new directory because it does not exist
     os.makedirs(PREP_DATA_DIR)
     print("Create preprocessed data dir!")
+
+if not os.path.exists(METADATA_DIR):
+    # Create a new directory because it does not exist
+    os.makedirs(METADATA_DIR)
+    print("Create metadata dir!")

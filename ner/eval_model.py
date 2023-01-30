@@ -1,5 +1,4 @@
 # to be created
-from torch.utils.data import DataLoader
 
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
