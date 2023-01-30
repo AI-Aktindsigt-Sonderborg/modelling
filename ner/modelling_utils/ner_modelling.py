@@ -105,7 +105,7 @@ class NERModelling(Modelling):
 
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
-        f_1 = f1_score(y_true, y_pred, average='macro')
+        f_1 = f1_score(y_true, y_pred, average='micro')
         loss = float(np.mean(loss))
 
         print(f"\n"
