@@ -50,7 +50,11 @@ def compute_metrics(eval_preds):
 
 def tokenize_and_align_labels(examples):
     tokenized_inputs = ner_modelling.tokenizer(
-        examples["tokens"], truncation=True, is_split_into_words=True
+        examples["tokens"],
+        truncation=True,
+        is_split_into_words=True,
+        padding='max_length',
+        max_length=args.max_length
     )
     all_labels = examples["ner_tags"]
     new_labels = []
@@ -73,6 +77,10 @@ tokenized_eval = ner_modelling.data.eval.map(
     batched=True,
     remove_columns=ner_modelling.data.eval.column_names,
 )
+
+ner_modelling.save_config(output_dir=ner_modelling.output_dir,
+                          metrics_dir=ner_modelling.metrics_dir,
+                          args=args)
 
 training_args = TrainingArguments(
     output_dir=ner_modelling.output_dir,
