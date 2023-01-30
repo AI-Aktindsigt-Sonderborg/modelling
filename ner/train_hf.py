@@ -87,7 +87,7 @@ training_args = TrainingArguments(
     # overwrite_output_dir=True,
     num_train_epochs=args.epochs,
     evaluation_strategy='steps',
-    learning_rate=5e-5,
+    learning_rate=args.learning_rate,
     # weight_decay=0.01,
     # initial_learning_rate=0.0002,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
