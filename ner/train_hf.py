@@ -106,7 +106,7 @@ training_args = TrainingArguments(
 )
 
 trainer = Trainer(
-    model=args.model_name,
+    model=ner_modelling.get_model(),
     args=training_args,
     train_dataset=tokenized_train.shuffle(seed=1),
     eval_dataset=tokenized_eval,
