@@ -40,7 +40,8 @@ class NERModelling(Modelling):
         super().__init__(args=args)
 
         if self.args.custom_model_name:
-            self.output_dir = os.path.join(MODEL_DIR, self.args.custom_model_name)
+            self.output_dir = os.path.join(MODEL_DIR,
+                                           self.args.custom_model_name)
         else:
             self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
 
@@ -129,7 +130,8 @@ class NERModelling(Modelling):
                 model_name=self.args.model_name,
                 plots_dir=PLOTS_DIR)
 
-        return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=list(f_1_none))
+        return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
+                         f_1_none=list(f_1_none))
 
     def load_data(self, train: bool = True, test: bool = False):
 
@@ -373,10 +375,15 @@ class NERModellingDP(NERModelling):
         super().__init__(args)
 
         self.privacy_engine = None
-        self.output_name = f'DP-eps-{int(self.args.epsilon)}-{self.args.model_name.replace("/", "_")}-' \
-                           f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        self.args.output_name = self.output_name
-        self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+
+        if self.args.custom_model_name:
+            self.output_dir = os.path.join(MODEL_DIR,
+                                           self.args.custom_model_name)
+        else:
+            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-'\
+                                    + self.args.output_name
+
+        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
