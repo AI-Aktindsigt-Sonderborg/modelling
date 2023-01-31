@@ -41,9 +41,6 @@ class NERModelling(Modelling):
 
         if self.args.custom_model_name:
             self.args.output_name = self.args.custom_model_name
-        else:
-            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
-                                    + self.args.output_name
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
 
