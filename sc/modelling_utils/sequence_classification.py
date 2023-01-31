@@ -373,30 +373,30 @@ class SequenceClassification(Modelling):
         model.train()
         return model
 
-    @staticmethod
-    def save_model(model, output_dir: str,
-                   data_collator,
-                   tokenizer,
-                   step: str = ""):
-        """
-        Wrap model in trainer class and save to pytorch object
-        :param model: BertForSequenceClassification to save
-        :param output_dir: model directory
-        :param data_collator:
-        :param tokenizer:
-        :param step: if saving during training step should be
-        '/epoch-{epoch}_step-{step}'
-        """
-        output_dir = output_dir + step
-        trainer_test = Trainer(
-            model=model,
-            args=TrainingArguments(output_dir=output_dir),
-            data_collator=data_collator,
-            tokenizer=tokenizer
-        )
-        trainer_test.save_model(output_dir=output_dir)
-        torch.save(model.state_dict(),
-                   os.path.join(output_dir, 'model_weights.json'))
+    # @staticmethod
+    # def save_model(model, output_dir: str,
+    #                data_collator,
+    #                tokenizer,
+    #                step: str = ""):
+    #     """
+    #     Wrap model in trainer class and save to pytorch object
+    #     :param model: BertForSequenceClassification to save
+    #     :param output_dir: model directory
+    #     :param data_collator:
+    #     :param tokenizer:
+    #     :param step: if saving during training step should be
+    #     '/epoch-{epoch}_step-{step}'
+    #     """
+    #     output_dir = output_dir + step
+    #     trainer_test = Trainer(
+    #         model=model,
+    #         args=TrainingArguments(output_dir=output_dir),
+    #         data_collator=data_collator,
+    #         tokenizer=tokenizer
+    #     )
+    #     trainer_test.save_model(output_dir=output_dir)
+    #     torch.save(model.state_dict(),
+    #                os.path.join(output_dir, 'model_weights.json'))
 
 
 class SequenceClassificationDP(SequenceClassification):
