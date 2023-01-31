@@ -22,6 +22,7 @@ if args.local_testing:
     args.evaluate_steps = 50
     args.save_steps = 10000
 
+    args.custom_model_name = 'babba'
 
 # args.model_name = 'NbAiLab_nb-bert-base-2022-08-11_14-28-23'
 if args.differential_privacy:
