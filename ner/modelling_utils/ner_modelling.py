@@ -40,10 +40,12 @@ class NERModelling(Modelling):
         super().__init__(args=args)
 
         if self.args.custom_model_name:
-            self.output_dir = os.path.join(MODEL_DIR,
-                                           self.args.custom_model_name)
+            self.args.output_name = self.args.custom_model_name
         else:
-            self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
+                                    + self.args.output_name
+
+        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
@@ -314,60 +316,60 @@ class NERModelling(Modelling):
         model.train()
         return model
 
-    @staticmethod
-    def save_config(output_dir: str, metrics_dir: str,
-                    args: argparse.Namespace):
-        """
-        Save config file with input arguments
-        :param output_dir: model directory
-        :param args: input args
-        """
+    # @staticmethod
+    # def save_config(output_dir: str, metrics_dir: str,
+    #                 args: argparse.Namespace):
+    #     """
+    #     Save config file with input arguments
+    #     :param output_dir: model directory
+    #     :param args: input args
+    #     """
+    #
+    #     if not os.path.exists(output_dir):
+    #         os.makedirs(output_dir)
+    #
+    #     if not os.path.exists(metrics_dir):
+    #         os.makedirs(metrics_dir)
+    #
+    #     with open(os.path.join(metrics_dir, 'training_run_config.json'), 'w',
+    #               encoding='utf-8') as outfile:
+    #         json.dump(args.__dict__, outfile, indent=2)
+    #
+    #     if args.print_only_args:
+    #         metrics_path = os.path.dirname(os.path.abspath(metrics_dir))
+    #         print('Training arguments:\n')
+    #         for arg in args.__dict__:
+    #             print(f'{arg}: {args.__dict__[arg]}')
+    #
+    #         print('\nDeleting model path...')
+    #         shutil.rmtree(metrics_path)
+    #
+    #         print('\nExiting.')
+    #         sys.exit(0)
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        if not os.path.exists(metrics_dir):
-            os.makedirs(metrics_dir)
-
-        with open(os.path.join(metrics_dir, 'training_run_config.json'), 'w',
-                  encoding='utf-8') as outfile:
-            json.dump(args.__dict__, outfile, indent=2)
-
-        if args.print_only_args:
-            metrics_path = os.path.dirname(os.path.abspath(metrics_dir))
-            print('Training arguments:\n')
-            for arg in args.__dict__:
-                print(f'{arg}: {args.__dict__[arg]}')
-
-            print('\nDeleting model path...')
-            shutil.rmtree(metrics_path)
-
-            print('\nExiting.')
-            sys.exit(0)
-
-    @staticmethod
-    def save_model(model, output_dir: str,
-                   data_collator,
-                   tokenizer,
-                   step: str = ""):
-        """
-        Wrap model in trainer class and save to pytorch object
-        :param model: model to save
-        :param output_dir: model directory
-        :param data_collator:
-        :param tokenizer:
-        :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
-        """
-        output_dir = output_dir + step
-        trainer_test = Trainer(
-            model=model,
-            args=TrainingArguments(output_dir=output_dir),
-            data_collator=data_collator,
-            tokenizer=tokenizer
-        )
-        trainer_test.save_model(output_dir=output_dir)
-        torch.save(model.state_dict(),
-                   os.path.join(output_dir, 'model_weights.json'))
+    # @staticmethod
+    # def save_model(model, output_dir: str,
+    #                data_collator,
+    #                tokenizer,
+    #                step: str = ""):
+    #     """
+    #     Wrap model in trainer class and save to pytorch object
+    #     :param model: model to save
+    #     :param output_dir: model directory
+    #     :param data_collator:
+    #     :param tokenizer:
+    #     :param step: if saving during training step should be '/epoch-{epoch}_step-{step}'
+    #     """
+    #     output_dir = output_dir + step
+    #     trainer_test = Trainer(
+    #         model=model,
+    #         args=TrainingArguments(output_dir=output_dir),
+    #         data_collator=data_collator,
+    #         tokenizer=tokenizer
+    #     )
+    #     trainer_test.save_model(output_dir=output_dir)
+    #     torch.save(model.state_dict(),
+    #                os.path.join(output_dir, 'model_weights.json'))
 
 
 class NERModellingDP(NERModelling):
