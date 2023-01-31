@@ -40,7 +40,7 @@ class EvalScore:
     loss: float = None
     accuracy: float = None
     f_1: float = None
-    f_1_none: ndarray = None
+    f_1_none: list = None
 
 
 @dataclass

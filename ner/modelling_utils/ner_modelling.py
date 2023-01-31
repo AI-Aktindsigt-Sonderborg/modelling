@@ -125,7 +125,7 @@ class NERModelling(Modelling):
                 model_name=self.args.model_name,
                 plots_dir=PLOTS_DIR)
 
-        return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=f_1_none)
+        return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=list(f_1_none))
 
     def load_data(self, train: bool = True, test: bool = False):
 
