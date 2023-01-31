@@ -4,6 +4,7 @@ from enum import Enum
 import numpy as np
 import torch
 from datasets import Dataset
+from numpy import ndarray
 
 
 @dataclass
@@ -38,7 +39,9 @@ class EvalScore:
     step: int = None
     loss: float = None
     accuracy: float = None
-    f_1: dict = None
+    f_1: float = None
+    f_1_none: ndarray = None
+
 
 @dataclass
 class ModellingData:
