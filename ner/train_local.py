@@ -10,7 +10,7 @@ if args.local_testing:
     args.replace_head = False
     args.freeze_layers = False
     args.freeze_embeddings = False
-    args.differential_privacy = False
+    args.differential_privacy = True
 
     # args.model_name = 'NbAiLab_nb-bert-base-2022-10-19_12-10-45'
     args.model_name = 'NbAiLab/nb-bert-base'
