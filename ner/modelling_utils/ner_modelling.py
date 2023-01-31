@@ -39,7 +39,11 @@ class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
-        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+        if self.args.custom_model_name:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.custom_model_name)
+        else:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
         self.args.labels, self.id2label, self.label2id = get_label_list()

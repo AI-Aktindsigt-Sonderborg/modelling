@@ -30,6 +30,12 @@ class ModellingArgParser:
         model_params = self.parser.add_argument_group('modelling')
 
         model_params.add_argument(
+            "--custom_model_name", "-cmn",
+            type=str,
+            default=None,
+            metavar='<str>',
+            help="Whether to give model specific output name")
+        model_params.add_argument(
             "--save_config",
             type=lambda x: bool(strtobool(x)),
             default=True,
