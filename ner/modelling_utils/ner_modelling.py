@@ -125,6 +125,14 @@ class NERModelling(Modelling):
                                       # average='macro'
                                       scheme='IOB2'
                                       )
+
+        for k, v in all_metrics.items():
+            if isinstance(v, dict):
+                for j, u in v.items():
+                    all_metrics[k][j] = float(u)
+            else:
+                all_metrics[k] = float(v)
+
         append_json(output_dir=self.metrics_dir, data=all_metrics,
                     filename='seqeval_metrics')
         y_pred = [item for sublist in y_pred for item in sublist]
