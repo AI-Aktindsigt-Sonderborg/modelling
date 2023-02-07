@@ -6,6 +6,7 @@ import shutil
 import sys
 from datetime import datetime
 from typing import List
+import evaluate
 
 import numpy as np
 import torch
@@ -32,7 +33,11 @@ from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
+from shared.utils.helpers import append_json
 from shared.utils.visualization import plot_confusion_matrix
+
+seqeval = evaluate.load('seqeval')
+f1_seq = evaluate.load('f1')
 
 
 class NERModelling(Modelling):
@@ -91,22 +96,39 @@ class NERModelling(Modelling):
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
 
-                labels_flat = labels.flatten()
-                preds_flat = preds.flatten()
+                # labels_flat = labels.flatten()
+                # preds_flat = preds.flatten()
 
                 # We ignore tokens with value "-100" as these are padding tokens
                 # set by the tokenizer.
                 # See nn.CrossEntropyLoss(): ignore_index for more information
-                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
-                            if xv != -100]
+                # filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
+                #             if xv != -100]
 
-                batch_labels = np.array([x[0] for x in filtered]).astype(int)
-                batch_preds = np.array([x[1] for x in filtered]).astype(int)
-
+                batch_labels = [[self.id2label[l] for l in label if l != -100]
+                                for label in labels]
+                batch_preds = [
+                    [self.id2label[p] for (p, l) in zip(prediction, label) if
+                     l != -100]
+                    for prediction, label in zip(preds, labels)
+                ]
+                # batch_labels = np.array([x[0] for x in filtered]).astype(int)
+                # batch_preds = np.array([x[1] for x in filtered]).astype(int)
+                all_metrics = seqeval.compute(predictions=batch_preds,
+                                              references=batch_labels,
+                                              scheme='IOB2')
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
-
+        all_metrics = seqeval.compute(predictions=y_pred,
+                                      references=y_true,
+                                      # average='macro'
+                                      scheme='IOB2'
+                                      )
+        append_json(output_dir=self.metrics_dir, data=all_metrics,
+                    filename='seqeval_metrics')
+        y_pred = [item for sublist in y_pred for item in sublist]
+        y_true = [item for sublist in y_true for item in sublist]
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
@@ -378,7 +400,7 @@ class NERModellingDP(NERModelling):
         if self.args.custom_model_name:
             self.args.output_name = self.args.custom_model_name
         else:
-            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-'\
+            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
                                     + self.args.output_name
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)

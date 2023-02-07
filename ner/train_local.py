@@ -6,17 +6,17 @@ args = ner_parser.parser.parse_args()
 
 args.local_testing = True
 if args.local_testing:
-    args.load_alvenir_pretrained = False
+    # args.load_alvenir_pretrained = False
     args.replace_head = False
     args.freeze_layers = False
-    args.freeze_embeddings = False
+    args.freeze_embeddings = True
     args.differential_privacy = True
 
-    # args.model_name = 'NbAiLab_nb-bert-base-2022-10-19_12-10-45'
-    args.model_name = 'NbAiLab/nb-bert-base'
+    args.model_name = 'last_model'
+    # args.model_name = 'NbAiLab/nb-bert-base'
     args.train_batch_size = 2
     args.lot_size = 8
-    args.evaluate_batch_size = 2
+    args.eval_batch_size = 2
 
     args.epochs = 1
     args.evaluate_steps = 50
