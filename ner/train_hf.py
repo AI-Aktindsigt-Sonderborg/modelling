@@ -41,13 +41,6 @@ def compute_metrics(eval_preds):
     all_metrics = metric.compute(predictions=true_predictions,
                                  references=true_labels)
     return all_metrics
-    #     {
-    #     "precision": all_metrics["overall_precision"],
-    #     "recall": all_metrics["overall_recall"],
-    #     "f1": all_metrics["overall_f1"],
-    #     "accuracy": all_metrics["overall_accuracy"],
-    # }
-
 
 def tokenize_and_align_labels(examples):
     tokenized_inputs = ner_modelling.tokenizer(
