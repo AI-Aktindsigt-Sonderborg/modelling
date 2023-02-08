@@ -113,6 +113,16 @@ def log_train_metrics(epoch: int, step: int, lr: float, loss: float,
               f"Loss: {loss:.6f} ")
 
 
+def predefined_hf_models(model_name):
+    if model_name == 'base':
+        return 'NbAiLab/nb-bert-base'
+    if model_name == 'large':
+        return 'NbAiLab/nb-bert-large'
+    if model_name == 'distil':
+        return 'Geotrend/distilbert-base-da-cased'
+    return model_name
+
+
 def log_train_metrics_dp(epoch: int, step: int, lr: float,
                          loss: float, eps: float, delta: float,
                          logging_steps: int):

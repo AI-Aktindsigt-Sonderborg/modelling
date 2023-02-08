@@ -1,13 +1,8 @@
 import argparse
-import datetime
-import json
 import os
-import shutil
-import sys
-from datetime import datetime
 from typing import List
-import evaluate
 
+import evaluate
 import numpy as np
 import torch
 from datasets import ClassLabel
@@ -19,9 +14,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
-    AutoModelForTokenClassification, Trainer, TrainingArguments, BertConfig
+    AutoModelForTokenClassification, BertConfig
 
-from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
     get_dane_val, get_dane_test
 from ner.local_constants import MODEL_DIR
@@ -56,13 +50,6 @@ class NERModelling(Modelling):
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
-
-        if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MLM_MODEL_DIR,
-                                           self.args.model_name,
-                                           'best_model')
-        else:
-            self.model_path = self.args.model_name
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()

@@ -21,10 +21,10 @@ from shared.data_utils.custom_dataclasses import EvalScore, ModellingData
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
-    save_key_metrics, validate_model
+    save_key_metrics, validate_model, predefined_hf_models
 from shared.utils.helpers import append_json, TimeCode
 from shared.utils.visualization import plot_running_results
-
+from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 
 class Modelling:
     def __init__(self, args: argparse.Namespace):
@@ -52,6 +52,12 @@ class Modelling:
         if not self.args.differential_privacy:
             self.args.train_batch_size = self.args.lot_size
 
+        if self.args.load_alvenir_pretrained:
+            self.model_path = os.path.join(MLM_MODEL_DIR,
+                                           self.args.model_name,
+                                           'best_model')
+        else:
+            self.model_path = predefined_hf_models(self.args.model_name)
 
     def load_data(self, train: bool = True, test: bool = False):
         """

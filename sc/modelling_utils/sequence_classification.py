@@ -36,8 +36,6 @@ class SequenceClassification(Modelling):
 
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
-        # self.args = args
-        # self.total_steps = None
 
         self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
                            f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
@@ -51,13 +49,6 @@ class SequenceClassification(Modelling):
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
-
-        if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MLM_MODEL_DIR,
-                                           self.args.model_name,
-                                           'best_model')
-        else:
-            self.model_path = self.args.model_name
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
