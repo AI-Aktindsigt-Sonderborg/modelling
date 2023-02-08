@@ -1,4 +1,5 @@
 """Script to train a sequence-classification model with custom train loop"""
+import sys
 
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassificationDP,\
@@ -6,6 +7,7 @@ from modelling_utils.sequence_classification import SequenceClassificationDP,\
 
 sc_parser = SequenceModellingArgParser()
 args = sc_parser.parser.parse_args()
+args.cmd_line_args = sys.argv
 
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1,
               'Erhverv og turisme': 2,'Klima, teknik og miljø': 3,

@@ -1,8 +1,11 @@
+import sys
+
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 from ner.modelling_utils.input_args import NERArgParser
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
+args.cmd_line_args = sys.argv
 
 if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)

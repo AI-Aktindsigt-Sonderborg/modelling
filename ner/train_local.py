@@ -1,8 +1,12 @@
+import sys
+
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
+args.cmd_line_args = sys.argv
+print(sys.argv)
 
 args.local_testing = True
 if args.local_testing:
@@ -18,7 +22,7 @@ if args.local_testing:
     args.lot_size = 8
     args.eval_batch_size = 2
 
-    args.epochs = 1
+    args.epochs = 2
     args.evaluate_steps = 50
     args.save_steps = 10000
 
