@@ -115,7 +115,7 @@ class ModellingArgParser:
         training_params.add_argument(
             "-tbs", "--train_batch_size",
             type=int,
-            default=8,
+            default=32,
             metavar='<int>',
             help="Batch size specifies the sample size of which the "
                  "gradients are computed. Depends on memory available")
@@ -197,7 +197,7 @@ class ModellingArgParser:
         eval_params.add_argument(
             "-ebs", "--eval_batch_size",
             type=int,
-            default=6,
+            default=32,
             metavar='<int>',
             help="Batch size for evaluation")
         eval_params.add_argument(
