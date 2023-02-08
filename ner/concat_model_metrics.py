@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from local_constants import MODEL_DIR
+from ner.local_constants import MODEL_DIR
 from shared.utils.helpers import read_json
 
 
