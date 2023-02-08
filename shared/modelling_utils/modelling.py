@@ -57,7 +57,8 @@ class Modelling:
                                            self.args.model_name,
                                            'best_model')
         else:
-            self.model_path = predefined_hf_models(self.args.model_name)
+            self.args.model_name = predefined_hf_models(self.args.model_name)
+            self.model_path = self.args.model_name
 
     def load_data(self, train: bool = True, test: bool = False):
         """
