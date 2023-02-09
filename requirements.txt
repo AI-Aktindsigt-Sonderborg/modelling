@@ -10,3 +10,7 @@ openpyxl
 pandas
 seaborn
 numpy==1.22.3
+sphinx
+recommonmark
+sphinx-rtd-theme
+sphinx_gallery
