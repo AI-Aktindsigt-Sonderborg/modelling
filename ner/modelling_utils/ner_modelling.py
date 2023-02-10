@@ -83,14 +83,9 @@ class NERModelling(Modelling):
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
 
-                # labels_flat = labels.flatten()
-                # preds_flat = preds.flatten()
-
                 # We ignore tokens with value "-100" as these are padding tokens
                 # set by the tokenizer.
                 # See nn.CrossEntropyLoss(): ignore_index for more information
-                # filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
-                #             if xv != -100]
 
                 batch_labels = [[self.id2label[l] for l in label if l != -100]
                                 for label in labels]
@@ -99,19 +94,18 @@ class NERModelling(Modelling):
                      l != -100]
                     for prediction, label in zip(preds, labels)
                 ]
-                # batch_labels = np.array([x[0] for x in filtered]).astype(int)
-                # batch_preds = np.array([x[1] for x in filtered]).astype(int)
+
                 all_metrics = seqeval.compute(predictions=batch_preds,
                                               references=batch_labels,
                                               scheme='IOB2')
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
-        all_metrics = seqeval.compute(predictions=y_pred,
-                                      references=y_true,
-                                      # average='macro'
-                                      scheme='IOB2'
-                                      )
+
+        all_metrics = seqeval.compute(
+            predictions=y_pred,
+            references=y_true,
+            scheme='IOB2')
 
         for k, v in all_metrics.items():
             if isinstance(v, dict):
@@ -150,7 +144,12 @@ class NERModelling(Modelling):
                          f_1_none=list(f_1_none))
 
     def load_data(self, train: bool = True, test: bool = False):
-
+        """
+        Load data using datasets.load_dataset for training and evaluation
+        This method is temporarily set to load dane data
+        :param train: Whether to train model
+        :param test: Whether to load test data
+        """
         if train:
             self.data.train = get_dane_train(subset=None)
             print(f'len train: {len(self.data.train)}')

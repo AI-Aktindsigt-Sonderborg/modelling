@@ -27,6 +27,7 @@ from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 
 class Modelling:
+
     def __init__(self, args: argparse.Namespace):
 
         self.args = args

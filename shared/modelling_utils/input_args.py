@@ -118,7 +118,8 @@ class ModellingArgParser:
             default=32,
             metavar='<int>',
             help="Batch size specifies the sample size of which the "
-                 "gradients are computed. Depends on memory available")
+                 "gradients are computed - "
+                 "in None-DP models use lot_size instead")
         training_params.add_argument(
             "--device",
             type=str,
@@ -255,4 +256,5 @@ class ModellingArgParser:
             default=64,
             metavar='<int>',
             help="Lot size specifies the sample size of which noise is "
-                 "injected into. Must be larger and multiple of batch size")
+                 "injected into. Must be larger and multiple of batch size - "
+                 "- in None-DP models this is the batch size for training")
