@@ -38,8 +38,6 @@ class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
-        if self.args.custom_model_name:
-            self.args.output_name = self.args.custom_model_name
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
 
@@ -334,13 +332,11 @@ class NERModellingDP(NERModelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args)
 
-        self.privacy_engine = None
-
-        if self.args.custom_model_name:
-            self.args.output_name = self.args.custom_model_name
-        else:
-            self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
-                                    + self.args.output_name
+        # if self.args.custom_model_name:
+        #     self.args.output_name = self.args.custom_model_name
+        # else:
+        #     self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
+        #                             + self.args.output_name
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')

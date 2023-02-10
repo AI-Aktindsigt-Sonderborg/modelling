@@ -26,14 +26,22 @@ from shared.utils.helpers import append_json, TimeCode
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 
+
 class Modelling:
 
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
 
-        self.args.output_name = f'{self.args.model_name.replace("/", "_")}-' \
-                           f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+        if self.args.custom_model_name:
+            self.args.output_name = self.args.custom_model_name
+        else:
+            self.args.output_name = \
+                f'{self.args.model_name.replace("/", "_")}' \
+                f'-{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            if self.args.differential_privacy:
+                self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
+                                        + self.args.output_name
 
         self.privacy_engine = None
         self.model = None
