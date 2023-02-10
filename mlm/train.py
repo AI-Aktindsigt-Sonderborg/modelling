@@ -12,6 +12,12 @@ if args.replace_head is True and args.freeze_layers is False:
     print('exiting - try again')
     mlm_parser.parser.exit()
 
+if args.freeze_layers and args.freeze_layers_n_steps == 0:
+    print(mlm_parser.parser._option_string_actions['--freeze_layers_n_steps'])
+    print('exiting - try again')
+    mlm_parser.parser.exit()
+
+
 if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):

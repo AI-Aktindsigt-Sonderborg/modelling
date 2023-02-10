@@ -66,7 +66,8 @@ class ModellingArgParser:
             "-flns", "--freeze_layers_n_steps",
             type=int,
             default=0,
-            help="number of steps to train head only",
+            help="number of steps to train head only - if freeze_layers is true"
+                 " freeze_layers_n_steps must be > 0",
             metavar='<int>')
 
 

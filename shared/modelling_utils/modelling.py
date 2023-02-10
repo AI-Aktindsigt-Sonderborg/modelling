@@ -80,10 +80,6 @@ class Modelling:
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
-            print(os.path.join(self.data_dir, self.args.train_data))
-            print(len(self.data.train))
-            print(self.args.lot_size)
-            print(self.args.epochs)
             self.args.total_steps = int(len(self.data.train)
                                         / self.args.lot_size
                                         * self.args.epochs)
@@ -130,7 +126,7 @@ class Modelling:
         :return: model, optimizer and train_loader for training
         """
         self.load_data()
-
+        print(self.args.freeze_layers_n_steps)
         if self.args.auto_lr_scheduling:
             self.compute_lr_automatically()
 
