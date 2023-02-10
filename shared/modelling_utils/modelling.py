@@ -81,7 +81,7 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
             self.args.total_steps = int(len(self.data.train)
-                                        / self.args.train_batch_size
+                                        / self.args.lot_size
                                         * self.args.epochs)
 
             if self.args.differential_privacy:
