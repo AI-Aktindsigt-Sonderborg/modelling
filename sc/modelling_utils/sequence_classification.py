@@ -36,10 +36,7 @@ class SequenceClassification(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
-        self.output_name = f'{self.args.model_name.replace("/", "_")}-' \
-                           f'{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-        self.args.output_name = self.output_name
-        self.output_dir = os.path.join(MODEL_DIR, self.output_name)
+        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.data_dir = DATA_DIR
 
