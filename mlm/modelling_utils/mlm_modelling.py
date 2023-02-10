@@ -23,7 +23,7 @@ from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from sc.local_constants import DATA_DIR, MODEL_DIR
+from mlm.local_constants import DATA_DIR, MODEL_DIR
 
 
 class MLMModelling(Modelling):
