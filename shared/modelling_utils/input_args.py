@@ -112,6 +112,16 @@ class ModellingArgParser:
             default=False,
             metavar='<bool>',
             help="Set to True, if your GPU supports FP16 operations")
+        # ToDo: consider renaming lot_size to either train_lot_size or -
+        #  train_batch_size and then current_train_batch_size to mini_batch
+        training_params.add_argument(
+            "--lot_size", "-ls",
+            type=int,
+            default=64,
+            metavar='<int>',
+            help="Lot size specifies the sample size of which noise is "
+                 "injected into. Must be larger and multiple of batch size - "
+                 "- in None-DP models this is the batch size for training")
         training_params.add_argument(
             "-tbs", "--train_batch_size",
             type=int,
@@ -250,11 +260,3 @@ class ModellingArgParser:
             default=1.2,
             metavar='<float>',
             help="maximum norm to clip gradient")
-        dp_params.add_argument(
-            "--lot_size",
-            type=int,
-            default=64,
-            metavar='<int>',
-            help="Lot size specifies the sample size of which noise is "
-                 "injected into. Must be larger and multiple of batch size - "
-                 "- in None-DP models this is the batch size for training")
