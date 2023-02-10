@@ -80,6 +80,7 @@ class Modelling:
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
+            print(os.path.join(self.data_dir, self.args.train_data))
             print(len(self.data.train))
             print(self.args.lot_size)
             print(self.args.epochs)
