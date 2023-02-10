@@ -80,6 +80,9 @@ class Modelling:
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
+            print(len(self.data.train))
+            print(self.args.lot_size)
+            print(self.args.epochs)
             self.args.total_steps = int(len(self.data.train)
                                         / self.args.lot_size
                                         * self.args.epochs)
