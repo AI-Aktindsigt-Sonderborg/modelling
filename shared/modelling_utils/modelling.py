@@ -517,14 +517,14 @@ class Modelling:
         Get default tokenizer - depends on model type
         """
         return AutoTokenizer.from_pretrained(
-            self.args.model_name,
+            self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
     def tokenize_and_wrap_data(self, data):
         pass
 
     def get_model(self):
-        return AutoModel.from_pretrained(self.args.model_name)
+        return AutoModel.from_pretrained(self.model_path)
 
     def set_up_privacy(self, train_loader: DataLoader, model):
         """
