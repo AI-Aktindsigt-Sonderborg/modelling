@@ -325,7 +325,8 @@ class Modelling:
                     eval_scores=eval_scores)
                 all_lrs.extend(lrs)
 
-            if step > self.args.freeze_layers_n_steps:
+            if step > self.args.freeze_layers_n_steps and \
+                self.args.evaluate_steps <= self.args.total_steps:
                 best_metrics, _ = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)
