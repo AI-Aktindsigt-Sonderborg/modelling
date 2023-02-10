@@ -1,8 +1,8 @@
 """Script to train a sequence-classification model with custom train loop"""
 import sys
 
-from modelling_utils.input_args import SequenceModellingArgParser
-from modelling_utils.sequence_classification import SequenceClassificationDP,\
+from sc.modelling_utils.input_args import SequenceModellingArgParser
+from sc.modelling_utils.sequence_classification import SequenceClassificationDP,\
     SequenceClassification
 
 sc_parser = SequenceModellingArgParser()

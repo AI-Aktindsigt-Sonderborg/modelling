@@ -26,7 +26,6 @@ from shared.modelling_utils.helpers import get_lr, \
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
 from sc.local_constants import MODEL_DIR, DATA_DIR
-from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 
 
 class SequenceClassification(Modelling):
