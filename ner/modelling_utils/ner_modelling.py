@@ -160,9 +160,9 @@ class NERModelling(Modelling):
 
             print(f'total steps: {self.args.total_steps}')
 
-            if self.args.differential_privacy and self.args.compute_delta:
-                self.args.delta = 1 / len(self.data.train)
-                print(f'delta:{self.args.delta}')
+            if self.args.differential_privacy:
+                if self.args.compute_delta:
+                    self.args.delta = 1 / len(self.data.train)
             else:
                 self.args.delta = None
                 self.args.compute_delta = None

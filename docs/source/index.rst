@@ -6,6 +6,8 @@
 Velkommen til dokumentation for AI-signatur projektet!
 =====================================
 
+Her skal der stå noget om, at Anders er et røvhul og Gustav ikke laver noget...
+
 .. toctree::
    :maxdepth: 2
    :caption: Introduktion

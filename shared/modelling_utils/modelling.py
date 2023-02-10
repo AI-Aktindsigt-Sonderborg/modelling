@@ -75,9 +75,10 @@ class Modelling:
                                         / self.args.train_batch_size
                                         * self.args.epochs)
 
-            if self.args.differential_privacy and self.args.compute_delta:
-                # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
-                self.args.delta = 1 / (len(self.data.train))
+            if self.args.differential_privacy:
+                if self.args.compute_delta:
+                    # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
+                    self.args.delta = 1 / len(self.data.train)
             else:
                 self.args.delta = None
                 self.args.compute_delta = None
