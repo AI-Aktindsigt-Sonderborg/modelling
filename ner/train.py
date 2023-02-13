@@ -13,6 +13,11 @@ if args.differential_privacy:
         print(ner_parser.parser._option_string_actions['--lot_size'].help)
         print('exiting - try again')
         ner_parser.parser.exit()
+    elif not (args.freeze_embeddings is True):
+        print(ner_parser.parser._option_string_actions[
+                  '--freeze_embeddings'].help)
+        print('exiting - try again')
+        ner_parser.parser.exit()
 
     ner_modelling_dp = NERModellingDP(args=args)
     ner_modelling_dp.train_model()

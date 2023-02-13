@@ -17,13 +17,19 @@ label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1,
 LABELS = list(label_dict)
 args.labels = LABELS
 
-if not ((args.lot_size > args.train_batch_size)
-        and (args.lot_size %args.train_batch_size == 0)):
-    print(sc_parser.parser._option_string_actions['--lot_size'].help)
-    print('exiting - try again')
-    sc_parser.parser.exit()
 
 if args.differential_privacy:
+    if not ((args.lot_size > args.train_batch_size)
+            and (args.lot_size % args.train_batch_size == 0)):
+        print(sc_parser.parser._option_string_actions['--lot_size'].help)
+        print('exiting - try again')
+        sc_parser.parser.exit()
+    elif not (args.freeze_embeddings is True):
+        print(sc_parser.parser._option_string_actions[
+                  '--freeze_embeddings'].help)
+        print('exiting - try again')
+        sc_parser.parser.exit()
+
     sc_modelling = SequenceClassificationDP(args=args)
 else:
     sc_modelling = SequenceClassification(args=args)
