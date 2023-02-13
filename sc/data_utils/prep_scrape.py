@@ -144,7 +144,8 @@ class ClassifiedScrapePreprocessing:
         return print('datasets generated')
 
     @staticmethod
-    def concat_all_classified_data(data_dir: str = CLASS_DATA_DIR):
+    def concat_all_classified_data(data_dir: str = CLASS_DATA_DIR,
+                                   lower_case: bool = False):
         all_data = []
         for filename in os.listdir(data_dir):
             filepath = os.path.join(data_dir, filename)
@@ -153,6 +154,8 @@ class ClassifiedScrapePreprocessing:
                                           filename=filename.split('.')[0])
                 for line in tmp_data:
                     if isinstance(line['text'], str):
+                        if lower_case:
+                            line['text'] = line['text'].lower()
                         all_data.append({'label': line['klassifikation'],
                                          'text': line['text']})
                     else:
@@ -174,7 +177,8 @@ if __name__ == '__main__':
     # prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
-    concat_data = class_prep.concat_all_classified_data()
+    concat_data = class_prep.concat_all_classified_data(
+        lower_case=prep_args.lower_case)
     grouped_data = class_prep.group_data_by_class(list_data=concat_data)
 
     class_prep.train_val_test_to_json_split(class_grouped_data=grouped_data,
