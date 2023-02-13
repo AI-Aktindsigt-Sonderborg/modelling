@@ -417,7 +417,7 @@ class NERModellingDP(NERModelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            # ToDo: Fix this
+            # ToDo: Find out if relevant for NER
             if not name.startswith("_module.bert.embeddings"):
                 param.requires_grad = True
         model.train()

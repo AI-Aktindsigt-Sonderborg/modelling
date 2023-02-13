@@ -1,3 +1,5 @@
+"""Main script to train a Masked Language Model with custom train
+loop"""
 import sys
 
 from mlm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP

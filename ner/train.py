@@ -1,3 +1,4 @@
+"""Main script to train a ner model with custom train loop"""
 import sys
 
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP

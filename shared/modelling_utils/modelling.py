@@ -43,6 +43,7 @@ class Modelling:
                 self.args.output_name = f'DP-eps-{int(self.args.epsilon)}-' \
                                         + self.args.output_name
 
+        # Initialialize all variables relevant for modelling
         self.privacy_engine = None
         self.model = None
         self.scheduler = None
@@ -59,7 +60,7 @@ class Modelling:
             self.args.lr_freezed = None
 
         if not self.args.differential_privacy:
-            self.args.train_batch_size = self.args.lot_size
+            self.args.lot.size = self.args.train_batch_size
 
         if self.args.load_alvenir_pretrained:
             self.model_path = os.path.join(MLM_MODEL_DIR,

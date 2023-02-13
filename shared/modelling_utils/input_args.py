@@ -113,8 +113,6 @@ class ModellingArgParser:
             default=False,
             metavar='<bool>',
             help="Set to True, if your GPU supports FP16 operations")
-        # ToDo: consider renaming lot_size to either train_lot_size or -
-        #  train_batch_size and then current_train_batch_size to mini_batch
         training_params.add_argument(
             "--lot_size", "-ls",
             type=int,
@@ -122,15 +120,15 @@ class ModellingArgParser:
             metavar='<int>',
             help="Lot size specifies the sample size of which noise is "
                  "injected into. Must be larger and multiple of batch size - "
-                 "- in None-DP models this is the batch size for training")
+                 "- in None-DP models lot size is set to train_batch_size, "
+                 "which is then used as training batch size")
         training_params.add_argument(
             "-tbs", "--train_batch_size",
             type=int,
             default=32,
             metavar='<int>',
             help="Batch size specifies the sample size of which the "
-                 "gradients are computed - "
-                 "in None-DP models use lot_size instead")
+                 "gradients are computed")
         training_params.add_argument(
             "--device",
             type=str,
@@ -180,7 +178,6 @@ class ModellingArgParser:
         Add parameters relevant for evaluation
         """
         eval_params = self.parser.add_argument_group('evaluation')
-        #Fixme: If evaluate_steps > total steps, get_metrics will fail
         eval_params.add_argument(
             "-esteps", "--evaluate_steps",
             type=int,
