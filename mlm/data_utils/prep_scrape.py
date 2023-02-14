@@ -162,6 +162,7 @@ class RawScrapePreprocessing:
                         in_file_path = os.path.join(FILTERED_SCRAPE_DIR,
                                                     filename)
                         total_lines = count_num_lines(file_path=in_file_path)
+                        print(f'total_lines: {total_lines}')
                         with open(in_file_path, 'r', encoding='utf-8') as file:
                             for line in tqdm(
                                 file,
