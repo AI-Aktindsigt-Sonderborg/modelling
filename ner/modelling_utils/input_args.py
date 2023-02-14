@@ -7,17 +7,6 @@ class NERArgParser(ModellingArgParser):
     """
     Class to handle input args for unsupervised Masked Language Modelling
     Methods
-    -------
-    add_data_params()
-        add data parameters
-    add_model_params()
-        Add model parameters
-    add_training_params()
-        Add parameters relevant for training - including learning rate scheduling
-    add_eval_params()
-        Add parameters relevant for evaluation
-    add_dp_params()
-        Add parameters relevant for differential privacy
     """
 
     def __init__(self):

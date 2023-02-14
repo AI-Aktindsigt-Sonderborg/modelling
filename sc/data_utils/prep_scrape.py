@@ -4,11 +4,11 @@ import os.path
 from typing import List
 
 import pandas as pd
-from shared.data_utils.helpers import write_json_lines
-from sc.local_constants import CLASS_DATA_DIR
 from sklearn.model_selection import train_test_split
 
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
+from sc.local_constants import CLASS_DATA_DIR
+from shared.data_utils.helpers import write_json_lines
 from shared.utils.helpers import read_jsonlines, save_json
 
 
@@ -87,7 +87,8 @@ class ClassifiedScrapePreprocessing:
         :param train_size: float between 0 and 1 specifying the size of the
         train set where
         1 is all data
-        :param test_size: int >= 1 specifying the number of sentences in each class
+        :param test_size: int >= 1 specifying the number of sentences in each
+        class
         :param train_outfile: if train_outfile specified generate train set
         :param val_outfile: if val_outfile specified generate validation set
         :param test_outfile: if test_outfile specified generate test set
@@ -112,7 +113,8 @@ class ClassifiedScrapePreprocessing:
             test = list(
                 itertools.chain.from_iterable([x[1] for x in train_test]))
 
-        if train_outfile and val_outfile and test_outfile and train_size and test_size:
+        if train_outfile and val_outfile and test_outfile and train_size and \
+            test_size:
             train_val = [
                 train_test_split(x, train_size=train_size, random_state=1) for x
                 in

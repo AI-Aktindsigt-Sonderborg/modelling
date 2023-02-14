@@ -8,10 +8,10 @@ import pandas as pd
 from pyinputplus import inputInt, inputChoice
 from scipy.spatial.distance import cosine
 
-from data_utils.custom_dataclasses import CosineSimilarity
+from shared.data_utils.custom_dataclasses import CosineSimilarity
 from modelling_utils.input_args import SequenceModellingArgParser
 from modelling_utils.sequence_classification import SequenceClassification
-from shared.utils.helpers import TimeCode, bcolors
+from shared.utils.helpers import TimeCode, BColors
 
 warnings.filterwarnings("ignore")
 

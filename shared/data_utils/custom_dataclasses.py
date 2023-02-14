@@ -4,7 +4,6 @@ from enum import Enum
 import numpy as np
 import torch
 from datasets import Dataset
-from numpy import ndarray
 
 
 @dataclass
@@ -49,6 +48,7 @@ class ModellingData:
     eval: Dataset = None
     test: Dataset = None
 
+
 class DataType(Enum):
     TRAIN = 'train.json'
     VAL = 'validation.json'
@@ -69,7 +69,6 @@ class DataType(Enum):
 #             return HFModel[s]
 #         except KeyError:
 #             raise ValueError()
-
 
 
 class LoadModelType(Enum):

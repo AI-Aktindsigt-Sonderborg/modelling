@@ -113,7 +113,7 @@ def read_json(filepath: str):
     return data
 
 
-class bcolors:
+class BColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'

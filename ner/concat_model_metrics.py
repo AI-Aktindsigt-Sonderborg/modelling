@@ -1,4 +1,4 @@
-
+# pylint: skip-file
 import os
 
 import pandas as pd

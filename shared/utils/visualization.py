@@ -1,3 +1,4 @@
+# pylint: disable=too-many-locals
 import os
 from typing import List
 

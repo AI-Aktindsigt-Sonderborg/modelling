@@ -245,7 +245,8 @@ class ModellingArgParser:
             type=float,
             default=4.6e-05,
             metavar='<float>',
-            help="privacy parameter delta. Usually a good delta is 1/len(train)")
+            help="privacy parameter delta. Usually a "
+                 "good delta is 1/len(train)")
         dp_params.add_argument(
             "--compute_delta",
             type=lambda x: bool(strtobool(x)),

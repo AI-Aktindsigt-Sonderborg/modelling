@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 """Main script to train a sequence-classification model with custom train
 loop"""
 import sys
@@ -24,7 +25,7 @@ if args.differential_privacy:
         print(sc_parser.parser._option_string_actions['--lot_size'].help)
         print('exiting - try again')
         sc_parser.parser.exit()
-    elif not (args.freeze_embeddings is True):
+    elif not args.freeze_embeddings:
         print(sc_parser.parser._option_string_actions[
                   '--freeze_embeddings'].help)
         print('exiting - try again')

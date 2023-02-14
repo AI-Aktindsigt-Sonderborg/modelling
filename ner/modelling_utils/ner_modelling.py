@@ -92,13 +92,12 @@ class NERModelling(Modelling):
                     for prediction, label in zip(preds, labels)
                 ]
 
-                all_metrics = seqeval.compute(predictions=batch_preds,
-                                              references=batch_labels,
-                                              scheme='IOB2')
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
 
+        # To Søren: this block is only used for comparing different f1 scores
+        # Dont worry about it
         all_metrics = seqeval.compute(
             predictions=y_pred,
             references=y_true,
@@ -110,6 +109,7 @@ class NERModelling(Modelling):
                     all_metrics[k][j] = float(u)
             else:
                 all_metrics[k] = float(v)
+        # --------------------------------------------------------------------
 
         append_json(output_dir=self.metrics_dir, data=all_metrics,
                     filename='seqeval_metrics')
@@ -174,7 +174,8 @@ class NERModelling(Modelling):
 
     def load_model_and_replace_bert_head(self):
         """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings layer
+        Load BertForMaskedLM, replace head and freeze all params in embeddings
+        layer
         """
         model = AutoModelForTokenClassification.from_pretrained(
             self.args.model_name)
@@ -248,7 +249,8 @@ class NERModelling(Modelling):
                 for word_idx in word_ids:  # Set the special tokens to -100.
                     if word_idx is None:
                         label_ids.append(-100)
-                    elif word_idx != previous_word_idx:  # Only label the first token of a given word.
+                    elif word_idx != previous_word_idx:
+                        # Only label the first token of a given word.
                         label_ids.append(label[word_idx])
                     else:
                         label_ids.append(-100)
@@ -315,7 +317,8 @@ class NERModelling(Modelling):
     @staticmethod
     def unfreeze_layers(model):
         """
-        Un-freeze all layers exept for embeddings in model, such that we can train full model
+        Un-freeze all layers exept for embeddings in model, such that we can
+        train full model
         :param model: Model of type BertForMaskedLM
         :return: un-freezed model
         """
@@ -399,7 +402,8 @@ class NERModellingDP(NERModelling):
     @staticmethod
     def freeze_layers(model):
         """
-        Freeze all bert encoder layers in model, such that we can train only the head
+        Freeze all bert encoder layers in model, such that we can train only
+        the head
         :param model: Model of type GradSampleModule
         :return: freezed model
         """

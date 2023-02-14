@@ -1,3 +1,4 @@
+# pylint: skip-file
 import sys
 
 from ner.modelling_utils.input_args import NERArgParser

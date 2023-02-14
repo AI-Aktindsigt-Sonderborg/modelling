@@ -2,7 +2,6 @@
 import argparse
 import os
 import pickle
-from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -15,17 +14,16 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import f1_score, accuracy_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, TrainingArguments, Trainer, \
-    BertForSequenceClassification, \
+from transformers import AutoTokenizer, BertForSequenceClassification, \
     DataCollatorWithPadding
 
+from sc.local_constants import MODEL_DIR, DATA_DIR
 from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
-from sc.local_constants import MODEL_DIR, DATA_DIR
 
 
 class SequenceClassification(Modelling):
@@ -208,6 +206,7 @@ class SequenceClassification(Modelling):
                                decoded_text=decoded_text,
                                embedding=embedding)
 
+    # To Søren: Below function does not need to be reviewed.
     def create_embeddings_windowed(self, model, save_dict: bool = False):
 
         tokenized = self.test_data.map(

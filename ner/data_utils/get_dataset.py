@@ -1,5 +1,5 @@
+
 from datasets import load_dataset
-from torch.utils.data import Dataset
 
 
 def get_wikiann_train(subset: int = None):

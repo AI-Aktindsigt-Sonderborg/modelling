@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 """Main script to train a Masked Language Model with custom train
 loop"""
 import sys

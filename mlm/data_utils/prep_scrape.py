@@ -50,7 +50,8 @@ class RawScrapePreprocessing:
 
     def from_raw_to_train_val(self):
         """
-        Generate train and validation data as json line files from raw scrape file
+        Generate train and validation data as json line files from raw scrape
+        file
         """
         self.extract_danish_and_save_from_raw()
         self.create_unique_sentences()
@@ -111,7 +112,8 @@ class RawScrapePreprocessing:
                           f'{filtered_filename}: {np.sum(false_lang_preds)}')
                     print(
                         f'Urls approved in {filtered_filename}: '
-                        f'{index + 1 - np.sum(false_lang_preds)} of {index + 1}')
+                        f'{index + 1 - np.sum(false_lang_preds)} of '
+                        f'{index + 1}')
                 write_json_lines(out_dir=FILTERED_SCRAPE_DIR,
                                  filename=filtered_filename,
                                  data=out_data)
@@ -171,7 +173,8 @@ class RawScrapePreprocessing:
 
                                 # Do initial sentence split - returns list of
                                 # all sentences
-                                sentences, disapproved_sentences = split_sentences(
+                                sentences, disapproved_sentences = \
+                                    split_sentences(
                                     data_dict=data_dict,
                                     sentence_splitter=self.sentence_splitter,
                                     disapproved_sentences=disapproved_sentences,
