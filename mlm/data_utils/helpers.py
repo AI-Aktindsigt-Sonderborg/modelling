@@ -48,7 +48,7 @@ def split_sentences(
     if len(find_wrong_break_ids) > 0:
         increment = 1
         for idx in find_wrong_break_ids:
-            prep_text = prep_text[:idx[0] + increment] + '\n' \
+            prep_text = prep_text[:idx[0] + increment] + '\n'\
                         + prep_text[idx[0] + increment:]
             increment += 1
 

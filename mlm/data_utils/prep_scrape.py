@@ -231,6 +231,7 @@ class RawScrapePreprocessing:
                 return None, seen
 
             if line_hash in class_data:
+                print("we have a match!")
                 seen.add(line_hash)
                 return None, seen
 
