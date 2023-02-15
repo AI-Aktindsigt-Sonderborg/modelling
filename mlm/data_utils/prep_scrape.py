@@ -171,8 +171,7 @@ class RawScrapePreprocessing:
                                 file,
                                 total=total_lines,
                                 desc=f'{filename}: {file_index + 1} '
-                                     f'of {file_count}',
-                                unit="line"):
+                                     f'of {file_count}', unit="line"):
                                 data_dict = json.loads(line)
 
                                 # Do initial sentence split - returns list of
@@ -200,7 +199,8 @@ class RawScrapePreprocessing:
                                         json.dump(dump_data, outfile)
                                         outfile.write('\n')
                                         muni_outfile.write(
-                                            f"{data_dict['id']} - {i} - {sentence}\n")
+                                            f"{data_dict['id']} - {i} - "
+                                            f"{sentence}\n")
 
                                         approved_sentences.append(1)
                                         unique_approved.append(1)
@@ -313,8 +313,10 @@ class RawScrapePreprocessing:
         compatible with torch
         dataset
         :param train_outfile: name of train file
-        :param train: List[str] where each element is a valid sentence for training
-        :param val: List[str] where each element is a valid sentence for validation
+        :param train: List[str] where each element is a valid sentence for
+         training
+        :param val: List[str] where each element is a valid sentence for
+         validation
         """
         if train and train_outfile:
             write_json_lines(out_dir=DATA_DIR, filename=train_outfile,
@@ -328,7 +330,8 @@ class RawScrapePreprocessing:
         """
         Detect correct danish text without raw html code
         :param data: raw text from scraped url
-        :param confidence_threshold: confidence in which we filter danish prediction
+        :param confidence_threshold: confidence in which we filter danish
+         prediction
         :return: boolean whether to keep data
         """
         if "__label__da" not in data_dict['detected_page_lang']:
