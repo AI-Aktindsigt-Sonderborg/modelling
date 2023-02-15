@@ -81,5 +81,7 @@ class DataPrepArgParser:
             '--lower_case',
             type=lambda x: bool(strtobool(x)),
             default=False,
-            help='whether or not to lower case all sentences',
+            help='whether or not to lower case all sentences. '
+                 'If doing mlm, very important to check whether classified data'
+                 'is lowercased',
             metavar='<bool>')

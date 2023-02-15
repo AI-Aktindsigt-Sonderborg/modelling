@@ -140,6 +140,9 @@ class RawScrapePreprocessing:
             input_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
             filename='all_sentences')
         class_texts = [x['text'] for x in class_data]
+        if self.args.lower_case:
+            class_texts = [x.lower() for x in class_texts]
+
         class_hash = {hashlib.md5(x.encode()).digest() for x in class_texts}
 
         approved_sentences = []
@@ -221,7 +224,24 @@ class RawScrapePreprocessing:
     def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
                          seen,
                          filename, model, tokenizer, class_data):
+        """
+        Check if mlm sentences are correct and not in classified data used for
+        Sequence Classification
+        :param data: dictionary of input data
+        :param sentence_counter: Sentence number of input url
+        :param sentence: sentence
+        :param seen: whether the sentence has been seen before - we only need
+        unique sentences
+        :param filename: Input filename
+        :param model: GPT model needed for perplexity
+        :param tokenizer:
+        :param class_data:
+        :return:
+        """
         final_sentence = sentence.strip()
+        if self.args.lower_case:
+            final_sentence = final_sentence.lower()
+
         if find_letters_and_word_count(
             text=final_sentence,
             word_count_threshold=self.args.min_len):
@@ -232,13 +252,11 @@ class RawScrapePreprocessing:
                 return None, seen
 
             if line_hash in class_data:
-                print("we have a match!")
                 seen.add(line_hash)
                 return None, seen
 
             seen.add(line_hash)
-            if self.args.lower_case:
-                final_sentence = final_sentence.lower()
+
 
             dump_data = {'id': data['id'], 'sentence': sentence_counter,
                          'kommune': filename.split('_')[0],
