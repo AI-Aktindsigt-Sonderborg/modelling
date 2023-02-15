@@ -179,10 +179,10 @@ class RawScrapePreprocessing:
                                 # all sentences
                                 sentences, disapproved_sentences = \
                                     split_sentences(
-                                    data_dict=data_dict,
-                                    sentence_splitter=self.sentence_splitter,
-                                    disapproved_sentences=disapproved_sentences,
-                                    filename=filename)
+                                        data_dict=data_dict,
+                                        sentence_splitter=self.sentence_splitter,
+                                        disapproved_sentences=disapproved_sentences,
+                                        filename=filename)
 
                                 for i, sentence in enumerate(sentences):
                                     # Strip sentence, search for letters and
@@ -222,8 +222,7 @@ class RawScrapePreprocessing:
         print()
 
     def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
-                         seen,
-                         filename, model, tokenizer, class_data):
+                         seen, filename, model, tokenizer, class_data):
         """
         Check if mlm sentences are correct and not in classified data used for
         Sequence Classification
@@ -234,9 +233,9 @@ class RawScrapePreprocessing:
         unique sentences
         :param filename: Input filename
         :param model: GPT model needed for perplexity
-        :param tokenizer:
-        :param class_data:
-        :return:
+        :param tokenizer: Tokenizer needed for perplexity
+        :param class_data: Classified data used for Sequence Classification
+        :return: If approved, data for modelling
         """
         final_sentence = sentence.strip()
         if self.args.lower_case:
@@ -256,7 +255,6 @@ class RawScrapePreprocessing:
                 return None, seen
 
             seen.add(line_hash)
-
 
             dump_data = {'id': data['id'], 'sentence': sentence_counter,
                          'kommune': filename.split('_')[0],
@@ -278,7 +276,7 @@ class RawScrapePreprocessing:
                         seed: int = 42):
         """
         Split approved sentences to train and validation set and save as json
-        :param in_file: json line file
+        :param in_file: jsonlines file
         :param split: float between 0 and 1 specifying size of train
         :param seed: seed for reproducibility
         """
@@ -404,6 +402,6 @@ if __name__ == '__main__':
     prep_args.data_type = 'unlabelled'
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
     # data_preprocessor.from_raw_to_train_val()
-    data_preprocessor.create_unique_sentences()
     # data_preprocessor.create_unique_sentences()
-    # data_preprocessor.split_train_val()
+    # data_preprocessor.create_unique_sentences()
+    data_preprocessor.split_train_val()
