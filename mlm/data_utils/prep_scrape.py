@@ -401,7 +401,7 @@ if __name__ == '__main__':
     prep_args = prep_parser.parser.parse_args()
     prep_args.data_type = 'unlabelled'
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    # data_preprocessor.from_raw_to_train_val()
+    data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()
-    # data_preprocessor.create_unique_sentences()
-    data_preprocessor.split_train_val()
+    # data_preprocessor.split_train_val()
