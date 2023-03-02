@@ -209,10 +209,10 @@ class SequenceClassification(Modelling):
     # To Søren: Below function does not need to be reviewed.
     def create_embeddings_windowed(self, model, save_dict: bool = False):
 
-        tokenized = self.test_data.map(
+        tokenized = self.data.test.map(
             self.tokenize2,
             batched=True,
-            remove_columns=self.test_data.column_names,
+            remove_columns=self.data.test.column_names,
             load_from_cache_file=False,
             desc="Running tokenizer on dataset line_by_line",
         )
@@ -271,7 +271,7 @@ class SequenceClassification(Modelling):
                                 decoded_text=decoded_text,
                                 embedding=new_embedding))
             if save_dict:
-                with open("data/test_data/test_embeddings", "wb") as fp:
+                with open(os.path.join(DATA_DIR, "test_data/test_embeddings"), "wb") as fp:
                     pickle.dump(results, fp)
 
         return results

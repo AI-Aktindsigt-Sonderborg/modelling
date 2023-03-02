@@ -25,7 +25,7 @@ from shared.modelling_utils.helpers import create_scheduler, \
 from shared.utils.helpers import append_json, TimeCode
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
-
+from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 
 class Modelling:
 
@@ -63,7 +63,10 @@ class Modelling:
             self.args.lot.size = self.args.train_batch_size
 
         if self.args.load_alvenir_pretrained:
-            self.model_path = os.path.join(MLM_MODEL_DIR,
+            model_dir = MLM_MODEL_DIR
+            if self.args.sc_demo:
+                model_dir = SC_MODEL_DIR
+            self.model_path = os.path.join(model_dir,
                                            self.args.model_name,
                                            'best_model')
         else:

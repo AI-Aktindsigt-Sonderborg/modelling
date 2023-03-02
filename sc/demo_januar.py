@@ -1,4 +1,5 @@
 # pylint: skip-file
+import os.path
 import pickle
 import sys
 import warnings
@@ -8,10 +9,11 @@ import pandas as pd
 from pyinputplus import inputInt, inputChoice
 from scipy.spatial.distance import cosine
 
+from sc.modelling_utils.input_args import SequenceModellingArgParser
+from sc.modelling_utils.sequence_classification import SequenceClassification
 from shared.data_utils.custom_dataclasses import CosineSimilarity
-from modelling_utils.input_args import SequenceModellingArgParser
-from modelling_utils.sequence_classification import SequenceClassification
 from shared.utils.helpers import TimeCode, BColors
+from sc.local_constants import DATA_DIR
 
 warnings.filterwarnings("ignore")
 
@@ -32,6 +34,7 @@ args = sc_parser.parser.parse_args()
 # args.model_name = 'sarnikowski/convbert-small-da-cased'
 args.model_name = 'last_model-2022-12-21_10-53-25'
 args.labels = LABELS
+args.sc_demo = True
 args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
 # args.device = 'cpu'
@@ -54,15 +57,17 @@ model = modelling.get_model()
 # embedding_outputs = modelling.create_embeddings_windowed(
 #     model=model)
 
-with open("data/test_data/test_embeddings", "rb") as fp:
+
+with open(os.path.join(DATA_DIR, "test_data/test_embeddings"), "rb") as fp:
     embedding_outputs = pickle.load(fp)
 
 X = np.array([x.embedding for x in embedding_outputs]).astype(float)
 y_true = [int(modelling.label2id[x.label]) for x in embedding_outputs]
 y_pred = [int(modelling.label2id[x.prediction]) for x in embedding_outputs]
 
-predefined_sentences = pd.read_csv(
-    'data/test_data/semantic_search_examples.csv',
+predefined_sentences = pd.read_csv(os.path.join(
+    DATA_DIR,
+    'test_data/semantic_search_examples.csv'),
     sep=';',
     encoding='utf-8').to_dict()
 
@@ -89,8 +94,8 @@ while user_input != "n":
         user_input_label = inputInt(
             prompt=label_prompt, min=0, max=7)
         input_label = LABELS[int(user_input_label)]
-        sentence_prompt = f"Vælg en sætning fra {bcolors.OKBLUE}" \
-                          f"{LABELS[user_input_label]}{bcolors.ENDC} " \
+        sentence_prompt = f"Vælg en sætning fra {BColors.OKBLUE}" \
+                          f"{LABELS[user_input_label]}{BColors.ENDC} " \
                           f"mellem 0 og 3:\n"
         for id in predefined_sentences[LABELS[user_input_label]]:
             sentence_prompt += \
@@ -118,7 +123,6 @@ while user_input != "n":
         sentence=input_sentence,
         label=input_label)
 
-
     cosine_sims = []
     for i, embedding_output in enumerate(embedding_outputs):
         cosine_sims.append(CosineSimilarity(
@@ -134,24 +138,24 @@ while user_input != "n":
                               reverse=True)[:top_n]
 
     print(
-        f'{bcolors.BOLD}Input sætning:{bcolors.ENDC} '
+        f'{BColors.BOLD}Input sætning:{BColors.ENDC} '
         f'{top_n_embeddings[0].input_sentence}\n'
-        f'Kategori: {bcolors.OKBLUE}{top_n_embeddings[0].input_label}{bcolors.ENDC}')
+        f'Kategori: {BColors.OKBLUE}{top_n_embeddings[0].input_label}{BColors.ENDC}')
 
-    print(f'{bcolors.BOLD}Top {top_n} mest similære sætninger:\n{bcolors.ENDC}')
+    print(f'{BColors.BOLD}Top {top_n} mest similære sætninger:\n{BColors.ENDC}')
 
     for i, embedding in enumerate(top_n_embeddings):
         if embedding.cosine_sim < 0.5:
-            print_sim_color = bcolors.FAIL
+            print_sim_color = BColors.FAIL
         else:
-            print_sim_color = bcolors.OKGREEN
+            print_sim_color = BColors.OKGREEN
         print(
-            f'{bcolors.BOLD}{i + 1}{bcolors.ENDC}: {embedding.reference_sentence}\n'
-            f'{bcolors.BOLD} Kategori: {bcolors.ENDC}{bcolors.OKBLUE}'
-            f'{embedding.reference_label}{bcolors.ENDC}\n'
-            f'{bcolors.BOLD} Semantisk lighed: {bcolors.ENDC}'
+            f'{BColors.BOLD}{i + 1}{BColors.ENDC}: {embedding.reference_sentence}\n'
+            f'{BColors.BOLD} Kategori: {BColors.ENDC}{BColors.OKBLUE}'
+            f'{embedding.reference_label}{BColors.ENDC}\n'
+            f'{BColors.BOLD} Semantisk lighed: {BColors.ENDC}'
             f'{print_sim_color}{embedding.cosine_sim}')
-        print(bcolors.ENDC)
+        print(BColors.ENDC)
     # Plot pca af et lille udsnit fra hvert kategori
     code_timer.how_long_since_start()
 

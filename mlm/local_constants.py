@@ -1,7 +1,7 @@
 import os
+from root_constants import ABS_ROOT
 
-PROJECT_ROOT = os.path.dirname(
-    os.path.abspath('../modelling/mlm/local_constants.py'))
+PROJECT_ROOT = os.path.join(ABS_ROOT, 'mlm')
 MODEL_DIR = os.path.join(PROJECT_ROOT, 'models')
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
 PLOTS_DIR = os.path.join(PROJECT_ROOT, 'plots')

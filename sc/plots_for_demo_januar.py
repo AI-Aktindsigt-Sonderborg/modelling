@@ -1,14 +1,17 @@
 # pylint: skip-file
+import os
 import pickle
 import warnings
 
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader
 
-from modelling_utils.input_args import SequenceModellingArgParser
-from modelling_utils.sequence_classification import SequenceClassification
+from sc.modelling_utils.input_args import SequenceModellingArgParser
+from sc.modelling_utils.sequence_classification import SequenceClassification
 from shared.utils.helpers import TimeCode
+from sc.local_constants import DATA_DIR
 
 warnings.filterwarnings("ignore")
 
@@ -35,12 +38,12 @@ args.load_alvenir_pretrained = True
 # args.test_data = 'test_local.json'
 # ToDo: Figure out how to deal with max_length
 args.max_length = 64
-
+args.sc_demo = True
 modelling = SequenceClassification(args)
 
 modelling.load_data(train=False, test=True)
 
-# test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.test_data)
+# test_data_wrapped = modelling.tokenize_and_wrap_data(data=modelling.data.test)
 # test_loader = DataLoader(dataset=test_data_wrapped,
 #                          # collate_fn=modelling.data_collator,
 #                          batch_size=1,
@@ -51,7 +54,7 @@ model = modelling.get_model()
 # embedding_outputs = modelling.create_embeddings_windowed(
 #     model=model, save_dict=True)
 
-with open("data/test_data/test_embeddings", "rb") as fp:
+with open(os.path.join(DATA_DIR, 'test_data/test_embeddings'), "rb") as fp:
     embedding_outputs = pickle.load(fp)
 
 # ToDo: experiment with pca stuff?
