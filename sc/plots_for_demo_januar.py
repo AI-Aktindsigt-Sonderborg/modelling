@@ -97,14 +97,14 @@ colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e3
 for i, label in enumerate(LABELS):
     plt.scatter(X_transformed[y_true == int(modelling.label2id[label]), 0],
                 X_transformed[y_true == int(modelling.label2id[label]), 1],
-                label=label, marker='.', c = colors[i], s = 20)
+                label=label, marker='.', c = colors[i], s = 40)
     plt.scatter(X_transformed[y_pred == int(modelling.label2id[label]), 0],
                 X_transformed[y_pred == int(modelling.label2id[label]), 1],
                 marker='o', edgecolors=colors[i],
-                s = 40, facecolors='none', linewidths=1)
+                s = 80, facecolors='none', linewidths=1)
 
-plt.title('Test sæt visualiseret.\n'
-          '"." illustrerer den sande kategori og "o" markerer modellens prediktion')
-plt.legend()
-plt.legend()
+plt.title('2d projektion af datapunkter fra kategoriserede kommunalt skrabede sætninger.\n'
+          '"." illustrerer sætningens sande kategori og "o" markerer modellens predikterede kategori.', fontsize=20)
+plt.legend(fontsize = 14, loc='lower right')
+plt.axis('off')
 plt.show()
