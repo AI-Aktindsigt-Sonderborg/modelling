@@ -1,9 +1,8 @@
 import os
-from root_constants import ABS_ROOT
+from root_constants import NER_ROOT
 
-PROJECT_ROOT = os.path.join(ABS_ROOT, 'ner')
-MODEL_DIR = os.path.join(PROJECT_ROOT, 'models')
-DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-PLOTS_DIR = os.path.join(PROJECT_ROOT, 'plots')
+MODEL_DIR = os.path.join(NER_ROOT, 'models')
+DATA_DIR = os.path.join(NER_ROOT, 'data')
+PLOTS_DIR = os.path.join(NER_ROOT, 'plots')
 PREP_DATA_DIR = os.path.join(DATA_DIR, 'preprocessed_data')
-METADATA_DIR = os.path.join(PROJECT_ROOT, 'metadata')
+METADATA_DIR = os.path.join(NER_ROOT, 'metadata')

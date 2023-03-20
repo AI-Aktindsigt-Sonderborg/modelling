@@ -57,19 +57,6 @@ class ClassifiedScrapePreprocessing:
         :param data: list of dictionarys of sentences
         :return: list of lists of dicts
         """
-        # k = 0
-        # with open(os.path.join(DATA_DIR, 'train_1110.json'),
-        #           'r', encoding='utf-8') as file:
-        #     for i, line in enumerate(file):
-        #         if i % 100000 == 0:
-        #             print(i)
-        #         data_dict = json.loads(line)
-        #
-        #         if data_dict['text'] in [x['text'] for x in list_data]:
-        #             k += 1
-        #             # print()
-
-        # print(f'{k} of {len(list_data)} has been trained on')
         label_set = {x['label'] for x in list_data}
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped

@@ -22,17 +22,17 @@ def split_sentences(
     prep_text = repr(data_dict['text'])
 
     # Define list of special chars to replace
-    special_chars = [['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
-                     ['”', '"', "'"],
-                     ['NemID', 'MitID', 'minSU', 'LinkedIn']]
-    for case in special_chars[0]:
+    special_chars = {'specials': ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
+                     'citations': ['”', '"', "'"],
+                     'spellings': ['NemID', 'MitID', 'minSU', 'LinkedIn']}
+
+    for case in special_chars['specials']:
         prep_text = prep_text.replace(case, ' ')
 
-    # Define second list of special chars
-    for case in special_chars[1]:
+    for case in special_chars['citations']:
         prep_text = prep_text.replace(case, '')
 
-    for case in special_chars[2]:
+    for case in special_chars['spellings']:
         if case in prep_text:
             prep_text = prep_text.replace(case, case.lower())
 

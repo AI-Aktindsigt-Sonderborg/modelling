@@ -1,12 +1,13 @@
 import os
-from root_constants import ABS_ROOT
+from root_constants import MLM_ROOT
 
-PROJECT_ROOT = os.path.join(ABS_ROOT, 'mlm')
-MODEL_DIR = os.path.join(PROJECT_ROOT, 'models')
-DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-PLOTS_DIR = os.path.join(PROJECT_ROOT, 'plots')
+MODEL_DIR = os.path.join(MLM_ROOT, 'models')
+DATA_DIR = os.path.join(MLM_ROOT, 'data')
+PLOTS_DIR = os.path.join(MLM_ROOT, 'plots')
+RESULTS_DIR = os.path.join(MLM_ROOT, 'results')
+METADATA_DIR = os.path.join(MLM_ROOT, 'metadata')
+
+# specific to mlm
 SCRAPED_DATA_DIR = os.path.join(DATA_DIR, 'scraped_data')
 FILTERED_SCRAPE_DIR = os.path.join(DATA_DIR, 'filtered_scrape')
 PREP_DATA_DIR = os.path.join(DATA_DIR, 'preprocessed_data')
-RESULTS_DIR = os.path.join(PROJECT_ROOT, 'results')
-METADATA_DIR = os.path.join(PROJECT_ROOT, 'metadata')

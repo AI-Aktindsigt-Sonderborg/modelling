@@ -9,8 +9,6 @@ from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
 
-os.environ["WANDB_DISABLED"] = "true"
-
 metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
@@ -107,6 +105,7 @@ trainer = Trainer(
     tokenizer=ner_modelling.tokenizer,
     data_collator=ner_modelling.data_collator,
     compute_metrics=compute_metrics,
+    report_to='none'
     # callbacks=[nuna_text_modelling.callbacks],
 )
 

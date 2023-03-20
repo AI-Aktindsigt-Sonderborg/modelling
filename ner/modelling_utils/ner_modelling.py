@@ -60,6 +60,7 @@ class NERModelling(Modelling):
         :param val_loader:
         :return: mean eval loss and mean accuracy
         """
+        # ToDo: check if relevant
         if not next(model.parameters()).is_cuda:
             model = model.to(self.args.device)
 

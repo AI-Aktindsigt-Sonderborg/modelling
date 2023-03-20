@@ -4,10 +4,10 @@ import torch
 from torch.utils.data import DataLoader
 from transformers import BertConfig
 
-from modelling_utils.custom_modeling_bert import BertForMaskedLM,\
+from shared.modelling_utils.custom_modeling_bert import BertForMaskedLM,\
     BertOnlyMLMHeadCustom
-from modelling_utils.mlm_modelling import MLMModelling
-from modelling_utils.input_args import MLMArgParser
+from mlm.modelling_utils.mlm_modelling import MLMModelling
+from mlm.modelling_utils.input_args import MLMArgParser
 # sat til true pga noget huggingface key
 os.environ["WANDB_DISABLED"] = "true"
 

@@ -130,7 +130,7 @@ class Modelling:
         :return: model, optimizer and train_loader for training
         """
         self.load_data()
-        print(self.args.freeze_layers_n_steps)
+
         if self.args.auto_lr_scheduling:
             self.compute_lr_automatically()
 

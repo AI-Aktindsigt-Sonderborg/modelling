@@ -52,5 +52,5 @@ def all_metrics_to_csv():
     df.to_csv('sc/metadata/model_metrics.csv', sep='\t')
     df.to_excel('metadata/model_metrics.xlsx', index=False)
 
-
-all_metrics_to_csv()
+if __name__ == '__main__':
+    all_metrics_to_csv()

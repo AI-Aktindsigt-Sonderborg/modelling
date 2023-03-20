@@ -89,10 +89,6 @@ class InternalDataPreprocessing:
     def split_to_sentences(self, in_file_name: str = 'concat_data.json',
                            out_file_name: str = 'all_sentences.json',
                            word_count_threshold: int = 5):
-        # approved_sentences = []
-        # dissapproved_sentences = []
-        # unique_approved = []
-        # seen = set()
         with open(os.path.join(self.internal_data_dir, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             with open(os.path.join(self.internal_data_dir, in_file_name), 'rb') as file:

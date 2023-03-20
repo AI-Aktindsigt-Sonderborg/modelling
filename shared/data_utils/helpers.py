@@ -64,6 +64,8 @@ def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):
     new_text = " ".join(words[0:200])
     tensor_input = tokenizer.encode(new_text, return_tensors='pt').to(device)
 
+    # ToDo: These below are chosen empirically and not used at the moment, maybe
+    #  consider if better gpt model and data should be published
     if len(tensor_input[0]) > 1000:
         return 50000.0
 
@@ -88,7 +90,8 @@ def load_model_for_ppl(model_id: str = 'pere/norwegian-gpt2',
 
 def find_letters_and_word_count(text: str, word_count_threshold: int):
     search = any(c.isalpha() for c in text)
-    word_count = len(text.split(' '))
+    # ToDo: test split on all kinds of whitespace as opposed to text.split(' ')
+    word_count = len(text.split())
     if search and word_count >= word_count_threshold:
         return True
     return False

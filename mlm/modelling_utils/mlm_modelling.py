@@ -132,6 +132,7 @@ class MLMModelling(Modelling):
             local_files_only=self.args.load_alvenir_pretrained)
         config = BertConfig.from_pretrained(self.model_path)
         lm_head = BertOnlyMLMHeadCustom(config)
+        # ToDo: Model to device
         lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
 
@@ -145,12 +146,10 @@ class MLMModelling(Modelling):
         Based on word mask load corresponding data collator
         :return: DataCollator
         """
-        if self.args.whole_word_mask:
-            return DataCollatorForWholeWordMask(
-                tokenizer=self.tokenizer,
-                mlm=True,
-                mlm_probability=self.args.mlm_prob)
-        return DataCollatorForLanguageModeling(
+        collator_class = DataCollatorForWholeWordMask if \
+            self.args.whole_word_mask else DataCollatorForLanguageModeling
+
+        return collator_class(
             tokenizer=self.tokenizer,
             mlm=True,
             mlm_probability=self.args.mlm_prob)

@@ -224,7 +224,7 @@ class RawScrapePreprocessing:
     def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
                          seen, filename, model, tokenizer, class_data):
         """
-        Check if mlm sentences are correct and not in classified data used for
+        Return dump data if data is not in classified data used for
         Sequence Classification
         :param data: dictionary of input data
         :param sentence_counter: Sentence number of input url
@@ -297,7 +297,7 @@ class RawScrapePreprocessing:
             train_chunks = np.array_split(train_init,
                                           self.args.split_train_n_times)
             for i, train_chunk in enumerate(train_chunks):
-                train = list(list(train_chunk))
+                train = list(train_chunk)
                 train_outfile = self.args.train_outfile + f'_{i}'
                 self.save_datasets(train=train, train_outfile=train_outfile)
             self.save_datasets(val=val)
@@ -403,8 +403,9 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     prep_args.data_type = 'unlabelled'
+    prep_args.split_train_n_times = 2
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    data_preprocessor.from_raw_to_train_val()
+    # data_preprocessor.from_raw_to_train_val()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()
-    # data_preprocessor.split_train_val()
+    data_preprocessor.split_train_val()
