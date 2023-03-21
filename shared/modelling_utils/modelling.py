@@ -60,7 +60,7 @@ class Modelling:
             self.args.lr_freezed = None
 
         if not self.args.differential_privacy:
-            self.args.lot.size = self.args.train_batch_size
+            self.args.lot_size = self.args.train_batch_size
 
         if self.args.load_alvenir_pretrained:
             model_dir = MLM_MODEL_DIR
@@ -84,8 +84,9 @@ class Modelling:
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split='train')
+            # ToDo: lot or batch size?
             self.args.total_steps = int(len(self.data.train)
-                                        / self.args.lot_size
+                                        / self.args.train_batch_size
                                         * self.args.epochs)
 
             if self.args.differential_privacy:
@@ -254,7 +255,7 @@ class Modelling:
                 end_factor=self.args.learning_rate / self.args.lr_freezed,
                 total_iters=self.args.lr_warmup_steps)
 
-        if step == self.args.lr_start_decay:
+        if step == self.args.lr_start_decay and self.args.total_steps > self.args.lr_start_decay:
             self.scheduler = create_scheduler(
                 optimizer,
                 start_factor=1,
@@ -557,6 +558,7 @@ class Modelling:
                 target_epsilon=self.args.epsilon,
                 target_delta=self.args.delta,
                 max_grad_norm=self.args.max_grad_norm,
+                # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
                 # ToDo: hooks is the original opacus grad sampler. If we want
                 #  to try new features, then see
                 #  https://github.com/pytorch/opacus/releases

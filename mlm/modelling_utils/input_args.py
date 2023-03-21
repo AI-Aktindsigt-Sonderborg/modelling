@@ -40,7 +40,7 @@ class MLMArgParser(ModellingArgParser):
             metavar='<float>',
             help="Probability that a word is replaced by a [MASK] token")
         mlm_params.add_argument(
-            "--replace_head",
+            "-rh","--replace_head",
             type=lambda x: bool(strtobool(x)),
             default=True,
             help="Whether to replace bert head. True is mandatory for MLM with"
