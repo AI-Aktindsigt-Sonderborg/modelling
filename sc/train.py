@@ -27,8 +27,9 @@ logger.addHandler(ch)
 sc_parser = SequenceModellingArgParser()
 
 args, leftovers = sc_parser.parser.parse_known_args()
-logger.warning(f'The following args is not relevant for this model: '
-               f'{leftovers}')
+if leftovers:
+    logger.warning(f'The following args is not relevant for this model: '
+                   f'{leftovers}')
 
 args.cmd_line_args = sys.argv
 
