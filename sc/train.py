@@ -8,7 +8,7 @@ from sc.modelling_utils.input_args import SequenceModellingArgParser
 from sc.modelling_utils.sequence_classification import \
     SequenceClassificationDP, SequenceClassification
 
-logger = logging.getLogger('MLM model log')
+logger = logging.getLogger('SC model log')
 logger.setLevel(logging.DEBUG)
 
 fh = logging.FileHandler('model_log.log')
@@ -40,7 +40,7 @@ if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):
         logger.warning(
-            f'SC model: {sc_modelling.args.output_name} - '
+            f'Model: {sc_modelling.args.output_name} - '
             f'{sc_parser.parser._option_string_actions["--lot_size"].help}')
 
         print(sc_parser.parser._option_string_actions['--lot_size'].help)
@@ -50,7 +50,7 @@ if args.differential_privacy:
         print(sc_parser.parser._option_string_actions[
                   '--freeze_embeddings'].help)
         logger.error(
-            f'SC model: {sc_modelling.args.output_name} - '
+            f'Model: {sc_modelling.args.output_name} - '
             f'{sc_parser.parser._option_string_actions["--freeze_embeddings"].help}')
         print('exiting - try again')
         sc_parser.parser.exit()
@@ -59,10 +59,10 @@ else:
     sc_modelling = SequenceClassification(args=args)
 
 try:
-    logger.info(f"Training SC model {sc_modelling.args.output_name}")
+    logger.info(f"Training model {sc_modelling.args.output_name}")
     sc_modelling.train_model()
     logger.info(
-        f'SC model {sc_modelling.args.output_name} trained succesfully')
+        f'Model {sc_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'SC model {sc_modelling.args.output_name} failed:\n{ex}')
+    logger.error(f'Model {sc_modelling.args.output_name} failed:\n{ex}')
 

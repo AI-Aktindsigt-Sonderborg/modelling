@@ -42,18 +42,18 @@ if args.differential_privacy:
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):
         logger.warning(
-            f'MLM model: {mlm_modelling.args.output_name} - '
+            f'Model: {mlm_modelling.args.output_name} - '
             f'{mlm_parser.parser._option_string_actions["--lot_size"].help}')
         print(mlm_parser.parser._option_string_actions['--lot_size'].help)
         print('exiting - try again')
         mlm_parser.parser.exit()
     elif not (args.replace_head is True and args.freeze_layers is True):
         logger.warning(
-            f'MLM DP model: {mlm_modelling.args.output_name} is training without'
+            f'DP model: {mlm_modelling.args.output_name} is training without'
             f' replacing head and freezing layers.')
     elif not args.freeze_embeddings:
         logger.error(
-            f'MLM model: {mlm_modelling.args.output_name} - '
+            f'Model: {mlm_modelling.args.output_name} - '
             f'{mlm_parser.parser._option_string_actions["--freeze_embeddings"].help}')
         print(mlm_parser.parser._option_string_actions[
                   '--freeze_embeddings'].help)
@@ -77,9 +77,9 @@ else:
     #     logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{ex}')
 
 try:
-    logger.info(f"Training MLM model {mlm_modelling.args.output_name}")
+    logger.info(f"Training model {mlm_modelling.args.output_name}")
     mlm_modelling.train_model()
     logger.info(
-        f'MLM model {mlm_modelling.args.output_name} trained succesfully')
+        f'Model {mlm_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'MLM model {mlm_modelling.args.output_name} failed:\n{ex}')
+    logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{ex}')
