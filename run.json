@@ -1,4 +1,12 @@
 {
-  "mlm_dp": "python -m mlm.train -cmn mlm_dp_test --epochs 5 -dp true -lap false -mn Geotrend/distilbert-base-da-cased --train_data t100.json --eval_data t100.json -fl true -rh true -fe true --max_length 8 -ls 4 -tbs 2 -ebs 2 -lsteps 25 -esteps 50 -ssteps 50 -lr 0.0001 -lrf 0.001 -alrs true -flns 10 --epsilon 1",
-  "mlm": "python -m mlm.train -cmn mlm_test --epochs 2 -dp false -lap false -mn Geotrend/distilbert-base-da-cased --train_data t100.json --eval_data t100.json -fl true -rh true -fe true --max_length 8 -tbs 2 -ebs 2 -lsteps 25 -esteps 50 -ssteps 50 -lr 0.0001 -lrf 0.001 -alrs true -lrws 10 -lrsd 100 -flns 10"
+  "mlm": [
+    "python -m mlm.train -cmn mlm_test --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m mlm.train -cmn mlm_dp_test --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m mlm.train -cmn mlm_test_full --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 50 -flns 10",
+    "python -m mlm.train -cmn mlm_dp_test_full --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m mlm.train -cmn mlm_test_lap --epochs 3 -dp false -lap true -mn last_model --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m mlm.train -cmn mlm_dp_test_lap --epochs 3 -dp true -lap true -mn last_model --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25"
+  ],
+  "sc": [],
+  "ner": []
 }

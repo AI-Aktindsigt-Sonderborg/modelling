@@ -108,9 +108,9 @@ class MLMModelling(Modelling):
 
             # lm_head = new_head.to(self.args.device)
             model.cls = new_head
-            # ToDo: For now we are freezing embedding layer until (maybe)
-            #  we have implemented grad sampler -
-            #  as this is not implemented in opacus
+            # We freeze embeddings layer, as this is not implemented in opacus,
+            # and it is shown that unfreezing embeddings doesn't provide better
+            # output
             for param in model.bert.embeddings.parameters():
                 param.requires_grad = False
             return model

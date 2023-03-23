@@ -43,3 +43,4 @@ else:
     args.max_grad_norm = None
     mlm_modelling = MLMModelling(args=args)
     mlm_modelling.train_model()
+    print('\n\033[94m Model trained with great success')
