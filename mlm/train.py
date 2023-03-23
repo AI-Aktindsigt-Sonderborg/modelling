@@ -3,6 +3,7 @@
 loop"""
 import logging
 import sys
+import traceback
 
 from mlm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
 from mlm.modelling_utils.input_args import MLMArgParser
@@ -28,7 +29,7 @@ mlm_parser = MLMArgParser()
 args, leftovers = mlm_parser.parser.parse_known_args()
 if leftovers:
     logger.warning(f'The following args is not relevant for this model: '
-                   f'{leftovers}.. ignoring')
+                   f'{leftovers}. Ignoring...')
 
 args.cmd_line_args = sys.argv
 
@@ -87,4 +88,4 @@ try:
     logger.info(
         f'Model {mlm_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{ex}')
+    logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{traceback.format_exc()}')

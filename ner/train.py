@@ -2,6 +2,7 @@
 """Main script to train a ner model with custom train loop"""
 import logging
 import sys
+import traceback
 
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
@@ -27,7 +28,7 @@ ner_parser = NERArgParser()
 args, leftovers = ner_parser.parser.parse_known_args()
 if leftovers:
     logger.warning(f'The following args is not relevant for this model: '
-                   f'{leftovers}.. ignoring')
+                   f'{leftovers}. Ignoring...')
 
 args.cmd_line_args = sys.argv
 
@@ -58,4 +59,4 @@ try:
     logger.info(
         f'Model {ner_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'Model {ner_modelling.args.output_name} failed:\n{ex}')
+    logger.error(f'Model {ner_modelling.args.output_name} failed:\n{traceback.format_exc()}')
