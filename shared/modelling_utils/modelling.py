@@ -625,7 +625,7 @@ class Modelling:
         """
         # set up preliminaries
         # if not next(model.parameters()).is_cuda:
-        #     model = model.to(self.args.device)
+        model = model.to(self.args.device)
 
         model.eval()
 

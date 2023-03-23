@@ -61,8 +61,8 @@ class NERModelling(Modelling):
         :return: mean eval loss and mean accuracy
         """
         # ToDo: check if relevant
-        if not next(model.parameters()).is_cuda:
-            model = model.to(self.args.device)
+
+        model = model.to(self.args.device)
 
         model.eval()
 
@@ -218,68 +218,68 @@ class NERModelling(Modelling):
 
         return wrapped
 
-    def tokenize_and_wrap_data_old(self, data: Dataset):
-        """
-        Tokenize dataset with tokenize_function and wrap with DatasetWrapper
-        :param data: Dataset
-        :return: DatasetWrapper(Dataset)
-        """
-
-        def tokenize_and_align_labels_old(examples):
-            # print(examples['tokens'])
-            tokenized_inputs = self.tokenizer(examples["tokens"],
-                                              truncation=True,
-                                              is_split_into_words=True,
-                                              padding='max_length',
-                                              max_length=self.args.max_length)
-
-            labels = []
-            labels_tokenized = []
-            for i, label in enumerate(examples["ner_tags"]):
-
-                label_tokenized = self.tokenizer.tokenize(
-                    ' '.join(examples['tokens'][i]))
-                label_tokenized.insert(0, "-100")
-                label_tokenized.append("-100")
-
-                word_ids = tokenized_inputs.word_ids(
-                    batch_index=i)  # Map tokens to their respective word.
-
-                previous_word_idx = None
-                label_ids = []
-                for word_idx in word_ids:  # Set the special tokens to -100.
-                    if word_idx is None:
-                        label_ids.append(-100)
-                    elif word_idx != previous_word_idx:
-                        # Only label the first token of a given word.
-                        label_ids.append(label[word_idx])
-                    else:
-                        label_ids.append(-100)
-                    previous_word_idx = word_idx
-                labels.append(label_ids)
-                labels_tokenized.append(label_tokenized)
-
-            tokenized_inputs["labels"] = labels
-            tokenized_inputs["labels_tokenized"] = labels_tokenized
-
-            return tokenized_inputs
-
-        tokenized_dataset = data.map(tokenize_and_align_labels_old,
-                                     batched=True)
-        # tokenized_dataset_new = tokenized_dataset.remove_columns(
-        #     )
-        if self.args.train_data == 'wikiann':
-            tokenized_dataset_new = tokenized_dataset.remove_columns(
-                ["spans", "langs", "ner_tags", "labels_tokenized", "tokens"])
-        else:
-            tokenized_dataset_new = tokenized_dataset.remove_columns(
-                ['sent_id', 'text', 'tok_ids', 'tokens', 'lemmas', 'pos_tags',
-                 'morph_tags',
-                 'dep_ids', 'dep_labels', 'ner_tags', 'labels_tokenized'])
-
-        # wrapped = DatasetWrapper(tokenized_dataset_new)
-
-        return tokenized_dataset_new
+    # def tokenize_and_wrap_data_old(self, data: Dataset):
+    #     """
+    #     Tokenize dataset with tokenize_function and wrap with DatasetWrapper
+    #     :param data: Dataset
+    #     :return: DatasetWrapper(Dataset)
+    #     """
+    #
+    #     def tokenize_and_align_labels_old(examples):
+    #         # print(examples['tokens'])
+    #         tokenized_inputs = self.tokenizer(examples["tokens"],
+    #                                           truncation=True,
+    #                                           is_split_into_words=True,
+    #                                           padding='max_length',
+    #                                           max_length=self.args.max_length)
+    #
+    #         labels = []
+    #         labels_tokenized = []
+    #         for i, label in enumerate(examples["ner_tags"]):
+    #
+    #             label_tokenized = self.tokenizer.tokenize(
+    #                 ' '.join(examples['tokens'][i]))
+    #             label_tokenized.insert(0, "-100")
+    #             label_tokenized.append("-100")
+    #
+    #             word_ids = tokenized_inputs.word_ids(
+    #                 batch_index=i)  # Map tokens to their respective word.
+    #
+    #             previous_word_idx = None
+    #             label_ids = []
+    #             for word_idx in word_ids:  # Set the special tokens to -100.
+    #                 if word_idx is None:
+    #                     label_ids.append(-100)
+    #                 elif word_idx != previous_word_idx:
+    #                     # Only label the first token of a given word.
+    #                     label_ids.append(label[word_idx])
+    #                 else:
+    #                     label_ids.append(-100)
+    #                 previous_word_idx = word_idx
+    #             labels.append(label_ids)
+    #             labels_tokenized.append(label_tokenized)
+    #
+    #         tokenized_inputs["labels"] = labels
+    #         tokenized_inputs["labels_tokenized"] = labels_tokenized
+    #
+    #         return tokenized_inputs
+    #
+    #     tokenized_dataset = data.map(tokenize_and_align_labels_old,
+    #                                  batched=True)
+    #     # tokenized_dataset_new = tokenized_dataset.remove_columns(
+    #     #     )
+    #     if self.args.train_data == 'wikiann':
+    #         tokenized_dataset_new = tokenized_dataset.remove_columns(
+    #             ["spans", "langs", "ner_tags", "labels_tokenized", "tokens"])
+    #     else:
+    #         tokenized_dataset_new = tokenized_dataset.remove_columns(
+    #             ['sent_id', 'text', 'tok_ids', 'tokens', 'lemmas', 'pos_tags',
+    #              'morph_tags',
+    #              'dep_ids', 'dep_labels', 'ner_tags', 'labels_tokenized'])
+    #
+    #     # wrapped = DatasetWrapper(tokenized_dataset_new)
+    #
+    #     return tokenized_dataset_new
 
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data

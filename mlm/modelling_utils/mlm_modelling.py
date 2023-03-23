@@ -106,8 +106,8 @@ class MLMModelling(Modelling):
             new_head.load_state_dict(
                 torch.load(self.model_path + '/head_weights.json'))
 
-            lm_head = new_head.to(self.args.device)
-            model.cls = lm_head
+            # lm_head = new_head.to(self.args.device)
+            model.cls = new_head
             # ToDo: For now we are freezing embedding layer until (maybe)
             #  we have implemented grad sampler -
             #  as this is not implemented in opacus
@@ -133,7 +133,7 @@ class MLMModelling(Modelling):
         config = BertConfig.from_pretrained(self.model_path)
         lm_head = BertOnlyMLMHeadCustom(config)
         # ToDo: Model to device
-        lm_head = lm_head.to(self.args.device)
+        # lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
 
         if self.args.freeze_embeddings:
@@ -149,10 +149,9 @@ class MLMModelling(Modelling):
         collator_class = DataCollatorForWholeWordMask if \
             self.args.whole_word_mask else DataCollatorForLanguageModeling
 
-        return collator_class(
-            tokenizer=self.tokenizer,
-            mlm=True,
-            mlm_probability=self.args.mlm_prob)
+        return collator_class(tokenizer=self.tokenizer,
+                              mlm=True,
+                              mlm_probability=self.args.mlm_prob)
 
     def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
         """
@@ -162,8 +161,8 @@ class MLMModelling(Modelling):
         :param val_loader:
         :return: mean eval loss and mean accuracy
         """
-        if not next(model.parameters()).is_cuda:
-            model = model.to(self.args.device)
+        # if not next(model.parameters()).is_cuda:
+        model = model.to(self.args.device)
 
         model.eval()
 

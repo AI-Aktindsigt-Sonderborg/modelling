@@ -56,8 +56,8 @@ class SequenceClassification(Modelling):
         :return: mean loss, accuracy-score, f1-score
         """
         # set up preliminaries
-        if not next(model.parameters()).is_cuda:
-            model = model.to(self.args.device)
+        # if not next(model.parameters()).is_cuda:
+        model = model.to(self.args.device)
 
         model.eval()
 
@@ -145,9 +145,10 @@ class SequenceClassification(Modelling):
         tokens['labels'] = self.class_labels.str2int(batch['label'])
         return tokens
 
-    def tokenize2(self, batch):
+    def tokenize_for_windowed_embeddings(self, batch):
         """
-        Tokenize each batch in dataset
+        This function is only used when running a window function on sentences
+        that are too long. Only relevant for demo atm.
         @param batch: batch of data
         @return: tokens for each batch
         """
@@ -210,7 +211,7 @@ class SequenceClassification(Modelling):
     def create_embeddings_windowed(self, model, save_dict: bool = False):
 
         tokenized = self.data.test.map(
-            self.tokenize2,
+            self.tokenize_for_windowed_embeddings,
             batched=True,
             remove_columns=self.data.test.column_names,
             load_from_cache_file=False,
@@ -241,6 +242,7 @@ class SequenceClassification(Modelling):
                     labels=batch["labels"].to(self.args.device),
                     output_hidden_states=True,
                     return_dict=True)
+
                 pred = output.logits.argmax(-1).detach().cpu().numpy()[0]
                 pred_actual = self.id2label[pred]
 
