@@ -138,7 +138,7 @@ def log_train_metrics_dp(epoch: int, step: int, lr: float,
 
 def save_key_metrics(output_dir: str, args,
                      best_metrics: dict,
-                     total_steps: int, filename: str = 'key_metrics'):
+                     filename: str = 'key_metrics'):
     """
     Save important args and performance for benchmarking
     :param output_dir: output directory
@@ -164,7 +164,7 @@ def save_key_metrics(output_dir: str, args,
                'delta': args.delta,
                'lot_size': args.lot_size,
                'train_data': args.train_data,
-               'total_steps': total_steps}
+               'total_steps': args.total_steps}
 
     if 'replace_head' in list(args.__dict__):
         metrics['replace_head'] = args.replace_head

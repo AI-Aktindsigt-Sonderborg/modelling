@@ -334,8 +334,7 @@ class Modelling:
 
                 save_key_metrics(output_dir=self.metrics_dir,
                                  args=self.args,
-                                 best_metrics=best_metrics,
-                                 total_steps=self.args.total_steps)
+                                 best_metrics=best_metrics)
 
             if self.args.make_plots:
                 plot_running_results(
@@ -409,7 +408,6 @@ class Modelling:
                 lr=get_lr(optimizer)[0],
                 loss=float(np.mean(train_losses)),
                 logging_steps=self.args.logging_steps)
-
             step += 1
 
         if self.data.eval:
@@ -626,8 +624,8 @@ class Modelling:
         :return: mean loss, accuracy-score, f1-score
         """
         # set up preliminaries
-        if not next(model.parameters()).is_cuda:
-            model = model.to(self.args.device)
+        # if not next(model.parameters()).is_cuda:
+        #     model = model.to(self.args.device)
 
         model.eval()
 
