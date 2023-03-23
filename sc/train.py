@@ -27,7 +27,7 @@ sc_parser = SequenceModellingArgParser()
 try:
     args = sc_parser.parser.parse_args()
 except Exception as ex:
-    logger.warning(
+    logger.error(
         f'{ex}')
     sc_parser.parser.exit()
 

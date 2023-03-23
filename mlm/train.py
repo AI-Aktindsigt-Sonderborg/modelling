@@ -23,7 +23,15 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 mlm_parser = MLMArgParser()
-args = mlm_parser.parser.parse_args()
+
+try:
+    args = mlm_parser.parser.parse_args()
+except Exception as ex:
+    logger.error(
+        f'{ex}')
+    mlm_parser.parser.exit()
+
+
 
 args.cmd_line_args = sys.argv
 
