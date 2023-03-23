@@ -6,7 +6,7 @@ import sys
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 
-logger = logging.getLogger('MLM model log')
+logger = logging.getLogger('NER model log')
 logger.setLevel(logging.DEBUG)
 
 fh = logging.FileHandler('model_log.log')
