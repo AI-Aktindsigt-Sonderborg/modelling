@@ -36,7 +36,7 @@ if leftovers:
                    f'{leftovers}. Ignoring...')
 
 if args.freeze_layers:
-    logger.error(
+    logger.warning(
         f'Freezing layers for model {model_name_to_print} has not been '
         f'implemented')
     args.freeze_layers = False
