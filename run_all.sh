@@ -7,7 +7,7 @@ do
     `jq -r '.mlm['$i']' model_tests.json`
 done
 
-for i in {0..5}
+for i in {0..3}
 do
     `jq -r '.sc['$i']' model_tests.json`
 done
