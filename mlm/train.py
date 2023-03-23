@@ -28,7 +28,7 @@ mlm_parser = MLMArgParser()
 args, leftovers = mlm_parser.parser.parse_known_args()
 if leftovers:
     logger.warning(f'The following args is not relevant for this model: '
-                   f'{leftovers}')
+                   f'{leftovers}.. ignoring')
 
 args.cmd_line_args = sys.argv
 
