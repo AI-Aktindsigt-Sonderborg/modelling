@@ -24,7 +24,13 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 sc_parser = SequenceModellingArgParser()
-args = sc_parser.parser.parse_args()
+try:
+    args = sc_parser.parser.parse_args()
+except Exception as ex:
+    logger.warning(
+        f'{ex}')
+    sc_parser.parser.exit()
+
 args.cmd_line_args = sys.argv
 
 label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1,
