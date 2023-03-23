@@ -23,13 +23,12 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+# argument parser for SC model
 sc_parser = SequenceModellingArgParser()
-try:
-    args = sc_parser.parser.parse_args()
-except Exception as ex:
-    logger.error(
-        f'{ex}')
-    sc_parser.parser.exit()
+
+args, leftovers = sc_parser.parser.parse_known_args()
+logger.warning(f'The following args is not relevant for this model: '
+               f'{leftovers}')
 
 args.cmd_line_args = sys.argv
 

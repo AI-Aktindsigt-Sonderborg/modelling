@@ -22,14 +22,13 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+# argument parser for MLM model
 mlm_parser = MLMArgParser()
 
-try:
-    args = mlm_parser.parser.parse_args()
-except Exception as ex:
-    logger.error(
-        f'{ex}')
-    mlm_parser.parser.exit()
+args, leftovers = mlm_parser.parser.parse_known_args()
+logger.warning(f'The following args is not relevant for this model: '
+               f'{leftovers}')
+
 
 
 
