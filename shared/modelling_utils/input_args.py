@@ -6,6 +6,7 @@ class ModellingArgParser:
     """
     Class to handle input args for unsupervised Masked Language Modelling
     """
+
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -69,7 +70,13 @@ class ModellingArgParser:
             help="number of steps to train head only - if freeze_layers is true"
                  " freeze_layers_n_steps must be > 0",
             metavar='<int>')
-
+        model_params.add_argument(
+            "--sc_demo",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<bool>',
+            help="whether to use model for demo purposes - this is not for"
+                 "training")
 
     def add_training_params(self):
         """
@@ -171,7 +178,6 @@ class ModellingArgParser:
             "-lrsd", "--lr_start_decay", type=int, default=46000,
             metavar='<int>',
             help="after which step to start decaying learning rate")
-
 
     def add_eval_params(self):
         """
