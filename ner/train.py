@@ -28,14 +28,18 @@ ner_parser = NERArgParser()
 args, leftovers = ner_parser.parser.parse_known_args()
 
 
-if args.custom_model_name:
-    model_name_to_print = args.custom_model_name
-if leftovers:
-    model_name_to_print = args.custom_model_name if \
+model_name_to_print = args.custom_model_name if \
         args.custom_model_name else args.model_name
+if leftovers:
     logger.warning(f'The following args is not relevant for model '
                    f'{model_name_to_print}: '
                    f'{leftovers}. Ignoring...')
+
+if args.freeze_layers:
+    logger.error(
+        f'Freezing layers for model {model_name_to_print} has not been '
+        f'implemented')
+    args.freeze_layers = False
 
 args.cmd_line_args = sys.argv
 
