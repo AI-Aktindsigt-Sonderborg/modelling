@@ -32,19 +32,30 @@ if leftovers:
 args.cmd_line_args = sys.argv
 
 if args.differential_privacy:
+    ner_modelling = NERModellingDP(args=args)
     if not ((args.lot_size > args.train_batch_size)
             and (args.lot_size % args.train_batch_size == 0)):
-        print(ner_parser.parser._option_string_actions['--lot_size'].help)
+        logger.warning(
+            f'Model: {ner_modelling.args.output_name} - '
+            f'{ner_parser.parser._option_string_actions["--lot_size"].help}')
         print('exiting - try again')
         ner_parser.parser.exit()
     elif not args.freeze_embeddings:
+        logger.error(
+            f'Model: {ner_modelling.args.output_name} - '
+            f'{ner_parser.parser._option_string_actions["--freeze_embeddings"].help}')
         print(ner_parser.parser._option_string_actions[
                   '--freeze_embeddings'].help)
         print('exiting - try again')
         ner_parser.parser.exit()
 
-    ner_modelling_dp = NERModellingDP(args=args)
-    ner_modelling_dp.train_model()
 else:
     ner_modelling = NERModelling(args=args)
+
+try:
+    logger.info(f"Training model {ner_modelling.args.output_name}")
     ner_modelling.train_model()
+    logger.info(
+        f'Model {ner_modelling.args.output_name} trained succesfully')
+except Exception as ex:
+    logger.error(f'Model {ner_modelling.args.output_name} failed:\n{ex}')

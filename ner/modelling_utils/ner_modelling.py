@@ -141,7 +141,8 @@ class NERModelling(Modelling):
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
                          f_1_none=list(f_1_none))
 
-    def load_data(self, train: bool = True, test: bool = False):
+    def load_data(self, train: bool = True, test: bool = False,
+                  subset: int = 10):
         """
         Load data using datasets.load_dataset for training and evaluation
         This method is temporarily set to load dane data
@@ -149,7 +150,7 @@ class NERModelling(Modelling):
         :param test: Whether to load test data
         """
         if train:
-            self.data.train = get_dane_train(subset=None)
+            self.data.train = get_dane_train(subset=subset)
             print(f'len train: {len(self.data.train)}')
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size
@@ -167,11 +168,11 @@ class NERModelling(Modelling):
                 self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
-            self.data.eval = get_dane_val(subset=None)
+            self.data.eval = get_dane_val(subset=subset)
             print(f'len eval: {len(self.data.eval)}')
 
         if test:
-            self.data.test = get_dane_test(subset=None)
+            self.data.test = get_dane_test(subset=subset)
 
     def load_model_and_replace_bert_head(self):
         """
