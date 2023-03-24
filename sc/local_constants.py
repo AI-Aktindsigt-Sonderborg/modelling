@@ -13,4 +13,3 @@ PREP_DATA_DIR = os.path.join(DATA_DIR, 'preprocessed_data')
 # SCRAPED_DATA_DIR = os.path.join(DATA_DIR, 'scraped_data')
 # FILTERED_SCRAPE_DIR = os.path.join(DATA_DIR, 'filtered_scrape')
 CLASS_DATA_DIR = os.path.join(DATA_DIR, 'classified_data')
-

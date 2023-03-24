@@ -207,9 +207,14 @@ class SequenceClassification(Modelling):
                                decoded_text=decoded_text,
                                embedding=embedding)
 
-    # To Søren: Below function does not need to be reviewed.
     def create_embeddings_windowed(self, model, save_dict: bool = False):
-
+        """
+        Method only relevant for demo purposes - see also
+        tokenize_for_windowed_embeddings
+        :param model:
+        :param save_dict:
+        :return:
+        """
         tokenized = self.data.test.map(
             self.tokenize_for_windowed_embeddings,
             batched=True,

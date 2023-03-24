@@ -132,7 +132,6 @@ class MLMModelling(Modelling):
             local_files_only=self.args.load_alvenir_pretrained)
         config = BertConfig.from_pretrained(self.model_path)
         lm_head = BertOnlyMLMHeadCustom(config)
-        # ToDo: Model to device
         # lm_head = lm_head.to(self.args.device)
         model.cls = lm_head
 

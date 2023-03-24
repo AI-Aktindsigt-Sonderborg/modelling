@@ -1,5 +1,3 @@
-import os
-
 import evaluate
 import numpy as np
 from transformers import TrainingArguments, Trainer
@@ -13,8 +11,6 @@ metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
-# args.load_alvenir_pretrained = False
-
 
 label_list, id2label, label2id = get_label_list()
 
@@ -39,6 +35,7 @@ def compute_metrics(eval_preds):
     all_metrics = metric.compute(predictions=true_predictions,
                                  references=true_labels)
     return all_metrics
+
 
 def tokenize_and_align_labels(examples):
     tokenized_inputs = ner_modelling.tokenizer(

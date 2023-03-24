@@ -1,4 +1,4 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access, broad-except
 """Main script to train a sequence-classification model with custom train
 loop"""
 import sys

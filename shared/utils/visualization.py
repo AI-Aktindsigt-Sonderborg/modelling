@@ -63,8 +63,8 @@ def plot_confusion_matrix(
     y_true,
     y_pred,
     labels,
-    plots_dir: str,
     model_name: str,
+    plots_dir: str = None,
     normalize: str = 'true',
     save_fig: bool = True):
     """Function is self-explanatory"""

@@ -1,6 +1,5 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access, broad-except
 """Main script to train a ner model with custom train loop"""
-import logging
 import sys
 import traceback
 

@@ -1,4 +1,4 @@
-# pylint: disable=protected-access
+# pylint: disable=protected-access, broad-except
 """Main script to train a Masked Language Model with custom train
 loop"""
 import sys
@@ -62,15 +62,6 @@ else:
     args.compute_delta = None
     args.max_grad_norm = None
     mlm_modelling = MLMModelling(args=args)
-    # try:
-    #     logger.info(f"Training model {mlm_modelling.args.output_name}")
-    #     mlm_modelling.train_model()
-    #     logger.info(
-    #         f'Model {mlm_modelling.args.output_name} trained succesfully')
-    #     # print(f'\033[94m\nModel {mlm_modelling.args.output_name}'
-    #     #       f'was trained with great success\033[0m')
-    # except Exception as ex:
-    #     logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{ex}')
 
 try:
     logger.info(f"Training model {mlm_modelling.args.output_name}")
