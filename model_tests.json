@@ -1,0 +1,25 @@
+{
+  "mlm": [
+    "python -m mlm.train -cmn model_test --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m mlm.train -cmn model_dp_test --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m mlm.train -cmn model_test_full --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 50 -flns 10",
+    "python -m mlm.train -cmn model_dp_test_full --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m mlm.train -cmn model_test_lap --epochs 3 -dp false -lap true -mn last_model --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m mlm.train -cmn model_dp_test_lap --epochs 3 -dp true -lap true -mn last_model --train_data t100.json --eval_data v50.json -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25"
+  ],
+  "sc": [
+    "python -m sc.train -cmn model_test --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m sc.train -cmn model_dp_test --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fl true -rh true -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m sc.train -cmn model_test_full --epochs 3 -dp false -lap false -mn distil --train_data t100.json --eval_data v50.json -fl false -rh true -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 50 -flns 10",
+    "python -m sc.train -cmn model_dp_test_full --epochs 3 -dp true -lap false -mn distil --train_data t100.json --eval_data v50.json -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m sc.train -cmn model_test_lap --epochs 3 -dp false -lap true -mn last_model --train_data t100.json --eval_data v50.json -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m sc.train -cmn model_dp_test_lap --epochs 3 -dp true -lap true -mn last_model --train_data t100.json --eval_data v50.json -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25"
+],
+  "ner": [
+    "python -m ner.train -cmn model_test --epochs 3 -dp false -lap false -mn base -fl true -rh true -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m ner.train -cmn model_dp_test --epochs 3 -dp true -lap false -mn base -fl true -rh true -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 -flns 10",
+    "python -m ner.train -cmn model_test_full --epochs 3 -dp false -lap false -mn base -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 50 -flns 10",
+    "python -m ner.train -cmn model_dp_test_full --epochs 3 -dp true -lap false -mn base -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m ner.train -cmn model_test_lap --epochs 3 -dp false -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m ner.train -cmn model_dp_test_lap --epochs 3 -dp true -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25"]
+}
