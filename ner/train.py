@@ -57,4 +57,5 @@ try:
         f'Model {ner_modelling.args.output_name} trained succesfully')
 except Exception as ex:
     logger.error(
-        f'Model {ner_modelling.args.output_name} failed:\n{traceback.format_exc()}')
+        f'Model {ner_modelling.args.output_name} '
+        f'failed:\n{traceback.format_exc()}')

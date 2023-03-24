@@ -70,4 +70,5 @@ try:
         f'Model {mlm_modelling.args.output_name} trained succesfully')
 except Exception as ex:
     logger.error(
-        f'Model {mlm_modelling.args.output_name} failed:\n{traceback.format_exc()}')
+        f'Model {mlm_modelling.args.output_name} '
+        f'failed:\n{traceback.format_exc()}')
