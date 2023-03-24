@@ -11,10 +11,15 @@ from root_constants import SC_ROOT, MLM_ROOT, NER_ROOT
 nltk.download('punkt')
 nltk.download('stopwords')
 
+GENERIC_DIRS = ['logs', 'tests']
 PROJECT_DIRS = [MLM_ROOT, NER_ROOT, SC_ROOT]
-GENERIC_DIRS = ['data', 'metadata', 'models', 'plots', 'preprocessed_data',
-                'results']
+PROJECT_GENERIC_DIRS = ['data', 'metadata', 'models', 'plots',
+                        'preprocessed_data', 'results']
+
+for generic_dir in GENERIC_DIRS:
+    os.makedirs(generic_dir, exist_ok=True)
 
 for project_dir in PROJECT_DIRS:
-    for generic_dir in GENERIC_DIRS:
-        os.makedirs(os.path.join(project_dir, generic_dir), exist_ok=True)
+    for project_generic_dir in PROJECT_GENERIC_DIRS:
+        os.makedirs(os.path.join(project_dir, project_generic_dir),
+                    exist_ok=True)

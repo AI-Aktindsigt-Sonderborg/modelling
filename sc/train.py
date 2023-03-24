@@ -1,28 +1,15 @@
 # pylint: disable=protected-access
 """Main script to train a sequence-classification model with custom train
 loop"""
-import logging
 import sys
 import traceback
 
 from sc.modelling_utils.input_args import SequenceModellingArgParser
 from sc.modelling_utils.sequence_classification import \
     SequenceClassificationDP, SequenceClassification
+from shared.utils.helpers import init_logging
 
-logger = logging.getLogger('SC model log')
-logger.setLevel(logging.DEBUG)
-
-fh = logging.FileHandler('model_log.log')
-fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
+logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 
 # argument parser for SC model
 sc_parser = SequenceModellingArgParser()
@@ -40,7 +27,6 @@ if args.freeze_layers:
         f'Freezing layers for model {model_name_to_print} has not been '
         f'implemented')
     args.freeze_layers = False
-
 
 args.cmd_line_args = sys.argv
 
@@ -82,5 +68,5 @@ try:
     logger.info(
         f'Model {sc_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'Model {sc_modelling.args.output_name} failed:\n{traceback.format_exc()}')
-
+    logger.error(
+        f'Model {sc_modelling.args.output_name} failed:\n{traceback.format_exc()}')

@@ -1,27 +1,14 @@
 # pylint: disable=protected-access
 """Main script to train a Masked Language Model with custom train
 loop"""
-import logging
 import sys
 import traceback
 
-from mlm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
 from mlm.modelling_utils.input_args import MLMArgParser
+from mlm.modelling_utils.mlm_modelling import MLMModelling, MLMModellingDP
+from shared.utils.helpers import init_logging
 
-logger = logging.getLogger('MLM model log')
-logger.setLevel(logging.DEBUG)
-
-fh = logging.FileHandler('model_log.log')
-fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
+logger = init_logging(model_type='MLM', log_path='logs/model_log.log')
 
 # argument parser for MLM model
 mlm_parser = MLMArgParser()
@@ -91,4 +78,5 @@ try:
     logger.info(
         f'Model {mlm_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'Model {mlm_modelling.args.output_name} failed:\n{traceback.format_exc()}')
+    logger.error(
+        f'Model {mlm_modelling.args.output_name} failed:\n{traceback.format_exc()}')

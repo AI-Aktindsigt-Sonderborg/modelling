@@ -6,30 +6,17 @@ import traceback
 
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
+from shared.utils.helpers import init_logging
 
-logger = logging.getLogger('NER model log')
-logger.setLevel(logging.DEBUG)
-
-fh = logging.FileHandler('model_log.log')
-fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
+logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 
 # argument parser for NER model
 ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 
-
 model_name_to_print = args.custom_model_name if \
-        args.custom_model_name else args.model_name
+    args.custom_model_name else args.model_name
 if leftovers:
     logger.warning(f'The following args is not relevant for model '
                    f'{model_name_to_print}: '
@@ -70,4 +57,5 @@ try:
     logger.info(
         f'Model {ner_modelling.args.output_name} trained succesfully')
 except Exception as ex:
-    logger.error(f'Model {ner_modelling.args.output_name} failed:\n{traceback.format_exc()}')
+    logger.error(
+        f'Model {ner_modelling.args.output_name} failed:\n{traceback.format_exc()}')

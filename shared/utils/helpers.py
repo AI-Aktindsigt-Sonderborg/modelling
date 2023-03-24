@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 from typing import Optional, List
@@ -33,6 +34,29 @@ def count_num_lines(file_path):
 def fix_and_validate(model):
     model = ModuleValidator.fix_and_validate(model)
     return model
+
+def init_logging(model_type: str, log_path: str):
+    """
+    Method to set up log file to write logs
+    :param model_type: model of type either NER, SC or MLM
+    :param log_path: path to log file
+    :return: logger
+    """
+    logger = logging.getLogger(f'{model_type} model log')
+    logger.setLevel(logging.DEBUG)
+
+    fh = logging.FileHandler(log_path)
+    fh.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.ERROR)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    # add the handlers to the logger
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
 
 
 class TimeCode:
