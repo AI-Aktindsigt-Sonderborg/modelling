@@ -142,7 +142,7 @@ class NERModelling(Modelling):
                          f_1_none=list(f_1_none))
 
     def load_data(self, train: bool = True, test: bool = False,
-                  subset = None):
+                  subset: int = 10):
         """
         Load data using datasets.load_dataset for training and evaluation
         This method is temporarily set to load dane data
