@@ -25,6 +25,12 @@ class NERArgParser(ModellingArgParser):
         data_params.add_argument("--eval_data", type=str, default='dane',
                                  help="validation data file name",
                                  metavar='<str>')
+        data_params.add_argument("--data_subset", type=int, default=None,
+                                 help="Whether to subset data. Must be int "
+                                      "between 1 and 100=None. Only relevant "
+                                      "while we are training and testing on "
+                                      "dane.",
+                                 metavar='<int>')
 
     def add_ner_params(self):
         """
