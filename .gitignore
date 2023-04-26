@@ -11,3 +11,5 @@ metadata/*
 /*/data/*
 /docs/build/*
 logs/*
+*.pyc
+*.pyo
