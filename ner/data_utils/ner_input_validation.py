@@ -54,5 +54,5 @@ for i, obs in enumerate(data_bilou):
         print(traceback.format_exc())
         print(f'{e}')
 
-print(f'Antal dokumenter med fejl: {error_count}, Antal annotations med fejl: {annotation_errors}')
+print(f'Antal dokumenter med fejl: {error_count}, Antal annotations med fejl: {annotation_errors} (annotations i alt: {j})')
 print(f'Antal bilou fejl: {bilou_error_count}')
