@@ -7,6 +7,7 @@ data = read_jsonlines(DATA_DIR, filename)
 data_bilou = read_jsonlines(DATA_DIR, filename_bilou)
 error_count = 0
 annotation_errors = 0
+annotation_counter = 0
 for i, obs in enumerate(data):
     try:
         assert isinstance(obs['id'], int)
@@ -34,6 +35,7 @@ for i, obs in enumerate(data):
                     assert index == content
                 except:
                     annotation_errors = annotation_errors + 1
+            annotation_counter = annotation_counter + j
             k = k + 1
     except Exception as e:
         error_count = error_count + 1
@@ -54,5 +56,5 @@ for i, obs in enumerate(data_bilou):
         print(traceback.format_exc())
         print(f'{e}')
 
-print(f'Antal dokumenter med fejl: {error_count}, Antal annotations med fejl: {annotation_errors} (annotations i alt: {j})')
+print(f'Antal dokumenter med fejl: {error_count}, Antal annotations med fejl: {annotation_errors} (annotations i alt: {annotation_counter})')
 print(f'Antal bilou fejl: {bilou_error_count}')
