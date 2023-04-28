@@ -27,7 +27,7 @@ from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import append_json
+from shared.utils.helpers import append_json_lines
 from shared.utils.visualization import plot_confusion_matrix
 
 seqeval = evaluate.load('seqeval')
@@ -112,7 +112,7 @@ class NERModelling(Modelling):
                 all_metrics[k] = float(v)
         # --------------------------------------------------------------------
 
-        append_json(output_dir=self.metrics_dir, data=all_metrics,
+        append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
                     filename='seqeval_metrics')
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
