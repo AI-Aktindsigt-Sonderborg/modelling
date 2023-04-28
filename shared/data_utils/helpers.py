@@ -1,7 +1,3 @@
-import json
-import os
-from typing import List
-
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -22,33 +18,6 @@ class DatasetWrapper(Dataset):
 
     def __len__(self):
         return len(self.dataset)
-
-
-def write_json_lines(out_dir: str, filename: str, data: List[dict]):
-    """
-    Write json_lines_file based on list of dictionaries
-    :param out_dir: directory
-    :param filename: filename to write
-    :param data: input data
-    """
-    with open(os.path.join(out_dir, filename + '.json'), 'w',
-              encoding='utf-8') as outfile:
-        for entry in data:
-            json.dump(entry, outfile)
-            outfile.write('\n')
-
-
-def write_text_lines(out_dir: str, filename: str, data: List[str]):
-    """
-    Write text file based on list of strings
-    :param out_dir: directory
-    :param filename: filename to write
-    :param data: input data
-    """
-    with open(os.path.join(out_dir, f'{filename}.txt'), 'w',
-              encoding='utf-8') as outfile:
-        for entry in data:
-            outfile.write(f"{entry}\n")
 
 
 def score_gpt2(text: str, model, tokenizer, device: str = 'cuda'):

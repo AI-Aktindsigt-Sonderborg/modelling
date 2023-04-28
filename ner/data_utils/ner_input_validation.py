@@ -1,10 +1,12 @@
-from shared.utils.helpers import read_jsonlines
+from shared.utils.helpers import read_json_lines
 from ner.local_constants import DATA_DIR
 import traceback
+
 filename = 'user_annotated_output'
 filename_bilou = "bilou_output_user_annotated"
-data = read_jsonlines(DATA_DIR, filename)
-data_bilou = read_jsonlines(DATA_DIR, filename_bilou)
+
+data = read_json_lines(DATA_DIR, filename)
+data_bilou = read_json_lines(DATA_DIR, filename_bilou)
 error_count = 0
 annotation_errors = 0
 annotation_counter = 0
