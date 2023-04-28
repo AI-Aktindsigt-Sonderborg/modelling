@@ -9,7 +9,7 @@ from sc.modelling_utils.sequence_classification import \
     SequenceClassificationDP, SequenceClassification
 from shared.utils.helpers import init_logging
 
-logger = init_logging(model_type='NER', log_path='logs/model_log.log')
+logger = init_logging(model_type='SC', log_path='logs/model_log.log')
 
 # argument parser for SC model
 sc_parser = SequenceModellingArgParser()
