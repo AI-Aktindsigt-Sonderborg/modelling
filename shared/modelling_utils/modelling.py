@@ -28,7 +28,9 @@ from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 
 class Modelling:
-
+    """
+    General class for model training
+    """
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
