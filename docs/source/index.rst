@@ -9,21 +9,19 @@ Content:
 
 #. Modelcard - se huggingface modelcard (Kasper)
 
-#. Introduktion - hvad er AI-signatur projekt - motivation bag modellerne (Kasper)
+#. Introduktion - hvad er AI-signatur projekt - motivation bag modellerne (Martin)
 
-#. Model usage - Swagger dokumentation - henvendt til software udvikler (??)
+#. Model usage - Swagger dokumentation - henvendt til software udvikler (Bør være lavet - Martin)
 
 	* Inference kode snippet (Kasper)
 	
-	* API suggestion (Deployment suggestion) (??)
+	* API suggestion (Deployment suggestion) (Martin)
 
 	* Træningseksempler - CLI argumenter for hver modeltype (Kasper)
 
-#. Kode dokumentation - autogenereret fra doc strings (Training API) (Kasper)
+#. Kode dokumentation - autogenereret fra doc strings (Kasper)
 
-	* **But what is Training API??**
-
-#. Data clarification - hvad skal modellerne tage af input? (??)
+#. Data clarification - hvad skal modellerne tage af input? (Kasper)
 
 
 .. toctree::
