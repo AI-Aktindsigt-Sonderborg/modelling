@@ -22,13 +22,15 @@ from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
     save_key_metrics, validate_model, predefined_hf_models
-from shared.utils.helpers import append_json, TimeCode
+from shared.utils.helpers import append_json_lines, TimeCode
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 
 class Modelling:
-
+    """
+    General class for model training
+    """
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
@@ -431,7 +433,7 @@ class Modelling:
             optimizer=optimizer,
             step=step)
 
-        append_json(
+        append_json_lines(
             output_dir=self.metrics_dir,
             filename='learning_rates',
             data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
@@ -456,7 +458,7 @@ class Modelling:
             eval_score.step = step
             eval_score.epoch = epoch
 
-            append_json(output_dir=self.metrics_dir,
+            append_json_lines(output_dir=self.metrics_dir,
                         filename='eval_scores',
                         data=dataclasses.asdict(eval_score))
             eval_scores.append(eval_score)
@@ -475,7 +477,7 @@ class Modelling:
                     save_best_model=save_best_model)
 
         train_losses.append(loss.item())
-        append_json(output_dir=self.metrics_dir,
+        append_json_lines(output_dir=self.metrics_dir,
                     filename='train_loss',
                     data={'epoch': epoch,
                           'step': step,

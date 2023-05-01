@@ -16,11 +16,13 @@ from mlm.data_utils.helpers import split_sentences
 from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, \
     SCRAPED_DATA_DIR, PREP_DATA_DIR
 from sc.local_constants import CLASS_DATA_DIR
-from shared.data_utils.helpers import write_json_lines, \
-    write_text_lines, score_gpt2, load_model_for_ppl, \
+from shared.data_utils.helpers import score_gpt2, load_model_for_ppl, \
     find_letters_and_word_count
-from shared.utils.helpers import TimeCode, read_jsonlines
+from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
+    write_text_lines
 from shared.utils.helpers import count_num_lines
+
+DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
 
 
 class RawScrapePreprocessing:
@@ -121,8 +123,9 @@ class RawScrapePreprocessing:
                 print(f'File {filename} is not a scrape file')
         print("Finished extracting text.")
 
-    def create_unique_sentences(self,
-                                out_file_name: str = 'unique_sentences.json'):
+    def create_unique_sentences(
+        self,
+        out_file_name: str = DEFAULT_UNIQUE_SENTENCES_FILE):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
@@ -136,7 +139,7 @@ class RawScrapePreprocessing:
             model = None
             tokenizer = None
 
-        class_data = read_jsonlines(
+        class_data = read_json_lines(
             input_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
             filename='all_sentences')
         class_texts = [x['text'] for x in class_data]
@@ -272,7 +275,7 @@ class RawScrapePreprocessing:
         return None, seen
 
     def split_train_val(self,
-                        in_file: str = 'unique_sentences.json',
+                        in_file: str = DEFAULT_UNIQUE_SENTENCES_FILE,
                         seed: int = 42):
         """
         Split approved sentences to train and validation set and save as json
@@ -368,7 +371,7 @@ class RawScrapePreprocessing:
 
     @staticmethod
     def filter_ppl_scores(ppl_threshold: int = 10000,
-                          in_file_name: str = 'unique_sentences.json'):
+                          in_file_name: str = DEFAULT_UNIQUE_SENTENCES_FILE):
         """
         Filtering ppl scores from unique sentences - creates two files
         approved/disapproved
@@ -403,9 +406,9 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     prep_args.data_type = 'unlabelled'
-    prep_args.split_train_n_times = 2
+    # prep_args.split_train_n_times = 2
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    # data_preprocessor.from_raw_to_train_val()
+    data_preprocessor.from_raw_to_train_val()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()
-    data_preprocessor.split_train_val()
+    # data_preprocessor.split_train_val()

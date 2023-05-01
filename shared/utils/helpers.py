@@ -35,6 +35,7 @@ def fix_and_validate(model):
     model = ModuleValidator.fix_and_validate(model)
     return model
 
+
 def init_logging(model_type: str, log_path: str):
     """
     Method to set up log file to write logs
@@ -83,47 +84,58 @@ class TimeCode:
         print(print_string)
 
 
-def append_json(output_dir: str, data: dict, filename: str):
+def append_json_lines(output_dir: str, data: dict, filename: str,
+                extension: str = '.jsonl'):
     """
     append json line to jsonlines file
     :param output_dir: directory to save to
     :param data: List[dict]
     :param filename: output file name
     """
-    with open(os.path.join(output_dir, filename + '.json'), 'a',
+    with open(os.path.join(output_dir, filename + extension), 'a',
               encoding='utf-8') as outfile:
-        json.dump(data, outfile)
-        outfile.write('\n')
+        outfile.write(json.dumps(data) + "\n")
 
-
-def save_json(output_dir: str, data: List[dict], filename: str):
+def write_text_lines(out_dir: str, filename: str, data: List[str]):
     """
-    Save list of dicts to json dump
-    :param output_dir:
-    :param data: List[dict]
-    :param filename: output file name
+    Write text file based on list of strings
+    :param out_dir: directory
+    :param filename: filename to write
+    :param data: input data
     """
-    with open(os.path.join(output_dir, filename + '.json'), 'w',
+    with open(os.path.join(out_dir, f'{filename}.txt'), 'w',
               encoding='utf-8') as outfile:
         for entry in data:
-            json.dump(entry, outfile)
-            outfile.write('\n')
+            outfile.write(f"{entry}\n")
 
-
-def read_jsonlines(input_dir: str, filename: str):
+def read_json_lines(input_dir: str, filename: str, extension: str = '.jsonl'):
     """
     read json file to list of dicts
     :param input_dir: directory to read file from
     :param filename: input file name
     """
     data = []
-    with open(os.path.join(input_dir, filename + '.json'), 'r',
+    with open(os.path.join(input_dir, filename + extension), 'r',
               encoding='utf-8') as file:
         for line in file:
             data_dict = json.loads(line)
             data.append(data_dict)
     return data
 
+def write_json_lines(out_dir: str, filename: str, data: List[dict],
+                     extension: str = '.jsonl'):
+    """
+    Write json_lines_file based on list of dictionaries
+    :param out_dir: directory
+    :param filename: filename to write
+    :param data: input data
+    :param extension: file extension
+    """
+    with open(os.path.join(out_dir, filename + extension), 'w',
+              encoding='utf-8') as outfile:
+        for entry in data:
+            outfile.write(json.dumps(entry) + "\n")
+    print(f'Created file {os.path.join(out_dir, filename + extension)}')
 
 def read_json(filepath: str):
     """
@@ -131,7 +143,6 @@ def read_json(filepath: str):
     :param input_dir: directory to read file from
     :param filename: input file name
     """
-    data = []
     with open(filepath, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data

@@ -54,11 +54,11 @@ class MLMArgParser(ModellingArgParser):
         data_params = self.parser.add_argument_group('data')
         data_params.add_argument("--train_data",
                                  type=str,
-                                 default='train.json',
+                                 default='train.jsonl',
                                  help="training data file name",
                                  metavar='<str>')
         data_params.add_argument("--eval_data",
                                  type=str,
-                                 default='validation.json',
+                                 default='validation.jsonl',
                                  help="validation data file name",
                                  metavar='<str>')

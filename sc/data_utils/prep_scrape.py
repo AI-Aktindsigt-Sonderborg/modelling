@@ -8,8 +8,7 @@ from sklearn.model_selection import train_test_split
 
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
 from sc.local_constants import CLASS_DATA_DIR
-from shared.data_utils.helpers import write_json_lines
-from shared.utils.helpers import read_jsonlines, save_json
+from shared.utils.helpers import read_json_lines, write_json_lines
 
 
 class ClassifiedScrapePreprocessing:
@@ -43,12 +42,12 @@ class ClassifiedScrapePreprocessing:
                 data['ppl_score'] < ppl_filters[1])]
 
         data_dicts = data.to_dict('records')
-        save_json(output_dir=CLASS_DATA_DIR, data=data_dicts,
-                  filename=self.args.classified_scrape_file)
+        write_json_lines(out_dir=CLASS_DATA_DIR, data=data_dicts,
+                         filename=self.args.classified_scrape_file)
 
     def read_classified_json(self):
-        return read_jsonlines(input_dir=CLASS_DATA_DIR,
-                              filename=self.args.classified_scrape_file)
+        return read_json_lines(input_dir=CLASS_DATA_DIR,
+                               filename=self.args.classified_scrape_file)
 
     @staticmethod
     def group_data_by_class(list_data: List[dict]):
@@ -122,14 +121,17 @@ class ClassifiedScrapePreprocessing:
             test = list(itertools.chain.from_iterable([x[1] for x in val_test]))
 
         if train_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=train,
-                      filename=train_outfile)
+            write_json_lines(out_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
+                             data=train,
+                             filename=train_outfile)
         if val_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=val,
-                      filename=val_outfile)
+            write_json_lines(out_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
+                             data=val,
+                             filename=val_outfile)
         if test_outfile:
-            save_json(os.path.join(CLASS_DATA_DIR, 'processed'), data=test,
-                      filename=test_outfile)
+            write_json_lines(out_dir=os.path.join(CLASS_DATA_DIR, 'processed'),
+                             data=test,
+                             filename=test_outfile)
         return print('datasets generated')
 
     @staticmethod
@@ -139,7 +141,7 @@ class ClassifiedScrapePreprocessing:
         for filename in os.listdir(data_dir):
             filepath = os.path.join(data_dir, filename)
             if os.path.isfile(filepath):
-                tmp_data = read_jsonlines(input_dir=data_dir,
+                tmp_data = read_json_lines(input_dir=data_dir,
                                           filename=filename.split('.')[0])
                 for line in tmp_data:
                     if isinstance(line['text'], str):
@@ -166,6 +168,9 @@ if __name__ == '__main__':
     # prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
     class_prep = ClassifiedScrapePreprocessing(prep_args)
+    # class_prep.read_xls_save_json()
+
+
     concat_data = class_prep.concat_all_classified_data(
         lower_case=prep_args.lower_case)
     grouped_data = class_prep.group_data_by_class(list_data=concat_data)
