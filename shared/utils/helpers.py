@@ -94,8 +94,7 @@ def append_json_lines(output_dir: str, data: dict, filename: str,
     """
     with open(os.path.join(output_dir, filename + extension), 'a',
               encoding='utf-8') as outfile:
-        json.dump(data, outfile)
-        outfile.write('\n')
+        outfile.write(json.dumps(data) + "\n")
 
 def write_text_lines(out_dir: str, filename: str, data: List[str]):
     """
@@ -135,8 +134,7 @@ def write_json_lines(out_dir: str, filename: str, data: List[dict],
     with open(os.path.join(out_dir, filename + extension), 'w',
               encoding='utf-8') as outfile:
         for entry in data:
-            json.dump(entry, outfile)
-            outfile.write('\n')
+            outfile.write(json.dumps(entry) + "\n")
     print(f'Created file {os.path.join(out_dir, filename + extension)}')
 
 def read_json(filepath: str):

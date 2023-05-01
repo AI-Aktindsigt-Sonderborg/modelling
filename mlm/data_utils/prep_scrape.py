@@ -22,6 +22,8 @@ from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
     write_text_lines
 from shared.utils.helpers import count_num_lines
 
+DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
+
 
 class RawScrapePreprocessing:
     """
@@ -121,8 +123,9 @@ class RawScrapePreprocessing:
                 print(f'File {filename} is not a scrape file')
         print("Finished extracting text.")
 
-    def create_unique_sentences(self,
-                                out_file_name: str = 'unique_sentences.jsonl'):
+    def create_unique_sentences(
+        self,
+        out_file_name: str = DEFAULT_UNIQUE_SENTENCES_FILE):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
@@ -272,7 +275,7 @@ class RawScrapePreprocessing:
         return None, seen
 
     def split_train_val(self,
-                        in_file: str = 'unique_sentences.jsonl',
+                        in_file: str = DEFAULT_UNIQUE_SENTENCES_FILE,
                         seed: int = 42):
         """
         Split approved sentences to train and validation set and save as json
@@ -368,7 +371,7 @@ class RawScrapePreprocessing:
 
     @staticmethod
     def filter_ppl_scores(ppl_threshold: int = 10000,
-                          in_file_name: str = 'unique_sentences.jsonl'):
+                          in_file_name: str = DEFAULT_UNIQUE_SENTENCES_FILE):
         """
         Filtering ppl scores from unique sentences - creates two files
         approved/disapproved
