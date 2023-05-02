@@ -26,6 +26,7 @@ release = '0.1'
 
 extensions = ['recommonmark',
               'sphinx_rtd_theme',
+              # 'sphinx.ext.napoleon',
               'sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
               'sphinx_gallery.gen_gallery']

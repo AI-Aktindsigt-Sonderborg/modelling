@@ -47,7 +47,6 @@ for i, obs in enumerate(data):
         print(f'{e}')
 
 
-
 bilou_error_count = 0
 for i, obs in enumerate(data_bilou):
     try:

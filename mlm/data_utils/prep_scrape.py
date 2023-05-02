@@ -28,6 +28,7 @@ DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
 class RawScrapePreprocessing:
     """
     Class to preprocess raw data to ML from web scraper
+
     Attributes
     ----------
     train_output: str
@@ -38,12 +39,9 @@ class RawScrapePreprocessing:
 
     Example call
     ------------
-    data_preprocessor = RawScrapePreprocessing(
-                    train_output='train_new_scrape.json',
-                    val_output='val_new_scrape.json')
+    data_preprocessor = RawScrapePreprocessing(train_output='train_new_scrape.json', val_output='val_new_scrape.json')
     data_preprocessor.from_raw_to_train_val()
     """
-
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.sentence_splitter = nltk.data.load(
@@ -317,10 +315,11 @@ class RawScrapePreprocessing:
         dataset
         :param train_outfile: name of train file
         :param train: List[str] where each element is a valid sentence for
-         training
+        training
         :param val: List[str] where each element is a valid sentence for
-         validation
+        validation
         """
+
         if train and train_outfile:
             write_json_lines(out_dir=DATA_DIR, filename=train_outfile,
                              data=train)
