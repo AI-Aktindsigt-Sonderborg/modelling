@@ -27,10 +27,12 @@ from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 
+
 class Modelling:
     """
     General class for model training
     """
+
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
@@ -65,7 +67,8 @@ class Modelling:
             self.args.lot_size = self.args.train_batch_size
 
         if self.args.load_alvenir_pretrained:
-            model_dir = MLM_MODEL_DIR
+            model_dir = args.custom_model_dir if args.custom_model_dir \
+                else MLM_MODEL_DIR
             if self.args.sc_demo:
                 model_dir = SC_MODEL_DIR
             self.model_path = os.path.join(model_dir,
@@ -459,8 +462,8 @@ class Modelling:
             eval_score.epoch = epoch
 
             append_json_lines(output_dir=self.metrics_dir,
-                        filename='eval_scores',
-                        data=dataclasses.asdict(eval_score))
+                              filename='eval_scores',
+                              data=dataclasses.asdict(eval_score))
             eval_scores.append(eval_score)
 
             if self.args.save_steps is not None and (
@@ -478,10 +481,10 @@ class Modelling:
 
         train_losses.append(loss.item())
         append_json_lines(output_dir=self.metrics_dir,
-                    filename='train_loss',
-                    data={'epoch': epoch,
-                          'step': step,
-                          'score': float(np.mean(train_losses))})
+                          filename='train_loss',
+                          data={'epoch': epoch,
+                                'step': step,
+                                'score': float(np.mean(train_losses))})
         learning_rates.append(
             {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 

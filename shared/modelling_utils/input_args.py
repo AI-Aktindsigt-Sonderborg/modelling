@@ -29,7 +29,12 @@ class ModellingArgParser:
         Add model parameters
         """
         model_params = self.parser.add_argument_group('modelling')
-
+        model_params.add_argument(
+            "--custom_model_dir",
+            type=str,
+            default=None,
+            metavar='<str>',
+            help="Whether to load model from specific directory")
         model_params.add_argument(
             "--custom_model_name", "-cmn",
             type=str,

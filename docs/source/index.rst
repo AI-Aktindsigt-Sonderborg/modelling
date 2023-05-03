@@ -38,6 +38,12 @@ Content:
 
 .. toctree::
 	:maxdepth: 2
+	:caption: Eksempler
+
+	/auto_examples/index
+
+.. toctree::
+	:maxdepth: 2
 	:caption: Dokumentation
 
 	modellering

@@ -1,7 +1,9 @@
 :orphan:
 
-bla bla readme
+Kode-eksempler
+==============
 
+Nedenfor ses eksempler på at bruge de forskellige modeller i python.
 
 
 .. raw:: html
@@ -11,7 +13,48 @@ bla bla readme
 
 .. raw:: html
 
+    <div class="sphx-glr-thumbcontainer" tooltip="This is docstring">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_ner_inference_thumb.png
+    :alt: Inferens på NER model
+
+  :ref:`sphx_glr_auto_examples_ner_inference.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inferens på NER model</div>
     </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Example script to predict a &quot;KL category&quot; from an input sentence. Script should be run as modul...">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_sc_inference_thumb.png
+    :alt: Inferens på semantisk søgemodel
+
+  :ref:`sphx_glr_auto_examples_sc_inference.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Inferens på semantisk søgemodel</div>
+    </div>
+
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/ner_inference
+   /auto_examples/sc_inference
 
 
 .. only:: html

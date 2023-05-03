@@ -27,7 +27,7 @@ DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
 
 class RawScrapePreprocessing:
     """
-    Class to preprocess raw data to ML from web scraper
+    Class to preprocess raw data to MLM format from web scraper
 
     Attributes
     ----------
@@ -39,9 +39,13 @@ class RawScrapePreprocessing:
 
     Example call
     ------------
-    data_preprocessor = RawScrapePreprocessing(train_output='train_new_scrape.json', val_output='val_new_scrape.json')
+    prep_parser = DataPrepArgParser()
+    prep_args = prep_parser.parser.parse_args()
+    prep_args.data_type = 'unlabelled'
+    data_preprocessor = RawScrapePreprocessing(args=prep_args)
     data_preprocessor.from_raw_to_train_val()
     """
+
     def __init__(self, args: argparse.Namespace):
         self.args = args
         self.sentence_splitter = nltk.data.load(
@@ -128,6 +132,7 @@ class RawScrapePreprocessing:
         Split all approved text blocks to sentences with self.sentence_splitter.
         :param out_file_name: json out file name
         """
+
         # Init TimeCode
         timer = TimeCode()
         if self.args.add_ppl:
@@ -238,6 +243,7 @@ class RawScrapePreprocessing:
         :param class_data: Classified data used for Sequence Classification
         :return: If approved, data for modelling
         """
+
         final_sentence = sentence.strip()
         if self.args.lower_case:
             final_sentence = final_sentence.lower()
@@ -281,6 +287,7 @@ class RawScrapePreprocessing:
         :param split: float between 0 and 1 specifying size of train
         :param seed: seed for reproducibility
         """
+
         sentences = []
         with open(os.path.join(PREP_DATA_DIR, in_file), 'r',
                   encoding='utf-8') as file:
@@ -336,6 +343,7 @@ class RawScrapePreprocessing:
          prediction
         :return: boolean whether to keep data
         """
+
         if "__label__da" not in data_dict['detected_page_lang']:
             return False
         confidence = float(
