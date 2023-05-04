@@ -54,7 +54,8 @@ Content:
 	:caption: Kode
 
 	github
-	code_doc
+	code_data_prep
+	code_modelling
 
 
 

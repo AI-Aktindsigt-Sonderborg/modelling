@@ -99,6 +99,7 @@ def append_json_lines(output_dir: str, data: dict, filename: str,
 def write_text_lines(out_dir: str, filename: str, data: List[str]):
     """
     Write text file based on list of strings
+
     :param out_dir: directory
     :param filename: filename to write
     :param data: input data

@@ -4,7 +4,7 @@ import json
 import os.path
 import random
 import re
-from typing import List
+from typing import List, Tuple, Union, Optional
 
 import nltk.data
 import numpy as np
@@ -27,23 +27,28 @@ DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
 
 class RawScrapePreprocessing:
     """
-    Class to preprocess raw data to MLM format from web scraper
+    Class to preprocess raw data to MLM format from municipality scraped data.
 
-    Attributes
-    ----------
-    train_output: str
-            name of the json line file to be used for training
-    val_output: str
-            name of the json line file to be used for training
-    save_data: str
+    :param argparse.Namespace args:
+        input arguments from :ref:`DataPrepArgParser <data-prep-arg-parser>`.
 
-    Example call
-    ------------
-    prep_parser = DataPrepArgParser()
-    prep_args = prep_parser.parser.parse_args()
-    prep_args.data_type = 'unlabelled'
-    data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    data_preprocessor.from_raw_to_train_val()
+    :Eksempel:
+        ::
+
+            from mlm.data_utils.data_prep_input_args import DataPrepArgParser
+            from mlm.data_utils.prep_scrape import RawScrapePreprocessing
+            prep_parser = DataPrepArgParser()
+            prep_args = prep_parser.parser.parse_args()
+            data_preprocessor = RawScrapePreprocessing(args=prep_args)
+            data_preprocessor.run()
+
+    :CLI eksempel:
+        ::
+
+            python -m mlm.data_utils.prep_scrape
+
+    Metoder
+    -------
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -52,10 +57,15 @@ class RawScrapePreprocessing:
             'tokenizers/punkt/danish.pickle')
         self.model_id = 'pere/norwegian-gpt2'
 
-    def from_raw_to_train_val(self):
+    def run(self):
         """
         Generate train and validation data as json line files from raw scrape
-        file
+        file. Calls class methods:
+
+            - ``extract_danish_and_save_from_raw()``
+            - ``create_unique_sentences()``
+            - ``split_train_val()``
+
         """
         self.extract_danish_and_save_from_raw()
         self.create_unique_sentences()
@@ -68,11 +78,8 @@ class RawScrapePreprocessing:
     def extract_danish_and_save_from_raw(self):
         """
         Filters each raw scrape file, keeps line id and page_filtered_text
-        where danish is detected
-        and writes to json line file filtered_scrape/<source_name>_filtered
-        :param confidence_threshold: Keep all "danish-detected" sentences with
-        a score above this
-        threshold
+        where danish is detected and writes to json line file
+        *filtered_scrape/<source_name>_filtered*.
         """
 
         print("Initial extraction of raw text...")
@@ -130,7 +137,9 @@ class RawScrapePreprocessing:
         out_file_name: str = DEFAULT_UNIQUE_SENTENCES_FILE):
         """
         Split all approved text blocks to sentences with self.sentence_splitter.
-        :param out_file_name: json out file name
+        Calls ``create_dump_data`` and helper function ``split_sentences``.
+
+        :param str out_file_name: json out file name
         """
 
         # Init TimeCode
@@ -227,21 +236,61 @@ class RawScrapePreprocessing:
         print(f'Total unique sentences: {np.sum(unique_approved)}')
         print()
 
-    def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
-                         seen, filename, model, tokenizer, class_data):
+    def split_train_val(self,
+                        in_file: str = DEFAULT_UNIQUE_SENTENCES_FILE,
+                        seed: int = 42):
         """
-        Return dump data if data is not in classified data used for
-        Sequence Classification
-        :param data: dictionary of input data
-        :param sentence_counter: Sentence number of input url
-        :param sentence: sentence
-        :param seen: whether the sentence has been seen before - we only need
-        unique sentences
-        :param filename: Input filename
-        :param model: GPT model needed for perplexity
-        :param tokenizer: Tokenizer needed for perplexity
-        :param class_data: Classified data used for Sequence Classification
-        :return: If approved, data for modelling
+        Split approved sentences to train and validation set and call
+        ``save_datasets()``.
+
+        :param (str, Optional) in_file: jsonlines file
+        :param (int, Optional) seed: seed for reproducibility
+        """
+        sentences = []
+        with open(os.path.join(PREP_DATA_DIR, in_file), 'r',
+                  encoding='utf-8') as file:
+            for line in file:
+                data_dict = json.loads(line)
+                sentences.append({'text': data_dict['text']})
+        random.seed(seed)
+        random.shuffle(sentences)
+        train_idx = int(len(sentences) * self.args.split)
+        train_init = sentences[:train_idx]
+
+        val = sentences[train_idx:]
+        val = list(val)
+        if self.args.split_train_n_times > 0:
+            train_chunks = np.array_split(train_init,
+                                          self.args.split_train_n_times)
+            for i, train_chunk in enumerate(train_chunks):
+                train = list(train_chunk)
+                train_outfile = self.args.train_outfile + f'_{i}'
+                self.save_datasets(train=train, train_outfile=train_outfile)
+            self.save_datasets(val=val)
+        else:
+            train = list(train_init)
+            self.save_datasets(train=train, val=val,
+                               train_outfile=self.args.train_outfile)
+
+    def create_dump_data(self, data: dict, sentence_counter: int, sentence: str,
+                         seen: set, filename: str, model, tokenizer,
+                         class_data: set) -> Tuple[Optional[dict], set]:
+        """
+        Return dump data if data passes quality check and is not in classified
+        data used for Sequence Classification.
+
+        :param dict data: dictionary of input data
+        :param int sentence_counter: Sentence number of input url
+        :param str sentence: sentence
+        :param set seen: whether the sentence has been seen before - we only need
+            unique sentences
+        :param str filename: Input filename
+        :param AutoModelWithLMHead or None model: GPT model needed for perplexity
+        :param AutoTokenizer or None tokenizer: Tokenizer needed for perplexity
+        :param set class_data: Classified data used for Sequence Classification
+        :return: If sentence pass quality check, return Tuple with data for
+            modelling and updated set of seen observations, else (None, seen)
+        :rtype: Tuple[Optional[dict], set]
         """
 
         final_sentence = sentence.strip()
@@ -278,53 +327,17 @@ class RawScrapePreprocessing:
 
         return None, seen
 
-    def split_train_val(self,
-                        in_file: str = DEFAULT_UNIQUE_SENTENCES_FILE,
-                        seed: int = 42):
-        """
-        Split approved sentences to train and validation set and save as json
-        :param in_file: jsonlines file
-        :param split: float between 0 and 1 specifying size of train
-        :param seed: seed for reproducibility
-        """
-
-        sentences = []
-        with open(os.path.join(PREP_DATA_DIR, in_file), 'r',
-                  encoding='utf-8') as file:
-            for line in file:
-                data_dict = json.loads(line)
-                sentences.append({'text': data_dict['text']})
-        random.seed(seed)
-        random.shuffle(sentences)
-        train_idx = int(len(sentences) * self.args.split)
-        train_init = sentences[:train_idx]
-
-        val = sentences[train_idx:]
-        val = list(val)
-        if self.args.split_train_n_times > 0:
-            train_chunks = np.array_split(train_init,
-                                          self.args.split_train_n_times)
-            for i, train_chunk in enumerate(train_chunks):
-                train = list(train_chunk)
-                train_outfile = self.args.train_outfile + f'_{i}'
-                self.save_datasets(train=train, train_outfile=train_outfile)
-            self.save_datasets(val=val)
-        else:
-            train = list(train_init)
-            self.save_datasets(train=train, val=val,
-                               train_outfile=self.args.train_outfile)
-
     def save_datasets(self, train: List[dict] = None, val: List[dict] = None,
                       train_outfile: str = None):
         """
         Take train and validation data as input and saves to json-lines files
-        compatible with torch
-        dataset
-        :param train_outfile: name of train file
-        :param train: List[str] where each element is a valid sentence for
-        training
-        :param val: List[str] where each element is a valid sentence for
-        validation
+        compatible with torch dataset.
+
+        :param List[dict], Optional train: List[str] where each element is a
+            valid sentence for training
+        :param List[dict], Optional val: List[str] where each element is a valid
+             sentence for validation
+        :param str, Optional train_outfile: name of train file
         """
 
         if train and train_outfile:
@@ -338,10 +351,12 @@ class RawScrapePreprocessing:
     def is_correct_danish(data_dict: dict, confidence_threshold: int):
         """
         Detect correct danish text without raw html code
-        :param data: raw text from scraped url
-        :param confidence_threshold: confidence in which we filter danish
-         prediction
-        :return: boolean whether to keep data
+
+        :param dict data_dict: raw text from scraped url
+        :param int confidence_threshold: confidence in which we filter danish
+            prediction
+        :return: Whether data is determined as danish
+        :rtype: bool
         """
 
         if "__label__da" not in data_dict['detected_page_lang']:
@@ -359,11 +374,13 @@ class RawScrapePreprocessing:
         return True
 
     @staticmethod
-    def fix_utf8_encodings(data_dict: dict):
+    def fix_utf8_encodings(data_dict: dict) -> dict:
         """
-        Use fix_encoding and manually replace wrong danish letters
-        :param data: dictionary containing text from scrape url
-        :return: dictionary with correct encoded text
+        Use fix_encoding and manually replace wrong danish letters.
+
+        :param dict data: text and metadata from scraped url
+        :return: data updated with correct encoded text
+        :rtype: dict
         """
         data_dict['page_filtered_text'] = fix_encoding(
             data_dict['page_filtered_text'])
@@ -382,8 +399,10 @@ class RawScrapePreprocessing:
         """
         Filtering ppl scores from unique sentences - creates two files
         approved/disapproved
-        :param ppl_threshold: perplexity threshold - approve all below
-        :param in_file_name: unique sentences file
+
+        :param int, Optional ppl_threshold: perplexity threshold - approve
+            all below
+        :param str, Optional in_file_name: unique sentences file
         """
 
         in_file_path = os.path.join(PREP_DATA_DIR, in_file_name)
@@ -412,10 +431,8 @@ class RawScrapePreprocessing:
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    prep_args.data_type = 'unlabelled'
-    # prep_args.split_train_n_times = 2
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    data_preprocessor.from_raw_to_train_val()
+    data_preprocessor.run()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()
     # data_preprocessor.split_train_val()
