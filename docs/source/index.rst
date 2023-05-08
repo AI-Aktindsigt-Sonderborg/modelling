@@ -54,6 +54,7 @@ Content:
 	:caption: Kode
 
 	github
+	test
 	code_data_prep
 	code_modelling
 

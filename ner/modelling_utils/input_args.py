@@ -7,6 +7,19 @@ class NERArgParser(ModellingArgParser):
     """
     Class to handle input args for unsupervised Masked Language Modelling
     Methods
+data:
+    :param str --train_data: Training data file name (default: dane)
+    :param str --eval_data: Validation data file name (default: dane)
+    :param int --data_subset: Whether to subset data. Must be int
+    between 1 and 100=None. Only relevant while we are training and testing
+    on dane. (default: None)
+
+ner:
+
+    :param bool --load_alvenir_pretrained: Whether to load local alvenir
+    model (default: True)
+    :param str --model_name: Foundation model from huggingface or alvenir
+    pretrained model (default: last_model)
     """
 
     def __init__(self):

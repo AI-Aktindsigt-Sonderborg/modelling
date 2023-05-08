@@ -57,7 +57,7 @@ class ClassifiedScrapePreprocessing:
                            ppl_filters: List[int] = None, drop_na: bool = True):
         """
         Read excel file with labelled data and save to json lines file
-        :param file_dir: directory to read file from
+        :param str file_dir: directory to read file from
         :param ppl_filters: filter data on perplexity scores
         :param drop_na: drop not classified sentences
         """
