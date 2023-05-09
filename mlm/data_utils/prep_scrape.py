@@ -30,7 +30,7 @@ class RawScrapePreprocessing:
     Class to preprocess raw data to MLM format from municipality scraped data.
 
     :param argparse.Namespace args:
-        input arguments from :ref:`DataPrepArgParser <data-prep-arg-parser>`.
+        input arguments from :class:`.DataPrepArgParser`.
 
     :Eksempel:
         ::

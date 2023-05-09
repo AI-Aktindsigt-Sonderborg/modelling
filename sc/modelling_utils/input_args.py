@@ -4,20 +4,24 @@ from shared.modelling_utils.input_args import ModellingArgParser
 
 class SequenceModellingArgParser(ModellingArgParser):
     """
-    Class inherited from MLMArgParser to handle input args for supervised
-    SequenceClassification
-data:
-    :param str --train_data: Training data file name (default:
-    train_classified.jsonl)
-    :param str --eval_data: Validation data file name (default:
-    eval_classified.jsonl)
-    :param str --test_data: Validation data file name (default:
-    test_classified.jsonl)
+    Class inherited from :class:`.ModellingArgParser` to handle input args for supervised
+    SequenceClassification. Below arguments are grouped for a better overview.
 
-seq_class:
+    *Data*
+
+    :param str --train_data: Training data file name (default:
+        train_classified.jsonl)
+    :param str --eval_data: Validation data file name (default:
+        eval_classified.jsonl)
+    :param str --test_data: Validation data file name (default:
+        test_classified.jsonl)
+
+    *Sequence Classification Model*
+
     :param bool --load_alvenir_pretrained: Whether to load local alvenir
-    model (default: True)
+        model (default: True)
     :param --model_name: Foundation model from huggingface (default: last_model)
+
     """
 
     def __init__(self):

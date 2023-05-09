@@ -30,7 +30,8 @@ from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 
 class Modelling:
     """
-    General class for model training
+    General class for model training. For input arguments see :class:`.ModellingArgParser`.
+
     """
 
     def __init__(self, args: argparse.Namespace):

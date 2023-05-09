@@ -29,6 +29,8 @@ Content:
    :caption: Introduktion
 
    aisig
+	data
+	modellering
 
 .. toctree::
 	:maxdepth: 2
@@ -40,23 +42,16 @@ Content:
 	:maxdepth: 2
 	:caption: Eksempler
 
-	/auto_examples/index
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Dokumentation
-
-	modellering
-	data
-
-.. toctree::
-	:maxdepth: 2
-	:caption: Kode
+	:caption: Kodedokumentation
 
 	github
-	test
+	/auto_examples/index
 	code_data_prep
 	code_modelling
+
 
 
 

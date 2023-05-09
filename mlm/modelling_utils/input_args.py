@@ -5,12 +5,19 @@ from shared.modelling_utils.input_args import ModellingArgParser
 
 class MLMArgParser(ModellingArgParser):
     """
-    Class to handle input args for unsupervised Masked Language Modelling:
+    Class inherited from :class:`.ModellingArgParser` to handle input args for
+    unsupervised Masked Language Modelling. Below arguments are grouped for a
+    better overview.
+
+    *Data*
 
     :param str --train_data: Training data file name (default: train.jsonl)
     :param str --eval_data: Validation data file name (default: validation.jsonl)
     :param bool --load_alvenir_pretrained: Whether to load local alvenir
         model (default: False)
+
+    *MLM Model*
+
     :param --model_name: Foundation model from huggingface (default:
         NbAiLab/nb-bert-base)
     :param bool --whole_word_mask: If set to true, whole words are masked (
@@ -20,6 +27,7 @@ class MLMArgParser(ModellingArgParser):
     :param bool --replace_head: Whether to replace bert head. True is
         mandatory for MLM with DP - Also set freeze_layers to true if
         replace_head is true (default: True)
+
     """
 
     def __init__(self):

@@ -5,7 +5,7 @@ from distutils.util import strtobool
 class DataPrepArgParser:
     """
     Class to handle input arguments for data preprocessing of scraped data --
-    see :ref:`RawScrapePreprocessing <raw-scrape-preprocessing>`
+    see :class:`.RawScrapePreprocessing`.
 
     :param  float --danish_threshold: Threshold to filter danish sentence predictions from raw scrape (default: 0.6)
     :param int --min_len: Keep sentences with at least n words (default: 8)
