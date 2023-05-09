@@ -36,6 +36,8 @@ for i, obs in enumerate(data):
                     content = annotation['annotation']['content']
                     assert index == content
                 except:
+                    print(f"data nummer {i} med id {obs['id']} fejlede paa annotation nummer {j}.")
+                    print(traceback.format_exc())
                     annotation_errors = annotation_errors + 1
             annotation_counter = annotation_counter + j
             k = k + 1
