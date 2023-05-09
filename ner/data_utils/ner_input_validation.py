@@ -2,8 +2,8 @@ from shared.utils.helpers import read_json_lines
 from ner.local_constants import DATA_DIR
 import traceback
 
-filename = 'user_annotated_output'
-filename_bilou = "bilou_output_user_annotated"
+filename = 'user_annotated_output2'
+filename_bilou = "bilou_output_user_annotated2"
 
 data = read_json_lines(DATA_DIR, filename)
 data_bilou = read_json_lines(DATA_DIR, filename_bilou)
