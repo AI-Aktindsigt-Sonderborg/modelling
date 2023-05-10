@@ -36,7 +36,7 @@ for i, obs in enumerate(data):
                     content = annotation['annotation']['content']
                     assert index == content
                 except:
-                    print(f"data nummer {i} med id {obs['id']} fejlede paa annotation nummer {j}.")
+                    print(f"data med linjenummer {i+1} med id {obs['id']} fejlede paa annotation nummer {j}.")
                     print(traceback.format_exc())
                     annotation_errors = annotation_errors + 1
             annotation_counter = annotation_counter + j
@@ -59,5 +59,7 @@ for i, obs in enumerate(data_bilou):
         print(traceback.format_exc())
         print(f'{e}')
 
-print(f'Antal dokumenter med fejl: {error_count}, Antal annotations med fejl: {annotation_errors} (annotations i alt: {annotation_counter})')
+print(f'Antal dokumenter med generelle fejl: {error_count}, antal dokumenter i alt: {len(data)}')
+print(f'Antal annotations med fejl: {annotation_errors} (annotations i alt: {annotation_counter})')
+
 print(f'Antal bilou fejl: {bilou_error_count}')
