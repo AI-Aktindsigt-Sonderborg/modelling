@@ -54,9 +54,9 @@ for i, obs in enumerate(data_bilou):
     if len(obs['words']) != len(obs['tags']):
         bilou_error_count = bilou_error_count + 1
         print(f'len(Words) != len(tags): Bilou data med linjenummer {i+1} fejlede')
-    if obs['faulty_annotations']:
+    if obs['faulty_annotation']:
         bilou_error_count = bilou_error_count + 1
-        print(f'faulty_annotations fejl: Bilou data med linjenummer {i+1} fejlede')
+        print(f'faulty_annotation fejl: Bilou data med linjenummer {i+1} fejlede')
 
 
 print(f'Antal dokumenter med generelle fejl: {error_count}, antal dokumenter i alt: {len(data)}')
