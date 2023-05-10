@@ -51,15 +51,14 @@ for i, obs in enumerate(data):
 
 bilou_error_count = 0
 for i, obs in enumerate(data_bilou):
-    try:
-        assert len(obs['words']) == len(obs['tags'])
-    except Exception as e:
+    if len(obs['words']) != len(obs['tags']):
         bilou_error_count = bilou_error_count + 1
-        print(f'Bilou data med linjenummer {i+1} fejlede')
-        print(traceback.format_exc())
-        print(f'{e}')
+        print(f'len(Words) != len(tags): Bilou data med linjenummer {i+1} fejlede')
+    if obs['faulty_annotations']:
+        bilou_error_count = bilou_error_count + 1
+        print(f'faulty_annotations fejl: Bilou data med linjenummer {i+1} fejlede')
+
 
 print(f'Antal dokumenter med generelle fejl: {error_count}, antal dokumenter i alt: {len(data)}')
 print(f'Antal annotations med fejl: {annotation_errors} (annotations i alt: {annotation_counter})')
-
-print(f'Antal bilou fejl: {bilou_error_count}')
+print(f'Antal bilou fejl: {bilou_error_count}, bilou i alt: {len(data_bilou)}')
