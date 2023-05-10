@@ -43,7 +43,7 @@ for i, obs in enumerate(data):
             k = k + 1
     except Exception as e:
         error_count = error_count + 1
-        print(f"data nummer {i} med id {obs['id']} fejlede paa input validering.")
+        print(f"data med linjenummer {i+1} med id {obs['id']} fejlede paa input validering.")
         print(f'page_num: {page_num}, annotation_num: {j}')
         print(traceback.format_exc())
         print(f'{e}')
@@ -55,7 +55,7 @@ for i, obs in enumerate(data_bilou):
         assert len(obs['words']) == len(obs['tags'])
     except Exception as e:
         bilou_error_count = bilou_error_count + 1
-        print(f'Bilou data med nummer {i} fejlede')
+        print(f'Bilou data med linjenummer {i+1} fejlede')
         print(traceback.format_exc())
         print(f'{e}')
 
