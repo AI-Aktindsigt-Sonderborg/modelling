@@ -29,12 +29,12 @@ Content:
    :caption: Introduktion
 
    aisig
-	data
-	modellering
+   data
+   modelling
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Hurtigstart
+	:caption: Quickstart
 
 	installation
 
@@ -49,8 +49,7 @@ Content:
 
 	github
 	/auto_examples/index
-	code_data_prep
-	code_modelling
+	code_overview
 
 
 

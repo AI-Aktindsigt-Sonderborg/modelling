@@ -2,6 +2,14 @@
 
 Data præprocessering
 ====================
+Indsæt Eksempel her
+-------------------
+
+.. code-block::
+
+	This is some code
+
+
 Følgende klasser metoder er benyttet til præprocessering data af forskellige typer.
 
 Klasser

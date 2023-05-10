@@ -10,6 +10,7 @@ test_metrics/*
 metadata/*
 /*/data/*
 /docs/build/*
+/docs/source/auto_examples/*
 logs/*
 *.pyc
 *.pyo
