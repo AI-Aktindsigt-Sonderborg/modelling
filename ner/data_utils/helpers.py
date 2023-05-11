@@ -1,12 +1,10 @@
 import re
-from typing import List, Tuple
+from typing import Tuple, List
 
 
-def split_sentences(
-    data_dict: dict,
-    filename: str,
-    sentence_splitter: object,
-    disapproved_sentences: List[str]) -> Tuple[List[str], List[str]]:
+def split_sentences_bilou(
+    data: str,
+    sentence_splitter: object) -> Tuple[List[str], List[str]]:
     """
     Takes raw html input text and splits to sentences
 
@@ -19,10 +17,10 @@ def split_sentences(
     :return: List of sentences, list of disapproved sentences
     :rtype: Tuple[List[str], List[str]]
     """
-
+    disapproved_sentences = []
     # Read canonical string representation of the object as we need special
     # regex characters
-    prep_text = repr(data_dict['text'])
+    prep_text = repr(data)
 
     # Define list of special chars to replace
     special_chars = {'specials': ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
@@ -67,12 +65,10 @@ def split_sentences(
         # Discard sentences where lower case letters are followed by capital
         # letters
         if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
-                                                            sentence)]) > 0:
+                                                        sentence)]) > 0:
             disapproved_sentences.append(
-                f'{filename.split("_")[0]} - {data_dict["id"]}'
-                f' - {j} -{sentence}')
+                f'{j} - {sentence}')
         else:
             new_sentences.append(sentence)
 
     return new_sentences, disapproved_sentences
-
