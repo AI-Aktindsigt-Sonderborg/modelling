@@ -16,29 +16,30 @@ for i, obs in enumerate(data):
         index_diff = 0
         pdf_altered = pdf_text
         page_num = f'page_no:{k+1}'
-        current_page_annotations = obs['text_annotation'][page_num]
+        if len(obs['text_annotation']) >= k+1:
+            current_page_annotations = obs['text_annotation'][page_num]
 
-        for j, annotation in enumerate(current_page_annotations):
-            index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]
-            content = annotation['annotation']['content']
-            if not index == content:
-                print()
-            else:
-                pdf_altered = pdf_altered[:annotation['annotation']['start']] + \
-                              annotation['annotation']['annotation'] + pdf_altered[annotation['annotation']['end']:]
-
-                index_diff = len(pdf_altered) - len(pdf_text)
-
-                list_content = content.split()
-                if len(list_content) == 1:
-                    # anon_content = annotation['']
-                    print("prut")
-                elif len(list_content) == 2:
-                    print("prut")
-                elif len(list_content) > 2:
-                    print("prut")
+            for j, annotation in enumerate(current_page_annotations):
+                index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]
+                content = annotation['annotation']['content']
+                if not index == content:
+                    print()
                 else:
-                    print("prut")
+                    pdf_altered = pdf_altered[:annotation['annotation']['start']] + \
+                                  annotation['annotation']['annotation'] + pdf_altered[annotation['annotation']['end']:]
+
+                    index_diff = len(pdf_altered) - len(pdf_text)
+
+                    list_content = content.split()
+                    if len(list_content) == 1:
+                        # anon_content = annotation['']
+                        print("prut")
+                    elif len(list_content) == 2:
+                        print("prut")
+                    elif len(list_content) > 2:
+                        print("prut")
+                    else:
+                        print("prut")
 
 
 

@@ -23,34 +23,36 @@ for i, obs in enumerate(data):
         for k, pdf_text in enumerate(obs['pdf_text']):
             page_num = f'page_no:{k + 1}'
             assert isinstance(pdf_text, str)
-            current_page_annotations = obs['text_annotation'][page_num]
 
-            for j, annotation in enumerate(current_page_annotations):
-                try:
-                    assert isinstance(annotation, dict)
-                    assert isinstance(annotation['annotation']['id'], int)
-                    assert isinstance(annotation['annotation']['state'], str)
-                    assert isinstance(annotation['annotation']['content'], str)
-                    assert isinstance(annotation['annotation']['annotation'],
-                                      str)
-                    assert isinstance(annotation['annotation']['start'], int)
-                    assert isinstance(annotation['annotation']['end'], int)
-                    assert isinstance(annotation['annotation']['created'], str)
-                    assert isinstance(
-                        annotation['annotation']['category']['unsure'], bool)
-                    assert isinstance(
-                        annotation['annotation']['category']['guid'], str)
-                    index = pdf_text[annotation['annotation']['start']:
-                                     annotation['annotation']['end']]
-                    content = annotation['annotation']['content']
-                    assert index == content
+            if len(obs['text_annotation']) >= k + 1:
+                current_page_annotations = obs['text_annotation'][page_num]
 
-                except:
-                    print(
-                        f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
-                    print(traceback.format_exc())
-                    annotation_errors = annotation_errors + 1
-            annotation_counter = annotation_counter + j
+                for j, annotation in enumerate(current_page_annotations):
+                    try:
+                        assert isinstance(annotation, dict)
+                        assert isinstance(annotation['annotation']['id'], int)
+                        assert isinstance(annotation['annotation']['state'], str)
+                        assert isinstance(annotation['annotation']['content'], str)
+                        assert isinstance(annotation['annotation']['annotation'],
+                                          str)
+                        assert isinstance(annotation['annotation']['start'], int)
+                        assert isinstance(annotation['annotation']['end'], int)
+                        assert isinstance(annotation['annotation']['created'], str)
+                        assert isinstance(
+                            annotation['annotation']['category']['unsure'], bool)
+                        assert isinstance(
+                            annotation['annotation']['category']['guid'], str)
+                        index = pdf_text[annotation['annotation']['start']:
+                                         annotation['annotation']['end']]
+                        content = annotation['annotation']['content']
+                        assert index == content
+
+                    except:
+                        print(
+                            f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
+                        print(traceback.format_exc())
+                        annotation_errors = annotation_errors + 1
+                annotation_counter = annotation_counter + j
 
     except Exception as e:
         error_count = error_count + 1
