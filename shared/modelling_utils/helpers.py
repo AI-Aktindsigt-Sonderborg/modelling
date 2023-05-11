@@ -20,6 +20,20 @@ def validate_model(model, strict_validation: bool = False):
     else:
         print("Model is compatible for DP with opacus.")
 
+def label2id2label(labels: list):
+    """
+    Generates a label-to-id and id-to-label mapping for the labels given in
+    `self.args.labels`.
+    :return: tuple: A tuple containing two dictionaries, the first being a
+    mapping of label to id and the second being a mapping of id to label.
+    """
+    label2id, id2label = {}, {}
+
+    for i, label in enumerate(labels):
+        label2id[label] = str(i)
+        id2label[i] = label
+    return label2id, id2label
+
 
 def create_scheduler(optimizer, start_factor: float, end_factor: float,
                      total_iters: int):

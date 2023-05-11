@@ -32,6 +32,9 @@ class Modelling:
     """
     General class for model training. For input arguments see :class:`.ModellingArgParser`.
 
+
+    Methods
+    -------
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -117,19 +120,6 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.test_data),
                 split='train')
 
-    def label2id2label(self):
-        """
-        Generates a label-to-id and id-to-label mapping for the labels given in
-        `self.args.labels`.
-        :return: tuple: A tuple containing two dictionaries, the first being a
-        mapping of label to id and the second being a mapping of id to label.
-        """
-        label2id, id2label = {}, {}
-
-        for i, label in enumerate(self.args.labels):
-            label2id[label] = str(i)
-            id2label[i] = label
-        return label2id, id2label
 
     def set_up_training(self) -> tuple:
         """
