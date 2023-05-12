@@ -17,8 +17,8 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
-
-
+word_tag_mismatch_error = 0
+wrong_index_counter = 0
 entity_data = []
 for i, obs in enumerate(data):
     for k, pdf_text in enumerate(obs['pdf_text']):
@@ -33,12 +33,15 @@ for i, obs in enumerate(data):
                 content = content.strip()
                 if content.endswith('.') or content.endswith('. '):
                     content = content[:-1]
+                    index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff - 1]
+                else:
+                    index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]                    
 
-                index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]
+    
 
                 entity = annotation['annotation']['annotation']
                 if not index == content:
-                    # print()
+                    wrong_index_counter = wrong_index_counter + 1 
                 else:
 
                     list_content = re.split(r'( |,|\. |\.\n)', content)
@@ -93,12 +96,11 @@ for i, obs in enumerate(data):
                                 tags_final})
 
                             assert len(tags_final) == len(words_final)
-                            print()
+                            
                     except Exception as e:
+                        word_tag_mismatch_error = word_tag_mismatch_error + 1
                         print(f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
                         print(traceback.format_exc())
-                    # print()
-
                     index_diff = len(pdf_altered) - len(pdf_text)
 
 
