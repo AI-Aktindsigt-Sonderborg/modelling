@@ -39,12 +39,12 @@ for i, obs in enumerate(data):
                     content = annotation['annotation']['content']
                     content = content.strip()
                     if content.endswith('.') or content.endswith('. '):
-                        print('weird content: {content}')
+                        print(f'weird content: {content}')
                         if not index == content:
                             print('index error with removed dot line {i+q}')
                             
                         content = content[:-1]
-                        print('weird content2: {content}')
+                        print(f'weird content2: {content}')
                         index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff - 1]
                     else:
                         print('index error {i+q}')
