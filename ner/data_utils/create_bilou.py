@@ -106,7 +106,8 @@ for i, obs in enumerate(data):
 
 
         # entity_data.append(pdf_altered)
+print(f'mismatch errors: {word_tag_mismatch_error}')
+print(f'wrong index errors: {wrong_index_counter}')
+print()
 write_json_lines(out_dir=DATA_DIR, data=entity_data,
                  filename='bilou_entities_kasper')
-
-print()
