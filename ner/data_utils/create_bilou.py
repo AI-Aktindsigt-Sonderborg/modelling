@@ -28,9 +28,13 @@ for i, obs in enumerate(data):
         if len(obs['text_annotation']) >= k+1:
             try:
                 current_page_annotations = obs['text_annotation'][page_num]
-            except Exception as ex:
+            except Exception as ex:                
+
+                print(f"wtf error - check line {i}")
+                print(page_num)
+                print(traceback.format_exc())
                 current_page_annotations = None
-                print(f"wtf error - check line {i}") 
+                
             if current_page_annotations:
                 for j, annotation in enumerate(current_page_annotations):
                     content = annotation['annotation']['content']
