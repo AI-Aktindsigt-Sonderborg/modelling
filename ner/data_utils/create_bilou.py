@@ -29,10 +29,9 @@ for i, obs in enumerate(data):
             try:
                 current_page_annotations = obs['text_annotation'][page_num]
             except Exception as ex:                
-
-                print(f"wtf error - check line {i+1}")
-                print(page_num)
-                print(traceback.format_exc())
+#                 print(f"wtf error - check line {i+1}")
+#                 print(page_num)
+#                 print(traceback.format_exc())
                 current_page_annotations = None
                 
             if current_page_annotations:
