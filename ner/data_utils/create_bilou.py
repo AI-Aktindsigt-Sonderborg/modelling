@@ -38,7 +38,7 @@ for i, obs in enumerate(data):
 
                 entity = annotation['annotation']['annotation']
                 if not index == content:
-                    print()
+                    # print()
                 else:
 
                     list_content = re.split(r'( |,|\. |\.\n)', content)
