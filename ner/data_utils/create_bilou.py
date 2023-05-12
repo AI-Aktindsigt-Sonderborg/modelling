@@ -39,9 +39,13 @@ for i, obs in enumerate(data):
                     content = annotation['annotation']['content']
                     content = content.strip()
                     if content.endswith('.') or content.endswith('. '):
+                        if not index == content:
+                            print('index error with removed dot line {i+q}')
+
                         content = content[:-1]
                         index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff - 1]
                     else:
+                        print('index error {i+q}')
                         index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]                    
 
 
@@ -101,15 +105,14 @@ for i, obs in enumerate(data):
                                                                        "U-", "I-", "L-")) else "O" for tag in tags_no_whitespace]
                                 entity_data.append({'words': words_final, 'tags':
                                     tags_final})
-
+                                 
+                                index_diff = len(pdf_altered) - len(pdf_text)
                                 assert len(tags_final) == len(words_final)
 
                         except Exception as e:
                             word_tag_mismatch_error = word_tag_mismatch_error + 1
                             print(f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
-                        index_diff = len(pdf_altered) - len(pdf_text)
-
 
 
         # entity_data.append(pdf_altered)
