@@ -69,6 +69,6 @@ def split_sentences_bilou(
             disapproved_sentences.append(
                 f'{j} - {sentence}')
         else:
-            new_sentences.append(sentence)
+            new_sentences.append(sentence + "\n")
 
     return new_sentences, disapproved_sentences

@@ -6,7 +6,7 @@ import nltk
 
 from ner.data_utils.helpers import split_sentences_bilou
 from ner.local_constants import DATA_DIR
-from shared.utils.helpers import read_json_lines
+from shared.utils.helpers import read_json_lines, write_json_lines
 
 args = sys.argv[1:]
 args.append("origin")
@@ -29,14 +29,24 @@ for i, obs in enumerate(data):
             current_page_annotations = obs['text_annotation'][page_num]
 
             for j, annotation in enumerate(current_page_annotations):
-                index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]
                 content = annotation['annotation']['content']
+                content = content.strip()
+                if content.endswith('.') or content.endswith('. '):
+                    content = content[:-1]
+
+                index = pdf_altered[annotation['annotation']['start'] + index_diff:annotation['annotation']['end'] + index_diff]
+
                 entity = annotation['annotation']['annotation']
                 if not index == content:
                     print()
                 else:
 
-                    list_content = content.split()
+                    list_content = re.split(r'( |,|\. |\.\n)', content)
+                    to_remove = [" ", ""]
+                    list_content = list(filter(lambda tag:
+                                                      tag.strip() not
+                                                      in to_remove, list_content))
+
                     if len(list_content) == 1:
                         annotation_to_insert = 'U-' + entity
 
@@ -57,20 +67,32 @@ for i, obs in enumerate(data):
                     new_sentences, discarded = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
                     new_sentences_anon, _ = split_sentences_bilou(data=pdf_altered, sentence_splitter=sentence_splitter)
                     try:
-                        assert len(new_sentences_anon) == len(new_sentences)
+                        # assert len(new_sentences_anon) == len(new_sentences)
                         for s, (sentence, sentence_anon) in enumerate(
                             zip(new_sentences, new_sentences_anon)):
 
-                            words = re.split(r'( |,|\.)', sentence)
-                            tags = re.split(r'( |,|\.)', sentence_anon)
+                            words = re.split(r'( |,|\. |\.\n)', sentence)
+                            tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
+
 
                             to_remove = [" ", ""]
-                            words_no_whitespace = list(filter(lambda word: word not in to_remove, words))
-                            tags_no_whitespace = list(filter(lambda tag: tag not in to_remove, tags))
-                            tags_final = [tag if tag.startswith(("B-", "U-", "I-", "L-")) else "O" for tag in tags_no_whitespace]
-                            # words = sentence.split().split(',').split('.')
-                            # tags = sentence_anon.split()
-                            assert len(tags_final) == len(words_no_whitespace)
+                            words_final = list(filter(lambda word:
+                                                              word.strip(
+                                                              ).rstrip(
+                                                                  '\\n').strip()
+                                                              not
+                                                              in to_remove, words))
+                            words_final[-1] = words_final[-1].strip()
+                            tags_no_whitespace = list(filter(lambda tag:
+                                                             tag not in
+                                                             to_remove, tags))
+                            tags_final = [tag if
+                                          tag.startswith(("B-",
+                                                                   "U-", "I-", "L-")) else "O" for tag in tags_no_whitespace]
+                            entity_data.append({'words': words_final, 'tags':
+                                tags_final})
+
+                            assert len(tags_final) == len(words_final)
                             print()
                     except Exception as e:
                         print(f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
@@ -81,8 +103,8 @@ for i, obs in enumerate(data):
 
 
 
-        entity_data.append(pdf_altered)
-
-
+        # entity_data.append(pdf_altered)
+write_json_lines(out_dir=DATA_DIR, data=entity_data,
+                 filename='bilou_entities_kasper')
 
 print()
