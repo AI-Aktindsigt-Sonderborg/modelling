@@ -1,4 +1,6 @@
+import re
 import sys
+import traceback
 
 import nltk
 
@@ -14,6 +16,8 @@ data = read_json_lines(input_dir=DATA_DIR, filename=args[0])
 bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
+
+
 
 entity_data = []
 for i, obs in enumerate(data):
@@ -38,7 +42,6 @@ for i, obs in enumerate(data):
 
                     elif len(list_content) == 2:
                         annotation_to_insert = 'B-' + entity + ' L-' + entity
-                        print("prut")
                     elif len(list_content) > 2:
                         annotation_to_insert = 'B-' + entity
                         for inside_element in list_content[1:-1]:
@@ -51,7 +54,29 @@ for i, obs in enumerate(data):
                     pdf_altered = pdf_altered[:annotation['annotation']['start'] + index_diff] + \
                                   annotation_to_insert + pdf_altered[annotation['annotation']['end']+ index_diff:]
 
-                    new_sentences, discarded = split_sentences_bilou(data=pdf_altered, sentence_splitter=sentence_splitter)
+                    new_sentences, discarded = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
+                    new_sentences_anon, _ = split_sentences_bilou(data=pdf_altered, sentence_splitter=sentence_splitter)
+                    try:
+                        assert len(new_sentences_anon) == len(new_sentences)
+                        for s, (sentence, sentence_anon) in enumerate(
+                            zip(new_sentences, new_sentences_anon)):
+
+                            words = re.split(r'( |,|\.)', sentence)
+                            tags = re.split(r'( |,|\.)', sentence_anon)
+
+                            to_remove = [" ", ""]
+                            words_no_whitespace = list(filter(lambda word: word not in to_remove, words))
+                            tags_no_whitespace = list(filter(lambda tag: tag not in to_remove, tags))
+                            tags_final = [tag if tag.startswith(("B-", "U-", "I-", "L-")) else "O" for tag in tags_no_whitespace]
+                            # words = sentence.split().split(',').split('.')
+                            # tags = sentence_anon.split()
+                            assert len(tags_final) == len(words_no_whitespace)
+                            print()
+                    except Exception as e:
+                        print(f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
+                        print(traceback.format_exc())
+                    # print()
+
                     index_diff = len(pdf_altered) - len(pdf_text)
 
 
