@@ -211,7 +211,7 @@ else:
 
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
-print(f'wrong index errors: {deleted_annotations}')
+print(f'deleted annotations: {deleted_annotations}')
 print(f'correct indexes: {correct_indexes}')
 
 print(f'total sentences: {total_sentences}')
