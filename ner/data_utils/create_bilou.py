@@ -10,8 +10,9 @@ from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json_lines, write_json_lines
 
 args: list = sys.argv[1:]
-# args.append("origin")
-# args.append("bilou")
+
+args.append("origin")
+args.append("bilou")
 
 raw_data = read_json_lines(input_dir=DATA_DIR, filename=args[0])
 bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
@@ -23,7 +24,7 @@ wrong_index_errors: int = 0
 correct_indexes: int = 0
 entity_data: List[dict] = []
 total_sentences: int = 0
-
+deleted_annotations: int = 0
 def create_bilou_from_one_document(input_data: dict, data_number: int,
                                    print_stats: bool = False,
                                    print_each_sentence: int = 0):
@@ -31,7 +32,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
     wrong_index: int = 0
     correct_index: int = 0
     total_sentence: int = 0
+    deleted_annotation: int = 0
     output_data = []
+
 
     for k, pdf_text in enumerate(input_data['pdf_text']):
         index_diff = 0
@@ -48,7 +51,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
             if current_page_annotations:
                 for j, annotation in enumerate(current_page_annotations):
+                    if annotation['annotation']['state'] == 'deleted':
+                        deleted_annotation += 1
+
                     raw_content = annotation['annotation']['content']
+
                     content_index_diff = 0
                     content = raw_content.strip()
 
@@ -170,7 +177,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             print(
                                 f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
-    return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence]
+    return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence, deleted_annotation]
 
 
 if len(args) == 4:
@@ -185,6 +192,7 @@ if len(args) == 4:
     wrong_index_errors += errors[1]
     correct_indexes += errors[2]
     total_sentences += errors[3]
+    deleted_annotations += errors[4]
 
 else:
     for i, obs in enumerate(raw_data):
@@ -194,6 +202,7 @@ else:
         wrong_index_errors += errors[1]
         correct_indexes += errors[2]
         total_sentences += errors[3]
+        deleted_annotations += errors[4]
 
         entity_data.extend(single_obs_data)
 
@@ -202,5 +211,7 @@ else:
 
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
+print(f'wrong index errors: {deleted_annotations}')
 print(f'correct indexes: {correct_indexes}')
+
 print(f'total sentences: {total_sentences}')
