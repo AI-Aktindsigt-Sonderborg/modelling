@@ -44,9 +44,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
             if current_page_annotations:
                 for j, annotation in enumerate(current_page_annotations):
-                    content = annotation['annotation']['content']
-                    content = content.strip()
-                    if content.endswith('.') or content.endswith('. '):
+                    raw_content = annotation['annotation']['content']
+                    content_index_diff = 0
+                    content = raw_content.strip()
+
+                    if content.endswith('.'):
                         if print_stats:
                             print(f'weird content: {content}')
                         if not index == content:
@@ -55,15 +57,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         content = content[:-1]
                         if print_stats:
                             print(f'weird content2: {content}')
-                        index = pdf_altered[
-                                annotation['annotation']['start'] + index_diff:
-                                annotation['annotation'][
-                                    'end'] + index_diff - 1]
+                        content_index_diff = len(raw_content) - len(content)
                     else:
                         print(f'index error {data_number+1}')
-                        index = pdf_altered[
-                                annotation['annotation']['start'] + index_diff:
-                                annotation['annotation']['end'] + index_diff]
+
+                    index = pdf_altered[
+                            annotation['annotation']['start'] + index_diff:
+                            annotation['annotation'][
+                                'end'] + index_diff - content_index_diff]
                     entity = annotation['annotation']['annotation']
                     if not index == content:
                         wrong_index += 1
@@ -167,6 +168,9 @@ if len(args) == 4:
                                                      data_number=args[2] - 1,
                                                      print_stats=True,
                                                      print_each_sentence=args[3])
+    word_tag_mismatch_errors += errors[0]
+    wrong_index_errors += errors[1]
+
 else:
     for i, obs in enumerate(raw_data):
         single_obs_data, errors = create_bilou_from_one_document(input_data=obs,
@@ -175,8 +179,9 @@ else:
         wrong_index_errors += errors[1]
         entity_data.extend(single_obs_data)
 
+    write_json_lines(out_dir=DATA_DIR, data=entity_data,
+                     filename='bilou_entities_kasper')
+
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
 
-write_json_lines(out_dir=DATA_DIR, data=entity_data,
-                 filename='bilou_entities_kasper')
