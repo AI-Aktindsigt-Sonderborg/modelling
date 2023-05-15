@@ -164,6 +164,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
 if len(args) == 4:
     args[2] = int(args[2])
+    args[3] = int(args[3])
     single_obs_data, errors = create_bilou_from_one_document(input_data=raw_data[args[2] - 1],
                                                      data_number=args[2] - 1,
                                                      print_stats=True,
