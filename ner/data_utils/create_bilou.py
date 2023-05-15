@@ -11,8 +11,8 @@ from shared.utils.helpers import read_json_lines, write_json_lines
 
 args: list = sys.argv[1:]
 
-args.append("origin")
-args.append("bilou")
+# args.append("origin")
+# args.append("bilou")
 
 raw_data = read_json_lines(input_dir=DATA_DIR, filename=args[0])
 bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
