@@ -20,6 +20,7 @@ sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
 word_tag_mismatch_errors: int = 0
 wrong_index_errors: int = 0
+correct_indexes: int = 0
 entity_data: List[dict] = []
 
 
@@ -51,22 +52,21 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     if content.endswith('.'):
                         if print_stats:
                             print(f'weird content: {content}')
-                        if not index == content:
-                            print(f'index error with removed dot line {data_number+1}')
 
                         content = content[:-1]
                         if print_stats:
                             print(f'weird content2: {content}')
                         content_index_diff = len(raw_content) - len(content)
-                    else:
-                        print(f'index error {data_number+1}')
+                    # else:
+                    #     print(f'index error {data_number+1}')
 
                     index = pdf_altered[
                             annotation['annotation']['start'] + index_diff:
-                            annotation['annotation'][
-                                'end'] + index_diff - content_index_diff]
+                            annotation['annotation']['end'] + index_diff - content_index_diff]
+
                     entity = annotation['annotation']['annotation']
                     if not index == content:
+                        print(f'index error at {data_number + 1}')
                         wrong_index += 1
                     else:
 
@@ -159,7 +159,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             print(
                                 f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
-    return output_data, [word_tag_mismatch_error, wrong_index]
+    return output_data, [word_tag_mismatch_error, wrong_index, correct_index]
 
 
 if len(args) == 4:
