@@ -64,11 +64,11 @@ def split_sentences_bilou(
     for j, sentence in enumerate(sentences):
         # Discard sentences where lower case letters are followed by capital
         # letters
-        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
+#        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
                                                         sentence)]) > 0:
-            disapproved_sentences.append(
-                f'{j} - {sentence}')
-        else:
-            new_sentences.append(sentence + "\n")
+ #           disapproved_sentences.append(
+  #              f'{j} - {sentence}')
+   #     else:
+        new_sentences.append(sentence + "\n")
 
     return new_sentences, disapproved_sentences
