@@ -18,14 +18,16 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
-word_tag_mismatch_error: int = 0
-wrong_index_counter: int = 0
+word_tag_mismatch_errors: int = 0
+wrong_index_errors: int = 0
 entity_data: List[dict] = []
 
 
 def create_bilou_from_one_document(input_data: dict, data_number: int,
                                    print_stats: bool = False,
-                                   print_each_sentence: int = 0) -> List[dict]:
+                                   print_each_sentence: int = 0):
+    word_tag_mismatch_error: int = 0
+    wrong_index: int = 0
     output_data = []
     for k, pdf_text in enumerate(input_data['pdf_text']):
         index_diff = 0
@@ -47,7 +49,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     if content.endswith('.') or content.endswith('. '):
                         print(f'weird content: {content}')
                         if not index == content:
-                            print('index error with removed dot line {i+q}')
+                            print(f'index error with removed dot line {data_number+1}')
 
                         content = content[:-1]
                         print(f'weird content2: {content}')
@@ -56,13 +58,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 annotation['annotation'][
                                     'end'] + index_diff - 1]
                     else:
-                        print('index error {i+q}')
+                        print(f'index error {data_number+1}')
                         index = pdf_altered[
                                 annotation['annotation']['start'] + index_diff:
                                 annotation['annotation']['end'] + index_diff]
                     entity = annotation['annotation']['annotation']
                     if not index == content:
-                        wrong_index_counter = wrong_index_counter + 1
+                        wrong_index += 1
                     else:
 
                         list_content = re.split(r'( |,|\. |\.\n)', content)
@@ -150,26 +152,28 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 assert len(tags_final) == len(words_final)
 
                         except Exception as e:
-                            word_tag_mismatch_error = word_tag_mismatch_error + 1
+                            word_tag_mismatch_error += 1
                             print(
                                 f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
-    return output_data
+    return output_data, [word_tag_mismatch_error, wrong_index]
 
 
 if len(args) == 4 and isinstance(args[2], int):
-    single_obs_data = create_bilou_from_one_document(input_data=raw_data[args[2] - 1],
+    single_obs_data, errors = create_bilou_from_one_document(input_data=raw_data[args[2] - 1],
                                                      data_number=args[2] - 1,
                                                      print_stats=True,
                                                      print_each_sentence=args[3])
 else:
     for i, obs in enumerate(raw_data):
-        single_obs_data = create_bilou_from_one_document(input_data=obs,
+        single_obs_data, errors = create_bilou_from_one_document(input_data=obs,
                                                          data_number=i)
+        word_tag_mismatch_errors += errors[0]
+        wrong_index_errors += errors[1]
         entity_data.extend(single_obs_data)
 
-print(f'mismatch errors: {word_tag_mismatch_error}')
-print(f'wrong index errors: {wrong_index_counter}')
-print()
+print(f'mismatch errors: {word_tag_mismatch_errors}')
+print(f'wrong index errors: {wrong_index_errors}')
+
 write_json_lines(out_dir=DATA_DIR, data=entity_data,
                  filename='bilou_entities_kasper')
