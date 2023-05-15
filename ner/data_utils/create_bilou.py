@@ -47,12 +47,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     content = annotation['annotation']['content']
                     content = content.strip()
                     if content.endswith('.') or content.endswith('. '):
-                        print(f'weird content: {content}')
+                        if print_stats:
+                            print(f'weird content: {content}')
                         if not index == content:
                             print(f'index error with removed dot line {data_number+1}')
 
                         content = content[:-1]
-                        print(f'weird content2: {content}')
+                        if print_stats:
+                            print(f'weird content2: {content}')
                         index = pdf_altered[
                                 annotation['annotation']['start'] + index_diff:
                                 annotation['annotation'][
@@ -171,6 +173,10 @@ else:
         word_tag_mismatch_errors += errors[0]
         wrong_index_errors += errors[1]
         entity_data.extend(single_obs_data)
+
+print(len(args))
+print(isinstance(args[2], int))
+print(len(args) == 4 and isinstance(args[2], int))
 
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
