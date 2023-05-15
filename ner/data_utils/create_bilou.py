@@ -9,7 +9,7 @@ from ner.data_utils.helpers import split_sentences_bilou
 from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json_lines, write_json_lines
 
-args = sys.argv[1:]
+args: list = sys.argv[1:]
 # args.append("origin")
 # args.append("bilou")
 
@@ -33,9 +33,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
         page_num = f'page_no:{k + 1}'
         if len(obs['text_annotation']) >= k + 1:
             try:
-                current_page_annotations = obs['text_annotation'][page_num]
+                current_page_annotations = input_data['text_annotation'][page_num]
             except Exception as ex:
-                print(f"wtf error - check line {i + 1}")
+                print(f"wtf error - check line {data_number + 1}")
                 #                 print(page_num)
                 #                 print(traceback.format_exc())
                 current_page_annotations = None
@@ -152,12 +152,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         except Exception as e:
                             word_tag_mismatch_error = word_tag_mismatch_error + 1
                             print(
-                                f"data med linjenummer {i + 1} med id {obs['id']} fejlede paa annotation nummer {j}.")
+                                f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
     return output_data
 
 
-if len(args == 4) and isinstance(args[2], int):
+if len(args) == 4 and isinstance(args[2], int):
     single_obs_data = create_bilou_from_one_document(input_data=raw_data[args[2] - 1],
                                                      data_number=args[2] - 1,
                                                      print_stats=True,
