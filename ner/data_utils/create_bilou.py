@@ -29,6 +29,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                    print_each_sentence: int = 0):
     word_tag_mismatch_error: int = 0
     wrong_index: int = 0
+    correct_index: int = 0
     output_data = []
     for k, pdf_text in enumerate(input_data['pdf_text']):
         index_diff = 0
@@ -69,7 +70,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         print(f'index error at {data_number + 1}')
                         wrong_index += 1
                     else:
-
+                        correct_index += 1
                         list_content = re.split(r'( |,|\. |\.\n)', content)
                         to_remove = [" ", ""]
                         list_content = list(filter(lambda tag:
@@ -171,13 +172,15 @@ if len(args) == 4:
                                                      print_each_sentence=args[3])
     word_tag_mismatch_errors += errors[0]
     wrong_index_errors += errors[1]
-
+    correct_indexes += errors[2]
 else:
     for i, obs in enumerate(raw_data):
         single_obs_data, errors = create_bilou_from_one_document(input_data=obs,
                                                          data_number=i)
         word_tag_mismatch_errors += errors[0]
         wrong_index_errors += errors[1]
+        correct_indexes += errors[2]
+
         entity_data.extend(single_obs_data)
 
     write_json_lines(out_dir=DATA_DIR, data=entity_data,
@@ -185,4 +188,4 @@ else:
 
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
-
+print(f'wrong index errors: {correct_indexes}')
