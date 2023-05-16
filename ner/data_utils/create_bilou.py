@@ -108,13 +108,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         if true_original != annotated_content:
                             wrong_raw_index += 1
                         else:
-                            match = re.search(annotated_content, sentence_anon)
-                            if match:
-                                start_index = match.start()
-                                end_index = match.end()
-                                manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
-                                if (manual_computed_diff < 10) and (manual_computed_diff > -10):
-                                    manual_match = True
+                            try:
+                                match = re.search(annotated_content, sentence_anon)
+                                if match:
+                                    start_index = match.start()
+                                    end_index = match.end()
+                                    manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
+                                    if (manual_computed_diff < 10) and (manual_computed_diff > -10):
+                                        manual_match = True
+                            except Exception as ex:
+                                print(f"weird search error at {data_number + 1}")
+                                manual_match = False
+
 
                         if not manual_match and true_content != annotated_content:
                             true_content_skewed = sentence[
@@ -132,7 +137,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             else:
                                 print(f'index error at {data_number + 1}')
                                 wrong_index += 1
-                                break
+
 
                         if annotated_content == true_content or manual_match:
                             correct_index += 1
