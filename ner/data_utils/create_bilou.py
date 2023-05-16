@@ -109,7 +109,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             wrong_raw_index += 1
                         else:
                             try:
-                                match = re.search(annotated_content, sentence_anon)
+                                match = re.search(re.escape(annotated_content), sentence_anon)
                                 if match:
                                     start_index = match.start()
                                     end_index = match.end()
