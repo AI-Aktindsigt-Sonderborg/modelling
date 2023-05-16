@@ -142,6 +142,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
 
                         if annotated_content == true_content or manual_match:
+
                             correct_index += 1
                             list_content = re.split(r'( |,|\. |\.\n)', annotated_content)
                             to_remove = [" ", ""]
@@ -195,14 +196,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                       not
                                                       in to_remove, words))
                             words_final[-1] = words_final[-1].strip()
+
                             tags_no_whitespace = list(filter(lambda tag:
                                                              tag not in
                                                              to_remove,
                                                              tags))
-                            tags_final = [tag if
-                                          tag.startswith(("B-",
-                                                          "U-", "I-",
-                                                          "L-")) else "O"
+                            tags_final = [tag if (tag.startswith(("B-","U-", "I-","L-")) and tag[2:].isupper()) else "O"
                                           for tag in tags_no_whitespace]
 
                             if print_stats and (len(words_final) != len(tags_final)):
