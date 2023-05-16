@@ -113,6 +113,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 if match:
                                     start_index = match.start()
                                     end_index = match.end()
+                                    manual_match = True
                                     manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
                                     if (manual_computed_diff < 10) and (manual_computed_diff > -10):
                                         manual_match = True
@@ -260,7 +261,7 @@ else:
     write_json_lines(out_dir=DATA_DIR, data=entity_data,
                      filename='bilou_entities_kasper')
 
-print(f'mismatch errors: {word_tag_mismatch_errors}')
+print(f'word/tag length mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
 print(f'wrong raw index errors: {wrong_raw_index_errors}')
 print(f'deleted annotations: {deleted_annotations}')
