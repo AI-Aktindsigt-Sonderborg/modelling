@@ -133,9 +133,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 words = re.split(r'( |,|\. |\.\n)', sentence)
                                 tags = re.split(r'( |,|\. |\.\n)',
                                                 sentence_anon)
-                                if print_stats:
+                                if print_stats and (len(words) != len(tags)):
                                     print(
                                         f'len(words): {len(words)}, len(tags): {len(tags)}')
+
 
                                 to_remove = [" ", ""]
                                 words_final = list(filter(lambda word:
@@ -154,16 +155,16 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                               "U-", "I-",
                                                               "L-")) else "O"
                                               for tag in tags_no_whitespace]
-                                if print_stats:
+
+                                if print_stats and (len(words_final) != len(tags_final)):
                                     print(
                                         f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
-
-                                if print_each_sentence == 1:
-                                    print("---------------------")
-                                    print(words_final)
-                                    print()
-                                    print(tags_final)
-                                    print("---------------------")
+                                    if print_each_sentence == 1:
+                                        print("---------------------")
+                                        print(words_final)
+                                        print()
+                                        print(tags_final)
+                                        print("---------------------")
 
                                 output_data.append(
                                     {'words': words_final, 'tags':
