@@ -210,16 +210,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                     f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
                                 if print_each_sentence == 1:
                                     print("---------------------")
+                                    print(sentence)
+                                    print('-')
                                     print(words_final)
-                                    print()
+                                    print('--')
+                                    print(sentence_anon)
+                                    print('-')
                                     print(tags_final)
                                     print("---------------------")
-
-                            output_data.append(
-                                {'words': words_final, 'tags':
-                                    tags_final})
-                            total_sentence += 1
                             assert len(tags_final) == len(words_final)
+                            output_data.append(
+                                {'words': words_final, 'tags': tags_final})
+                            total_sentence += 1
 
                     except Exception as e:
                         word_tag_mismatch_error += 1
@@ -261,6 +263,7 @@ else:
 
     write_json_lines(out_dir=DATA_DIR, data=entity_data,
                      filename='bilou_entities_kasper')
+    print(f'total valid sentences: {len(entity_data)}')
 
 print(f'word/tag length mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
