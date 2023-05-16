@@ -57,7 +57,7 @@ def split_sentences_bilou(
     text_splitted = (
         '\n'.join(sentence_splitter.tokenize(prep_text)))
 
-    text_splitted2 = '\n'.join(sent_tokenize(prep_text, language='danish'))
+    text_splitted2 = sent_tokenize(prep_text, language='danish')
 
     # split text again by newlines
     sentences = re.split('\n', text_splitted)
@@ -79,4 +79,4 @@ def split_sentences_bilou(
         new_sentences.append(sentence + "\n")
 
 
-    return new_sentences, new_sentences2
+    return new_sentences, text_splitted2
