@@ -53,151 +53,174 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 current_page_annotations = None
 
             if current_page_annotations:
-                for j, annotation in enumerate(current_page_annotations):
-                    if annotation['annotation']['state'] == 'deleted':
-                        deleted_annotation += 1
-
-                    raw_content = annotation['annotation']['content']
-
-                    content_index_diff = 0
-                    content = raw_content.strip()
-
-                    if content.endswith('.'):
-                        if print_stats:
-                            print(f'weird content: {content}')
-
-                        content = content[:-1]
-                        if print_stats:
-                            print(f'weird content2: {content}')
-                        content_index_diff = len(raw_content) - len(content)
-                    # else:
-                    #     print(f'index error {data_number+1}')
-
-                    index = pdf_altered[
-                            annotation['annotation']['start'] + index_diff:
-                            annotation['annotation']['end'] + index_diff - content_index_diff]
-
-                    index_original = pdf_text[
-                            annotation['annotation']['start']:
-                            annotation['annotation']['end']]
-
-                    entity = annotation['annotation']['annotation']
-                    if index_original != raw_content:
-                        wrong_raw_index += 1
-
-                    if not index == content:
-                        print(f'index error at {data_number + 1}')
-                        wrong_index += 1
+                new_sentences, new_sentences2 = split_sentences_bilou(
+                    data=pdf_text, sentence_splitter=sentence_splitter)
+                sentences_anon = []
+                for i, sentence in enumerate(new_sentences2):
+                    sentence_anon = sentence
+                    if i == 0:
+                        page_index_diff = 0
                     else:
-                        correct_index += 1
-                        list_content = re.split(r'( |,|\. |\.\n)', content)
-                        to_remove = [" ", ""]
-                        list_content = list(filter(lambda tag:
-                                                   tag.strip() not
-                                                   in to_remove, list_content))
-                        insert_annotation: bool = True
-                        if len(list_content) == 1:
-                            annotation_to_insert = 'U-' + entity
+                        page_index_diff += len(new_sentences2[i - 1]) + 2
+                    current_sentence_annotations = [x for x in current_page_annotations if
+                                                    (x['annotation']['start'] < (len(sentence) + page_index_diff) and
+                                                     x['annotation']['start'] >= (page_index_diff))]
 
-                        elif len(list_content) == 2:
-                            annotation_to_insert = 'B-' + entity + ' L-' + entity
-                        elif len(list_content) > 2:
-                            annotation_to_insert = 'B-' + entity
-                            for inside_element in list_content[1:-1]:
-                                annotation_to_insert = annotation_to_insert + ' I-' + entity
-                            annotation_to_insert = annotation_to_insert + ' L-' + entity
+                    sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'])
+                    for j, annotation in enumerate(sorted_sentence_annotations):
+                        manual_match = False
+
+                        if j == 0:
+                            sentence_index_diff = 0
+                        # if annotation['annotation']['start'] > len(sentence):
+                        #     continue
+                        if annotation['annotation']['state'] == 'deleted':
+                            deleted_annotation += 1
+
+
+                        annotated_content = annotation['annotation']['content']
+                        # start_index = annotation['annotation']['start']
+                        # end_index = annotation['annotation']['end']
+
+                        # content_index_diff = 0
+                        # content = annotated_content.strip()
+                        # if content.endswith('.'):
+                        #     if print_stats:
+                        #         print(f'weird content: {content}')
+                        #
+                        #     content = content[:-1]
+                        #     if print_stats:
+                        #         print(f'weird content2: {content}')
+                        #     content_index_diff = len(raw_content) - len(content)
+                        # else:
+                        #     print(f'index error {data_number+1}')
+
+                        true_content = sentence[annotation['annotation']['start'] - page_index_diff:
+                                annotation['annotation']['end'] - page_index_diff]
+
+                        true_original = pdf_text[
+                                annotation['annotation']['start']:
+                                annotation['annotation']['end']]
+
+                        entity = annotation['annotation']['annotation']
+                        content_index_diff = 0
+
+                        if true_original != annotated_content:
+                            wrong_raw_index += 1
                         else:
-                            insert_annotation = False
-                            # annotation_to_insert = "prut"
-                            print("prut")
+                            match = re.search(annotated_content, sentence_anon)
+                            if match:
+                                start_index = match.start()
+                                end_index = match.end()
+                                manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
+                                if (manual_computed_diff < 10) and (manual_computed_diff > -10):
+                                    manual_match = True
 
-                        if insert_annotation:
-                            pdf_altered = pdf_altered[:annotation['annotation'][
-                                                           'start'] + index_diff] + \
-                                          annotation_to_insert + pdf_altered[
-                                                                 annotation[
-                                                                     'annotation'][
-                                                                     'end'] + index_diff:]
+                        if not manual_match and true_content != annotated_content:
+                            true_content_skewed = sentence[
+                                annotation['annotation']['start'] - page_index_diff + 1:
+                                annotation['annotation']['end'] - page_index_diff + 1]
+                            true_content_skewed2 = sentence[
+                                annotation['annotation']['start'] - page_index_diff - 1:
+                                annotation['annotation']['end'] - page_index_diff - 1]
+                            if true_content_skewed == annotated_content:
+                                true_content = true_content_skewed
+                                content_index_diff = 1
+                            elif true_content_skewed2 == annotated_content:
+                                true_content = true_content_skewed2
+                                content_index_diff = -1
+                            else:
+                                print(f'index error at {data_number + 1}')
+                                wrong_index += 1
+                                break
 
-                        new_sentences, new_sentences2 = split_sentences_bilou(
-                            data=pdf_text, sentence_splitter=sentence_splitter)
-                        new_sentences_anon, new_sentences_anon2 = split_sentences_bilou(
-                            data=pdf_altered,
-                            sentence_splitter=sentence_splitter)
+                        if annotated_content == true_content or manual_match:
+                            correct_index += 1
+                            list_content = re.split(r'( |,|\. |\.\n)', annotated_content)
+                            to_remove = [" ", ""]
+                            list_content = list(filter(lambda tag:
+                                                       tag.strip() not
+                                                       in to_remove, list_content))
+                            insert_annotation: bool = True
+                            if len(list_content) == 1:
+                                annotation_to_insert = 'U-' + entity
 
-                        if print_stats and (len(new_sentences_anon2) != len(new_sentences2)):
-                            print(
-                                f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
-                            print(
-                                f'len(discarded_anon): {len(new_sentences_anon2)}, len(discarded): {len(new_sentences2)}')
-                            if print_each_sentence:
-                                print("---------Sentences------------")
-                                for sentence in new_sentences:
-                                    print(sentence)
-                                    print("--")
-                                print("------------------------------")
-                                print("---------Sentences2------------")
-                                for sentence in new_sentences2:
-                                    print(sentence)
-                                    print("--")
-                                print("------------------------------")
-                                print("----Anon Sentences------------")
-                                for anon in new_sentences_anon2:
-                                    print(anon + '\n')
-                                print("------------------------------")
-                        try:
-                            assert len(new_sentences_anon2) == len(new_sentences2)
-                            for s, (sentence, sentence_anon) in enumerate(
-                                zip(new_sentences2, new_sentences_anon2)):
+                            elif len(list_content) == 2:
+                                annotation_to_insert = 'B-' + entity + ' L-' + entity
+                            elif len(list_content) > 2:
+                                annotation_to_insert = 'B-' + entity
+                                for inside_element in list_content[1:-1]:
+                                    annotation_to_insert = annotation_to_insert + ' I-' + entity
+                                annotation_to_insert = annotation_to_insert + ' L-' + entity
+                            else:
+                                insert_annotation = False
+                                # annotation_to_insert = "prut"
+                                print("prut")
 
-                                words = re.split(r'( |,|\. |\.\n)', sentence)
-                                tags = re.split(r'( |,|\. |\.\n)',
-                                                sentence_anon)
-                                if print_stats and (len(words) != len(tags)):
-                                    print(
-                                        f'len(words): {len(words)}, len(tags): {len(tags)}')
+                            if insert_annotation:
+                                if not manual_match:
+                                    start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
+                                    end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
+
+                                sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
+
+                                sentence_index_diff = len(sentence_anon) - len(sentence)
+
+                    sentences_anon.append(sentence_anon)
+
+                    try:
+                        # assert len(new_sentences_anon2) == len(new_sentences2)
+                        for s, (sentence, sentence_anon) in enumerate(
+                            zip(new_sentences2, sentences_anon)):
+
+                            words = re.split(r'( |,|\. |\.\n)', sentence)
+                            tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
+                            if print_stats and (len(words) != len(tags)):
+                                print(
+                                    f'len(words): {len(words)}, len(tags): {len(tags)}')
 
 
-                                to_remove = [" ", ""]
-                                words_final = list(filter(lambda word:
-                                                          word.strip(
-                                                          ).rstrip(
-                                                              '\\n').strip()
-                                                          not
-                                                          in to_remove, words))
-                                words_final[-1] = words_final[-1].strip()
-                                tags_no_whitespace = list(filter(lambda tag:
-                                                                 tag not in
-                                                                 to_remove,
-                                                                 tags))
-                                tags_final = [tag if
-                                              tag.startswith(("B-",
-                                                              "U-", "I-",
-                                                              "L-")) else "O"
-                                              for tag in tags_no_whitespace]
+                            to_remove = [" ", ""]
+                            words_final = list(filter(lambda word:
+                                                      word.strip(
+                                                      ).rstrip(
+                                                          '\\n').strip()
+                                                      not
+                                                      in to_remove, words))
+                            words_final[-1] = words_final[-1].strip()
+                            tags_no_whitespace = list(filter(lambda tag:
+                                                             tag not in
+                                                             to_remove,
+                                                             tags))
+                            tags_final = [tag if
+                                          tag.startswith(("B-",
+                                                          "U-", "I-",
+                                                          "L-")) else "O"
+                                          for tag in tags_no_whitespace]
 
-                                if print_stats and (len(words_final) != len(tags_final)):
-                                    print(
-                                        f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
-                                    if print_each_sentence == 1:
-                                        print("---------------------")
-                                        print(words_final)
-                                        print()
-                                        print(tags_final)
-                                        print("---------------------")
+                            if print_stats and (len(words_final) != len(tags_final)):
+                                print(
+                                    f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                                if print_each_sentence == 1:
+                                    print("---------------------")
+                                    print(words_final)
+                                    print()
+                                    print(tags_final)
+                                    print("---------------------")
 
-                                output_data.append(
-                                    {'words': words_final, 'tags':
-                                        tags_final})
-                                total_sentence += 1
-                                index_diff = len(pdf_altered) - len(pdf_text)
-                                assert len(tags_final) == len(words_final)
+                            output_data.append(
+                                {'words': words_final, 'tags':
+                                    tags_final})
+                            total_sentence += 1
+                            assert len(tags_final) == len(words_final)
 
-                        except Exception as e:
-                            word_tag_mismatch_error += 1
-                            print(
-                                f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
-                            print(traceback.format_exc())
+                    except Exception as e:
+                        word_tag_mismatch_error += 1
+                        print(
+                            f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
+                        print(traceback.format_exc())
+
+
     return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence, deleted_annotation, wrong_raw_index]
 
 
