@@ -1,7 +1,7 @@
 import re
 from typing import Tuple, List
 
-
+from nltk.tokenize import sent_tokenize
 def split_sentences_bilou(
     data: str,
     sentence_splitter: object) -> Tuple[List[str], List[str]]:
@@ -57,10 +57,17 @@ def split_sentences_bilou(
     text_splitted = (
         '\n'.join(sentence_splitter.tokenize(prep_text)))
 
+    text_splitted2 = '\n'.join(sent_tokenize(prep_text, language='danish'))
+
     # split text again by newlines
     sentences = re.split('\n', text_splitted)
 
     new_sentences = []
+    new_sentences2 = []
+
+    for j, sentence in enumerate(text_splitted2):
+        new_sentences2.append(sentence + "\n")
+
     for j, sentence in enumerate(sentences):
         # Discard sentences where lower case letters are followed by capital
         # letters
@@ -71,4 +78,5 @@ def split_sentences_bilou(
    #     else:
         new_sentences.append(sentence + "\n")
 
-    return new_sentences, disapproved_sentences
+
+    return new_sentences, new_sentences2

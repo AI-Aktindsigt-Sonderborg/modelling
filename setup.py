@@ -10,6 +10,9 @@ from root_constants import SC_ROOT, MLM_ROOT, NER_ROOT
 # Download nltk punkt and stopwords relevant for data preprocessing
 nltk.download('punkt')
 nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('tagsets')
+nltk.download('universal_tagset')
 
 GENERIC_DIRS = ['logs', 'tests']
 PROJECT_DIRS = [MLM_ROOT, NER_ROOT, SC_ROOT]

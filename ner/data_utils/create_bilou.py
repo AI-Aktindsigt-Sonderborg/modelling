@@ -19,6 +19,7 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
+
 word_tag_mismatch_errors: int = 0
 wrong_index_errors: int = 0
 wrong_raw_index_errors: int = 0
@@ -116,9 +117,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                                  'annotation'][
                                                                  'end'] + index_diff:]
 
-                        new_sentences, discarded = split_sentences_bilou(
+                        new_sentences, new_sentences2 = split_sentences_bilou(
                             data=pdf_text, sentence_splitter=sentence_splitter)
-                        new_sentences_anon, _ = split_sentences_bilou(
+                        new_sentences_anon, new_sentences_anon2 = split_sentences_bilou(
                             data=pdf_altered,
                             sentence_splitter=sentence_splitter)
 
@@ -126,10 +127,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             print(
                                 f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
                             print(
-                                f'len(discarded_anon): {len(_)}, len(discarded): {len(discarded)}')
+                                f'len(discarded_anon): {len(new_sentences_anon2)}, len(discarded): {len(new_sentences2)}')
                             if print_each_sentence:
                                 print("---------Sentences------------")
                                 for sentence in new_sentences:
+                                    print(sentence + '\n')
+                                print("------------------------------")
+                                print("---------Sentences2------------")
+                                for sentence in new_sentences2:
                                     print(sentence + '\n')
                                 print("------------------------------")
                                 print("----Anon Sentences------------")
