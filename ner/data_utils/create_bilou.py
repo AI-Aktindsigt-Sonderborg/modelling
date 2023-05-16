@@ -155,16 +155,16 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 annotation_to_insert = 'U-' + entity
 
                             elif len(list_content) == 2:
-                                annotation_to_insert = 'B-' + entity + ' L-' + entity
+                                annotation_to_insert = 'B-' + entity + ' L-' + entity + ' '
                             elif len(list_content) > 2:                                
                                 annotation_to_insert = 'B-' + entity
 #                                #if "ADRESSE" in entity:
 #                                  #print(annotation_to_insert)
                                 for inside_element in list_content[1:-1]:
-                                    annotation_to_insert = annotation_to_insert + ' I-' + entity
+                                    annotation_to_insert = annotation_to_insert + ' I-' + entity + ' '
                                     #if "ADRESSE" in entity:
                                      # print(annotation_to_insert)
-                                annotation_to_insert = annotation_to_insert + ' L-' + entity
+                                annotation_to_insert = annotation_to_insert + ' L-' + entity + ' '
                                 #if "ADRESSE" in entity:
                                   #print(annotation_to_insert)
 
