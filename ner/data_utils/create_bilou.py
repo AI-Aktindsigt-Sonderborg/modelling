@@ -131,11 +131,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             if print_each_sentence:
                                 print("---------Sentences------------")
                                 for sentence in new_sentences:
-                                    print(sentence + '\n')
+                                    print(sentence)
+                                    print("--")
                                 print("------------------------------")
                                 print("---------Sentences2------------")
                                 for sentence in new_sentences2:
-                                    print(sentence + '\n')
+                                    print(sentence)
+                                    print("--")
                                 print("------------------------------")
                                 print("----Anon Sentences------------")
                                 for anon in new_sentences_anon:
