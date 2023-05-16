@@ -167,7 +167,6 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 annotation_to_insert = annotation_to_insert + ' L-' + entity + ' '
                                 #if "ADRESSE" in entity:
                                   #print(annotation_to_insert)
-
                             else:
                                 insert_annotation = False
                                 # annotation_to_insert = "prut"
@@ -190,7 +189,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # assert len(new_sentences_anon2) == len(new_sentences2)
                         for s, (sentence, sentence_anon) in enumerate(
                             zip(new_sentences2, sentences_anon)):
-
+                            if sentence.endswith('\.'):
+                              sentence[-1].replace(' .')
                             words = re.split(r'( |,|\. |\.\n)', sentence)
                             tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
                             if print_stats and (len(words) != len(tags)):
