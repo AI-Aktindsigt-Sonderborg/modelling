@@ -112,7 +112,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         new_sentences_anon, _ = split_sentences_bilou(
                             data=pdf_altered,
                             sentence_splitter=sentence_splitter)
-                        if print_stats:
+                        if print_stats and (len(new_sentences_anon) != len(new_sentences)):
                             print(
                                 f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
                             print(
