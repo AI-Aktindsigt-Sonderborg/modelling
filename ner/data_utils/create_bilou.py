@@ -177,8 +177,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                     start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
                                     end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
 
-                                sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
-
+                                sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]                                
+                                print("---------------------")
+                                print(sentence_anon)
+                                print('-')
                                 sentence_index_diff = len(sentence_anon) - len(sentence)
 
                     sentences_anon.append(sentence_anon)
