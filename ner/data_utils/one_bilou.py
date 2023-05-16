@@ -9,10 +9,12 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[0])
 
 bilou_filtered = [x for x in bilou if x['document_id'] == args[1]]
 
+if len(args) > 2:
+    bilou_filtered = [x for x in bilou_filtered if
+                      x['page_number'] == int(args[2])]
 
 for i, x in enumerate(bilou_filtered):
-    if len(args) > 2:
-        bilou_filtered = [x for x in bilou_filtered if x['page_number'] == int(args[2])]
+
     print(f"------------------{i}-------------------")
     print(x['words'])
     print(x['tags'])
