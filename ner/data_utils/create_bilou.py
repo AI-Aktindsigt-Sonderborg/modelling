@@ -21,6 +21,7 @@ sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
 word_tag_mismatch_errors: int = 0
 wrong_index_errors: int = 0
+wrong_raw_index_errors: int = 0
 correct_indexes: int = 0
 entity_data: List[dict] = []
 total_sentences: int = 0
@@ -29,6 +30,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                    print_stats: bool = False,
                                    print_each_sentence: int = 0):
     word_tag_mismatch_error: int = 0
+    wrong_raw_index: int = 0
     wrong_index: int = 0
     correct_index: int = 0
     total_sentence: int = 0
@@ -74,7 +76,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             annotation['annotation']['start'] + index_diff:
                             annotation['annotation']['end'] + index_diff - content_index_diff]
 
+                    index_original = pdf_text[
+                            annotation['annotation']['start']:
+                            annotation['annotation']['end']]
+
                     entity = annotation['annotation']['annotation']
+                    if index_original != raw_content:
+                        wrong_raw_index += 1
+
                     if not index == content:
                         print(f'index error at {data_number + 1}')
                         wrong_index += 1
@@ -112,6 +121,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         new_sentences_anon, _ = split_sentences_bilou(
                             data=pdf_altered,
                             sentence_splitter=sentence_splitter)
+
                         if print_stats and (len(new_sentences_anon) != len(new_sentences)):
                             print(
                                 f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
@@ -179,7 +189,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             print(
                                 f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                             print(traceback.format_exc())
-    return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence, deleted_annotation]
+    return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence, deleted_annotation, wrong_raw_index]
 
 
 if len(args) == 4:
@@ -195,6 +205,7 @@ if len(args) == 4:
     correct_indexes += errors[2]
     total_sentences += errors[3]
     deleted_annotations += errors[4]
+    wrong_raw_index_errors += errors[5]
 
 else:
     for i, obs in enumerate(raw_data):
@@ -205,6 +216,7 @@ else:
         correct_indexes += errors[2]
         total_sentences += errors[3]
         deleted_annotations += errors[4]
+        wrong_raw_index_errors += errors[5]
 
         entity_data.extend(single_obs_data)
 
@@ -213,6 +225,7 @@ else:
 
 print(f'mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
+print(f'wrong raw index errors: {wrong_raw_index_errors}')
 print(f'deleted annotations: {deleted_annotations}')
 print(f'correct indexes: {correct_indexes}')
 
