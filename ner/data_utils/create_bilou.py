@@ -183,7 +183,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 #print('-')
                                 sentence_index_diff = len(sentence_anon) - len(sentence)
 
-                    sentences_anon.append(sentence_anon)
+                    sentences_anon.append(sentence_anon + '\n')
 
                     try:
                         # assert len(new_sentences_anon2) == len(new_sentences2)
