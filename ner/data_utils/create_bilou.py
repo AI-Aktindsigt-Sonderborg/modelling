@@ -176,9 +176,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 if not manual_match:
                                     start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
                                     end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
-                                if sentence_anon[end_index] == '\.':
-                                    annotation_to_insert = annotation_to_insert + ' '
-
+                                try:
+                                  if sentence_anon[end_index] == '\.':
+                                      annotation_to_insert = annotation_to_insert + ' '
+                                  except Exception as ex:
+                                    print("weird out of range error")
+                                    print(traceback.format_exc())
                                 sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]                                
                                 #print("---------------------")
                                 #print(sentence_anon)
@@ -200,8 +203,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             to_remove = [" ", ""]
                             words_final = list(filter(lambda word:
                                                       word.strip(
-                                                      ).rstrip(
-                                                          '\\n').strip()
+                                                      ).rstrip('\\n').strip()
                                                       not
                                                       in to_remove, words))
                             words_final[-1] = words_final[-1].strip()
