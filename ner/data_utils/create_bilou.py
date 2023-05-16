@@ -117,14 +117,15 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
                             print(
                                 f'len(discarded_anon): {len(_)}, len(discarded): {len(discarded)}')
-                        if print_each_sentence:
-                            if len(discarded) > 0:
-                                for dis in discarded:
-                                    print(f'discarded: {dis}')
-                            if len(_) > 0:
-                                for dis in _:
-                                    print(f'discarded anon: {dis}')
-
+                            if print_each_sentence:
+                                print("---------Sentences------------")
+                                for sentence in new_sentences:
+                                    print(sentence + '\n')
+                                print("------------------------------")
+                                print("----Anon Sentences------------")
+                                for anon in new_sentences_anon:
+                                    print(anon + '\n')
+                                print("------------------------------")
                         try:
                             assert len(new_sentences_anon) == len(new_sentences)
                             for s, (sentence, sentence_anon) in enumerate(
