@@ -179,7 +179,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 try:
                                   if sentence_anon[end_index] == '\.':
                                     annotation_to_insert = annotation_to_insert + ' '
-                                  if sentence_anon[end_index].isalpha():
+                                  if sentence_anon[end_index].isalpha() and sentence_anon[end_index].islower():
                                     annotation_to_insert = annotation_to_insert + ' '
                                 except Exception as ex:
                                   print("weird out of range error")
