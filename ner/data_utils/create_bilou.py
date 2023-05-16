@@ -178,7 +178,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                     end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
                                 try:
                                   if sentence_anon[end_index] == '\.':
-                                      annotation_to_insert = annotation_to_insert + ' '
+                                    annotation_to_insert = annotation_to_insert + ' '
+                                  if sentence_anon[end_index].isalpha():
+                                    annotation_to_insert = annotation_to_insert + ' '
                                 except Exception as ex:
                                   print("weird out of range error")
                                   print(traceback.format_exc())
@@ -195,7 +197,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # assert len(new_sentences_anon2) == len(new_sentences2)
                         for s, (sentence, sentence_anon) in enumerate(
                             zip(new_sentences2, sentences_anon)):
+                            
                             sentence = sentence + '\n'
+
                             words = re.split(r'( |,|\. |\.\n)', sentence)
                             tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
                             if print_stats and (len(words) != len(tags)):
