@@ -176,6 +176,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 if not manual_match:
                                     start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
                                     end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
+                                if sentence_anon[end_index] == '\.':
+                                    annotation_to_insert = annotation_to_insert + ' '
 
                                 sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]                                
                                 #print("---------------------")
