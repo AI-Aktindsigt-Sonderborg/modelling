@@ -95,7 +95,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         list_content = list(filter(lambda tag:
                                                    tag.strip() not
                                                    in to_remove, list_content))
-
+                        insert_annotation: bool = True
                         if len(list_content) == 1:
                             annotation_to_insert = 'U-' + entity
 
@@ -107,15 +107,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 annotation_to_insert = annotation_to_insert + ' I-' + entity
                             annotation_to_insert = annotation_to_insert + ' L-' + entity
                         else:
-                            annotation_to_insert = "prut"
+                            insert_annotation = False
+                            # annotation_to_insert = "prut"
                             print("prut")
 
-                        pdf_altered = pdf_altered[:annotation['annotation'][
-                                                       'start'] + index_diff] + \
-                                      annotation_to_insert + pdf_altered[
-                                                             annotation[
-                                                                 'annotation'][
-                                                                 'end'] + index_diff:]
+                        if insert_annotation:
+                            pdf_altered = pdf_altered[:annotation['annotation'][
+                                                           'start'] + index_diff] + \
+                                          annotation_to_insert + pdf_altered[
+                                                                 annotation[
+                                                                     'annotation'][
+                                                                     'end'] + index_diff:]
 
                         new_sentences, new_sentences2 = split_sentences_bilou(
                             data=pdf_text, sentence_splitter=sentence_splitter)
@@ -123,7 +125,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             data=pdf_altered,
                             sentence_splitter=sentence_splitter)
 
-                        if print_stats and (len(new_sentences_anon) != len(new_sentences)):
+                        if print_stats and (len(new_sentences_anon2) != len(new_sentences2)):
                             print(
                                 f'len(new_sentences_anon): {len(new_sentences_anon)}, len(new_sentences): {len(new_sentences)}')
                             print(
@@ -140,13 +142,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                     print("--")
                                 print("------------------------------")
                                 print("----Anon Sentences------------")
-                                for anon in new_sentences_anon:
+                                for anon in new_sentences_anon2:
                                     print(anon + '\n')
                                 print("------------------------------")
                         try:
-                            assert len(new_sentences_anon) == len(new_sentences)
+                            assert len(new_sentences_anon2) == len(new_sentences2)
                             for s, (sentence, sentence_anon) in enumerate(
-                                zip(new_sentences, new_sentences_anon)):
+                                zip(new_sentences2, new_sentences_anon2)):
 
                                 words = re.split(r'( |,|\. |\.\n)', sentence)
                                 tags = re.split(r'( |,|\. |\.\n)',
