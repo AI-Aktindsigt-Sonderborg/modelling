@@ -125,11 +125,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 for dis in _:
                                     print(f'discarded anon: {dis}')
 
-                            print(discarded)
                         try:
                             assert len(new_sentences_anon) == len(new_sentences)
                             for s, (sentence, sentence_anon) in enumerate(
                                 zip(new_sentences, new_sentences_anon)):
+
                                 words = re.split(r'( |,|\. |\.\n)', sentence)
                                 tags = re.split(r'( |,|\. |\.\n)',
                                                 sentence_anon)
