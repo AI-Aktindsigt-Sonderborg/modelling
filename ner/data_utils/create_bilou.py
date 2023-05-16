@@ -119,6 +119,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                         manual_match = True
                             except Exception as ex:
                                 print(f"weird search error at {data_number + 1}")
+                                print(traceback.format_exc())
                                 manual_match = False
 
 
