@@ -182,6 +182,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                   except Exception as ex:
                                     print("weird out of range error")
                                     print(traceback.format_exc())
+                                
                                 sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]                                
                                 #print("---------------------")
                                 #print(sentence_anon)
