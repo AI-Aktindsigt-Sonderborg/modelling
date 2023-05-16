@@ -76,6 +76,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         #     continue
                         if annotation['annotation']['state'] == 'deleted':
                             deleted_annotation += 1
+                            continue
 
 
                         annotated_content = annotation['annotation']['content']
