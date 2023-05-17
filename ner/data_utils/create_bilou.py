@@ -40,13 +40,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
     output_data = []
 
     for k, pdf_text in enumerate(input_data['pdf_text']):
+        sentences_anon = []
+
         index_diff = 0
         pdf_altered = pdf_text
         page_num = f'page_no:{k + 1}'
+
+        new_sentences, new_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
+
         if len(input_data['text_annotation']) >= k + 1:
             try:
-                current_page_annotations = input_data['text_annotation'][
-                    page_num]
+                current_page_annotations = input_data['text_annotation'][page_num]
             except Exception as ex:
                 print(f"wtf error - check line {data_number + 1}")
                 #                 print(page_num)
@@ -54,9 +58,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 current_page_annotations = None
 
             if current_page_annotations:
-                new_sentences, new_sentences2 = split_sentences_bilou(
-                    data=pdf_text, sentence_splitter=sentence_splitter)
-                sentences_anon = []
+
+                TRUE_LENGTH = len(new_sentences2)
+                TRUE_LENGTH_OLD = len(new_sentences)                
+                
                 for i, sentence in enumerate(new_sentences2):
                     sentence_anon = sentence
                     if i == 0:
@@ -68,13 +73,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                     (x['annotation'][
                                                          'start'] < (
                                                          len(sentence) + page_index_diff) and
-                                                     x['annotation'][
-                                                         'start'] >= (
-                                                         page_index_diff))]
+                                                     x['annotation']['start'] >= (page_index_diff))]
 
-                    sorted_sentence_annotations = sorted(
-                        current_sentence_annotations,
-                        key=lambda x: x['annotation']['start'])
+                    sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'])
                     for j, annotation in enumerate(sorted_sentence_annotations):
                         manual_match = False
 
@@ -103,25 +104,41 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # else:
                         #     print(f'index error {data_number+1}')
 
-                        true_content = sentence[annotation['annotation'][
-                                                    'start'] - page_index_diff:
-                                                annotation['annotation'][
-                                                    'end'] - page_index_diff]
-
-                        true_original = pdf_text[
-                                        annotation['annotation']['start']:
-                                        annotation['annotation']['end']]
-                        if true_original == annotated_content:
+                        true_content = sentence[annotation['annotation']['start'] - page_index_diff:annotation['annotation']['end'] - page_index_diff]
+                        true_original = pdf_text[annotation['annotation']['start']:annotation['annotation']['end']]
+                        print(f'----------annotation_stats: {data_number + 1} - {k} - {i} - {j} -------------')
+                        if print_stats:
+                            print("|" + true_original + "|")
+                            print("|" + true_content + "|")                            
+                            print("|" + annotated_content + "|")
+                            print(true_original == annotated_content)
+                            print(len(pdf_text) > annotation['annotation']['end'])
+                            if len(pdf_text) > annotation['annotation']['end']:
+                                print(annotation['annotation']['end'])
+                                print("|" + pdf_text[annotation['annotation']['end']] + "|")
+                                print("|" + pdf_text[annotation['annotation']['end']-15: annotation['annotation']['end'] + 15] + "|")
+                                print(sentence[annotation['annotation']['start'] - page_index_diff + 1:annotation['annotation']['end'] - page_index_diff + 1])
+                        
+                        if true_original == annotated_content and len(pdf_text) > annotation['annotation']['end']:
                             if pdf_text[annotation['annotation']['end']].isalpha():
-                                print("stupid1")
-                                print(true_original)
-                                print(pdf_text[annotation['annotation']['end'] + 1])
-                                print(sentence)
-                                print("---------------")
-
+                                print('fuck')
+                                if pdf_text[annotation['annotation']['end'] - 1].isalpha():
+                                    print("testing4")
+                                    continue
+                                if pdf_text[annotation['annotation']['end'] - 1] == ' ':
+                                    print("stupid1")
+                                    print(data_number + 1)
+                                    print(i)
+                                    print(page_num)
+                                    print(j)
+                                    print("|" + true_original + "|")
+                                    print(pdf_text[annotation['annotation']['end']])
+                                    print(sentence)
+                                    print("---------------")
+                                
                             if pdf_text[annotation['annotation']['end']] == '`':
                                 print("stupid2")
-                                print(true_original)
+                                print("|" + true_original + "|")
                                 print(pdf_text[annotation['annotation']['end']])
                                 print(sentence)
                                 print("---------------")
@@ -134,17 +151,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             wrong_raw_index += 1
                         else:
                             try:
-                                match = re.search(re.escape(annotated_content),
-                                                  sentence_anon)
+                                match = re.search(re.escape(annotated_content +'[^0-9a-zA-Z]'), sentence_anon)
                                 if match:
                                     start_index = match.start()
-                                    end_index = match.end()
+                                    end_index = match.end() - 1 
                                     manual_match = True
-                                    manual_computed_diff = (annotation[
-                                                                'annotation'][
-                                                                'start'] - page_index_diff) - start_index
-                                    if (manual_computed_diff < 10) and (
-                                        manual_computed_diff > -10):
+                                    manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
+                                    if (manual_computed_diff < 10) and (manual_computed_diff > -10):
                                         manual_match = True
                             except Exception as ex:
                                 print(
@@ -152,23 +165,24 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 print(traceback.format_exc())
                                 manual_match = False
 
-                        if not manual_match and true_content != annotated_content:
-                            true_content_skewed = sentence[
+                        if not manual_match:
+                            if true_content != annotated_content:
+                                true_content_skewed = sentence[
                                                   annotation['annotation'][
                                                       'start'] - page_index_diff + 1:
                                                   annotation['annotation'][
                                                       'end'] - page_index_diff + 1]
-                            true_content_skewed2 = sentence[
+                                true_content_skewed2 = sentence[
                                                    annotation['annotation'][
                                                        'start'] - page_index_diff - 1:
                                                    annotation['annotation'][
                                                        'end'] - page_index_diff - 1]
-                            if true_content_skewed == annotated_content:
-                                true_content = true_content_skewed
-                                content_index_diff = 1
-                            elif true_content_skewed2 == annotated_content:
-                                true_content = true_content_skewed2
-                                content_index_diff = -1
+                                if true_content_skewed == annotated_content:
+                                    true_content = true_content_skewed
+                                    content_index_diff = 1
+                                elif true_content_skewed2 == annotated_content:
+                                    true_content = true_content_skewed2
+                                    content_index_diff = -1
                             else:
                                 print(f'index error at {data_number + 1}')
                                 wrong_index += 1
@@ -205,6 +219,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 insert_annotation = False
                                 # annotation_to_insert = "prut"
                                 print("prut")
+                                continue    
 
                             if insert_annotation:
                                 if not manual_match:
@@ -222,71 +237,68 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                     print("weird out of range error")
                                     print(traceback.format_exc())
 
-                                sentence_anon = sentence_anon[
-                                                :start_index] + annotation_to_insert + sentence_anon[
-                                                                                       end_index:]
+                                sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
                                 # print("---------------------")
                                 # print(sentence_anon)
                                 # print('-')
-                                sentence_index_diff = len(sentence_anon) - len(
-                                    sentence)
-
+                                sentence_index_diff = len(sentence_anon) - len(sentence)
+#                    if print_each_sentence:
+#                        print('--- Sentence ------')
+ #                       print(sentence)
+  #                      print('--')
+   #                     print(sentence_anon)
+    #                    print('-------------------')                    
                     sentences_anon.append(sentence_anon + '\n')
+                    
+        try:
+            ANON_LENGTH = len(sentences_anon)                        
 
-                    try:
-                        # assert len(new_sentences_anon2) == len(new_sentences2)
-                        for s, (sentence, sentence_anon) in enumerate(
-                            zip(new_sentences2, sentences_anon)):
+            # assert len(new_sentences_anon2) == len(new_sentences2)
+            for s, (sentence, sentence_anon) in enumerate(
+                zip(new_sentences2, sentences_anon)):
+                
+                sentence = sentence + '\n'
 
-                            sentence = sentence + '\n'
+                words = re.split(r'( |,|\. |\.\n|,\n)', sentence)
+                tags = re.split(r'( |,|\. |\.\n|,\n)', sentence_anon)
+                if print_stats and (len(words) != len(tags)):
+                    print(
+                        f'len(words): {len(words)}, len(tags): {len(tags)}')
 
-                            words = re.split(r'( |,|\. |\.\n)', sentence)
-                            tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
-                            if print_stats and (len(words) != len(tags)):
-                                print(
-                                    f'len(words): {len(words)}, len(tags): {len(tags)}')
+                to_remove = [" ", "", "\n"]
+                words_final = list(filter(lambda word: word.strip().rstrip('\\n').strip() not in to_remove, words))
+                words_final[-1] = words_final[-1].strip()
 
-                            to_remove = [" ", ""]
-                            words_final = list(filter(lambda word:
-                                                      word.strip(
-                                                      ).rstrip('\\n').strip()
-                                                      not
-                                                      in to_remove, words))
-                            words_final[-1] = words_final[-1].strip()
+                tags_no_whitespace = list(filter(lambda tag: tag not in to_remove,tags))
+                tags_final = [tag if (tag.startswith(("B-", "U-", "I-", "L-")) and tag[2:].isupper()) else "O" for tag in tags_no_whitespace]
 
-                            tags_no_whitespace = list(filter(lambda tag:
-                                                             tag not in
-                                                             to_remove,
-                                                             tags))
-                            tags_final = [tag if (tag.startswith(
-                                ("B-", "U-", "I-", "L-")) and tag[
-                                                              2:].isupper()) else "O"
-                                          for tag in tags_no_whitespace]
+                if print_stats and (
+                    len(words_final) != len(tags_final)):
+                    print(
+                        f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                    if print_each_sentence == 1:
+                        print("---------------------")
+                        print(sentence)
+                        print('-')
+                        print(words_final)
+                        print('--')
+                        print(sentence_anon)
+                        print('-')
+                        print(tags_final)
+                        print("---------------------")
+                if len(tags_final) != len(words_final):
+                    word_tag_mismatch_error += 1
+                    print(f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}.")
+                
+                assert len(tags_final) == len(words_final)            
+                total_sentence += 1
+                output_data.append(
+                    {'words': words_final, 'tags': tags_final})
+                
 
-                            if print_stats and (
-                                len(words_final) != len(tags_final)):
-                                print(
-                                    f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
-                                if print_each_sentence == 1:
-                                    print("---------------------")
-                                    print(sentence)
-                                    print('-')
-                                    print(words_final)
-                                    print('--')
-                                    print(sentence_anon)
-                                    print('-')
-                                    print(tags_final)
-                                    print("---------------------")
-                            assert len(tags_final) == len(words_final)
-                            output_data.append(
-                                {'words': words_final, 'tags': tags_final})
-                            total_sentence += 1
-
-                    except Exception as e:
-                        word_tag_mismatch_error += 1
-                        print(
-                            f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
-                        print(traceback.format_exc())
+        except Exception as e:
+            print(f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede.")
+            print(traceback.format_exc())
 
     return output_data, [word_tag_mismatch_error, wrong_index, correct_index,
                          total_sentence, deleted_annotation, wrong_raw_index]
