@@ -67,7 +67,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                     current_page_annotations if
                                                     (x['annotation'][
                                                          'start'] < (
-                                                             len(sentence) + page_index_diff) and
+                                                         len(sentence) + page_index_diff) and
                                                      x['annotation'][
                                                          'start'] >= (
                                                          page_index_diff))]
@@ -111,11 +111,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         true_original = pdf_text[
                                         annotation['annotation']['start']:
                                         annotation['annotation']['end']]
-                        if pdf_text[annotation['annotation']['end'] + 1].isalpha():
+                        if pdf_text[
+                            annotation['annotation']['end'] + 1].isalpha():
                             print("stupid")
+                            print(true_original)
                             print(sentence)
                         if pdf_text[annotation['annotation']['end'] + 1] == '`':
                             print("stupid")
+                            print(true_original)
                             print(sentence)
                             entity = annotation['annotation']['annotation']
 
