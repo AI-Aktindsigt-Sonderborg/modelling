@@ -19,7 +19,6 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
-
 word_tag_mismatch_errors: int = 0
 wrong_index_errors: int = 0
 wrong_raw_index_errors: int = 0
@@ -27,6 +26,8 @@ correct_indexes: int = 0
 entity_data: List[dict] = []
 total_sentences: int = 0
 deleted_annotations: int = 0
+
+
 def create_bilou_from_one_document(input_data: dict, data_number: int,
                                    print_stats: bool = False,
                                    print_each_sentence: int = 0):
@@ -38,14 +39,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
     deleted_annotation: int = 0
     output_data = []
 
-
     for k, pdf_text in enumerate(input_data['pdf_text']):
         index_diff = 0
         pdf_altered = pdf_text
         page_num = f'page_no:{k + 1}'
         if len(input_data['text_annotation']) >= k + 1:
             try:
-                current_page_annotations = input_data['text_annotation'][page_num]
+                current_page_annotations = input_data['text_annotation'][
+                    page_num]
             except Exception as ex:
                 print(f"wtf error - check line {data_number + 1}")
                 #                 print(page_num)
@@ -62,11 +63,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         page_index_diff = 0
                     else:
                         page_index_diff += len(new_sentences2[i - 1]) + 2
-                    current_sentence_annotations = [x for x in current_page_annotations if
-                                                    (x['annotation']['start'] < (len(sentence) + page_index_diff) and
-                                                     x['annotation']['start'] >= (page_index_diff))]
+                    current_sentence_annotations = [x for x in
+                                                    current_page_annotations if
+                                                    (x['annotation'][
+                                                         'start'] < (
+                                                             len(sentence) + page_index_diff) and
+                                                     x['annotation'][
+                                                         'start'] >= (
+                                                         page_index_diff))]
 
-                    sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'])
+                    sorted_sentence_annotations = sorted(
+                        current_sentence_annotations,
+                        key=lambda x: x['annotation']['start'])
                     for j, annotation in enumerate(sorted_sentence_annotations):
                         manual_match = False
 
@@ -77,7 +85,6 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         if annotation['annotation']['state'] == 'deleted':
                             deleted_annotation += 1
                             continue
-
 
                         annotated_content = annotation['annotation']['content']
                         # start_index = annotation['annotation']['start']
@@ -96,41 +103,57 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # else:
                         #     print(f'index error {data_number+1}')
 
-                        true_content = sentence[annotation['annotation']['start'] - page_index_diff:
-                                annotation['annotation']['end'] - page_index_diff]
+                        true_content = sentence[annotation['annotation'][
+                                                    'start'] - page_index_diff:
+                                                annotation['annotation'][
+                                                    'end'] - page_index_diff]
 
                         true_original = pdf_text[
-                                annotation['annotation']['start']:
-                                annotation['annotation']['end']]
+                                        annotation['annotation']['start']:
+                                        annotation['annotation']['end']]
+                        if pdf_text[annotation['annotation']['end'] + 1].isalpha():
+                            print("stupid")
+                            print(sentence)
+                        if pdf_text[annotation['annotation']['end'] + 1] == '`':
+                            print("stupid")
+                            print(sentence)
+                            entity = annotation['annotation']['annotation']
 
-                        entity = annotation['annotation']['annotation']
                         content_index_diff = 0
 
                         if true_original != annotated_content:
                             wrong_raw_index += 1
                         else:
                             try:
-                                match = re.search(re.escape(annotated_content), sentence_anon)
+                                match = re.search(re.escape(annotated_content),
+                                                  sentence_anon)
                                 if match:
                                     start_index = match.start()
                                     end_index = match.end()
                                     manual_match = True
-                                    manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
-                                    if (manual_computed_diff < 10) and (manual_computed_diff > -10):
+                                    manual_computed_diff = (annotation[
+                                                                'annotation'][
+                                                                'start'] - page_index_diff) - start_index
+                                    if (manual_computed_diff < 10) and (
+                                        manual_computed_diff > -10):
                                         manual_match = True
                             except Exception as ex:
-                                print(f"weird search error at {data_number + 1}")
+                                print(
+                                    f"weird search error at {data_number + 1}")
                                 print(traceback.format_exc())
                                 manual_match = False
 
-
                         if not manual_match and true_content != annotated_content:
                             true_content_skewed = sentence[
-                                annotation['annotation']['start'] - page_index_diff + 1:
-                                annotation['annotation']['end'] - page_index_diff + 1]
+                                                  annotation['annotation'][
+                                                      'start'] - page_index_diff + 1:
+                                                  annotation['annotation'][
+                                                      'end'] - page_index_diff + 1]
                             true_content_skewed2 = sentence[
-                                annotation['annotation']['start'] - page_index_diff - 1:
-                                annotation['annotation']['end'] - page_index_diff - 1]
+                                                   annotation['annotation'][
+                                                       'start'] - page_index_diff - 1:
+                                                   annotation['annotation'][
+                                                       'end'] - page_index_diff - 1]
                             if true_content_skewed == annotated_content:
                                 true_content = true_content_skewed
                                 content_index_diff = 1
@@ -141,32 +164,33 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 print(f'index error at {data_number + 1}')
                                 wrong_index += 1
 
-
                         if annotated_content == true_content or manual_match:
 
                             correct_index += 1
-                            list_content = re.split(r'( |,|\. |\.\n)', annotated_content)
+                            list_content = re.split(r'( |,|\. |\.\n)',
+                                                    annotated_content)
                             to_remove = [" ", ""]
                             list_content = list(filter(lambda tag:
                                                        tag.strip() not
-                                                       in to_remove, list_content))
+                                                       in to_remove,
+                                                       list_content))
                             insert_annotation: bool = True
                             if len(list_content) == 1:
                                 annotation_to_insert = 'U-' + entity
 
                             elif len(list_content) == 2:
                                 annotation_to_insert = 'B-' + entity + ' L-' + entity
-                            elif len(list_content) > 2:                                
+                            elif len(list_content) > 2:
                                 annotation_to_insert = 'B-' + entity
-#                                #if "ADRESSE" in entity:
-#                                  #print(annotation_to_insert)
+                                #                                #if "ADRESSE" in entity:
+                                #                                  #print(annotation_to_insert)
                                 for inside_element in list_content[1:-1]:
                                     annotation_to_insert = annotation_to_insert + ' I-' + entity
-                                    #if "ADRESSE" in entity:
-                                     # print(annotation_to_insert)
+                                    # if "ADRESSE" in entity:
+                                    # print(annotation_to_insert)
                                 annotation_to_insert = annotation_to_insert + ' L-' + entity
-                                #if "ADRESSE" in entity:
-                                  #print(annotation_to_insert)
+                                # if "ADRESSE" in entity:
+                                # print(annotation_to_insert)
                             else:
                                 insert_annotation = False
                                 # annotation_to_insert = "prut"
@@ -174,22 +198,28 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
                             if insert_annotation:
                                 if not manual_match:
-                                    start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
-                                    end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
+                                    start_index = annotation['annotation'][
+                                                      'start'] - page_index_diff + sentence_index_diff + content_index_diff
+                                    end_index = annotation['annotation'][
+                                                    'end'] - page_index_diff + sentence_index_diff + content_index_diff
                                 try:
-                                  if sentence_anon[end_index] == '\.':
-                                    annotation_to_insert = annotation_to_insert + ' '
-                                  if sentence_anon[end_index].isalpha() and sentence_anon[end_index].islower():
-                                    annotation_to_insert = annotation_to_insert + ' '
+                                    if sentence_anon[end_index] == '\.':
+                                        annotation_to_insert = annotation_to_insert + ' '
+                                    if sentence_anon[end_index].isalpha() and \
+                                        sentence_anon[end_index].islower():
+                                        annotation_to_insert = annotation_to_insert + ' '
                                 except Exception as ex:
-                                  print("weird out of range error")
-                                  print(traceback.format_exc())
-                                
-                                sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]                                
-                                #print("---------------------")
-                                #print(sentence_anon)
-                                #print('-')
-                                sentence_index_diff = len(sentence_anon) - len(sentence)
+                                    print("weird out of range error")
+                                    print(traceback.format_exc())
+
+                                sentence_anon = sentence_anon[
+                                                :start_index] + annotation_to_insert + sentence_anon[
+                                                                                       end_index:]
+                                # print("---------------------")
+                                # print(sentence_anon)
+                                # print('-')
+                                sentence_index_diff = len(sentence_anon) - len(
+                                    sentence)
 
                     sentences_anon.append(sentence_anon + '\n')
 
@@ -197,13 +227,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # assert len(new_sentences_anon2) == len(new_sentences2)
                         for s, (sentence, sentence_anon) in enumerate(
                             zip(new_sentences2, sentences_anon)):
-                            
+
                             sentence = sentence + '\n'
 
                             words = re.split(r'( |,|\. |\.\n)', sentence)
                             tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
                             if print_stats and (len(words) != len(tags)):
-                                print(f'len(words): {len(words)}, len(tags): {len(tags)}')
+                                print(
+                                    f'len(words): {len(words)}, len(tags): {len(tags)}')
 
                             to_remove = [" ", ""]
                             words_final = list(filter(lambda word:
@@ -217,10 +248,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                              tag not in
                                                              to_remove,
                                                              tags))
-                            tags_final = [tag if (tag.startswith(("B-","U-", "I-","L-")) and tag[2:].isupper()) else "O"
+                            tags_final = [tag if (tag.startswith(
+                                ("B-", "U-", "I-", "L-")) and tag[
+                                                              2:].isupper()) else "O"
                                           for tag in tags_no_whitespace]
 
-                            if print_stats and (len(words_final) != len(tags_final)):
+                            if print_stats and (
+                                len(words_final) != len(tags_final)):
                                 print(
                                     f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
                                 if print_each_sentence == 1:
@@ -244,17 +278,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             f"data med linjenummer {data_number + 1} med id {input_data['id']} fejlede paa annotation nummer {j}.")
                         print(traceback.format_exc())
 
-
-    return output_data, [word_tag_mismatch_error, wrong_index, correct_index, total_sentence, deleted_annotation, wrong_raw_index]
+    return output_data, [word_tag_mismatch_error, wrong_index, correct_index,
+                         total_sentence, deleted_annotation, wrong_raw_index]
 
 
 if len(args) == 4:
     args[2] = int(args[2])
     args[3] = int(args[3])
-    single_obs_data, errors = create_bilou_from_one_document(input_data=raw_data[args[2] - 1],
-                                                     data_number=args[2] - 1,
-                                                     print_stats=True,
-                                                     print_each_sentence=args[3])
+    single_obs_data, errors = create_bilou_from_one_document(
+        input_data=raw_data[args[2] - 1],
+        data_number=args[2] - 1,
+        print_stats=True,
+        print_each_sentence=args[3])
 
     word_tag_mismatch_errors += errors[0]
     wrong_index_errors += errors[1]
@@ -266,7 +301,7 @@ if len(args) == 4:
 else:
     for i, obs in enumerate(raw_data):
         single_obs_data, errors = create_bilou_from_one_document(input_data=obs,
-                                                         data_number=i)
+                                                                 data_number=i)
         word_tag_mismatch_errors += errors[0]
         wrong_index_errors += errors[1]
         correct_indexes += errors[2]
