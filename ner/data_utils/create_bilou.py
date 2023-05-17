@@ -120,7 +120,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             print("stupid")
                             print(true_original)
                             print(sentence)
-                            entity = annotation['annotation']['annotation']
+
+                        entity = annotation['annotation']['annotation']
 
                         content_index_diff = 0
 
@@ -178,6 +179,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                                        in to_remove,
                                                        list_content))
                             insert_annotation: bool = True
+
                             if len(list_content) == 1:
                                 annotation_to_insert = 'U-' + entity
 
