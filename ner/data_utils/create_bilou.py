@@ -113,7 +113,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                         annotation['annotation']['end']]
                         if true_original == annotated_content:
                             if pdf_text[
-                                annotation['annotation']['end'] + 1].isalpha():
+                                annotation['annotation']['end']].isalpha():
                                 print("stupid1")
                                 print(true_original)
                                 print(pdf_text[
@@ -122,11 +122,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 print("---------------")
 
                             if pdf_text[
-                                annotation['annotation']['end'] + 1] == '`':
+                                annotation['annotation']['end']] == '`':
                                 print("stupid2")
                                 print(true_original)
-                                print(pdf_text[
-                                          annotation['annotation']['end'] + 1])
+                                print(pdf_text[annotation['annotation']['end']])
                                 print(sentence)
                                 print("---------------")
 
