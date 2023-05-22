@@ -67,7 +67,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                     else:
                         page_index_diff += len(new_sentences2[i - 1]) + 2
                     current_sentence_annotations = [x for x in current_page_annotations if (x['annotation']['start'] < (len(sentence) + page_index_diff) and x['annotation']['start'] >= (page_index_diff))]
-                    sorted_sentence_annotations = sorted(current_page_annotations, key=lambda x: x['annotation']['start'], reverse=True)
+                    sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'], reverse=True)
                     for j, annotation in enumerate(sorted_sentence_annotations):
                         manual_match = False
 
