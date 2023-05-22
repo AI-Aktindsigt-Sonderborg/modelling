@@ -70,10 +70,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         page_index_diff += len(new_sentences2[i - 1]) + 2
                     current_sentence_annotations = [x for x in
                                                     current_page_annotations if
-                                                    (x['annotation'][
-                                                         'start'] < (
-                                                         len(sentence) + page_index_diff) and
-                                                     x['annotation']['start'] >= (page_index_diff))]
+                                                    (x['annotation']['start'] < (len(sentence) + page_index_diff) and x['annotation']['start'] >= (page_index_diff))]
 
                     sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'])
                     for j, annotation in enumerate(sorted_sentence_annotations):
@@ -105,9 +102,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         #     print(f'index error {data_number+1}')
 
                         true_content = sentence[annotation['annotation']['start'] - page_index_diff:annotation['annotation']['end'] - page_index_diff]
-                        true_original = pdf_text[annotation['annotation']['start']:annotation['annotation']['end']]
-                        print(f'----------annotation_stats: {data_number + 1} - {k} - {i} - {j} -------------')
+                        true_original = pdf_text[annotation['annotation']['start']:annotation['annotation']['end']]                        
                         if print_stats:
+                            print(f'----------annotation_stats: {data_number + 1} - {k} - {i} - {j} -------------')
                             print("|" + true_original + "|")
                             print("|" + true_content + "|")                            
                             print("|" + annotated_content + "|")
@@ -223,10 +220,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
                             if insert_annotation:
                                 if not manual_match:
-                                    start_index = annotation['annotation'][
-                                                      'start'] - page_index_diff + sentence_index_diff + content_index_diff
-                                    end_index = annotation['annotation'][
-                                                    'end'] - page_index_diff + sentence_index_diff + content_index_diff
+                                    start_index = annotation['annotation']['start'] - page_index_diff + sentence_index_diff + content_index_diff
+                                    end_index = annotation['annotation']['end'] - page_index_diff + sentence_index_diff + content_index_diff
                                 try:
                                     if sentence_anon[end_index] == '\.':
                                         annotation_to_insert = annotation_to_insert + ' '
