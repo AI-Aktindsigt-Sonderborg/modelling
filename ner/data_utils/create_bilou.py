@@ -262,7 +262,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                     print(
                         f'len(words): {len(words)}, len(tags): {len(tags)}')
 
-                to_remove = [" ", "", "\n", "\\"]
+                to_remove = [" ", "", "\n"]
                 words_final = list(filter(lambda word: word.strip().rstrip('\\n').strip() not in to_remove, words))
                 words_final[-1] = words_final[-1].strip()
 
