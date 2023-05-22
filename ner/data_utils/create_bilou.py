@@ -171,19 +171,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                                     #if (manual_computed_diff < 10) and (manual_computed_diff > -10):
                                      #   manual_match = True
                                 elif match2:
-                                    print()
-                                    print(f"manual marcel match2: {match2}")
-                                    print()
                                     start_index = match2.start()
                                     end_index = match2.end() - 1
                                     manual_match = True                                    
                                 else: 
-                                    print()
-                                    print(f"No marcel match")
-                                    print()
-                                if true_content == annotated_content:
-                                    manual_match = False
-                                
+                                    if true_content == annotated_content:
+                                        manual_match = False                        
                             except Exception as ex:
                                 print(f"weird search error at {data_number + 1}")
                                 print(traceback.format_exc())
