@@ -28,9 +28,7 @@ total_sentences: int = 0
 deleted_annotations: int = 0
 
 
-def create_bilou_from_one_document(input_data: dict, data_number: int,
-                                   print_stats: bool = False,
-                                   print_each_sentence: int = 0):
+def create_bilou_from_one_document(input_data: dict, data_number: int,print_stats: bool = False,print_each_sentence: int = 0):
     word_tag_mismatch_error: int = 0
     wrong_raw_index: int = 0
     wrong_index: int = 0
@@ -54,7 +52,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
             except Exception as ex:
                 print(f"wtf error - check line {data_number + 1}")
                 #                 print(page_num)
-                #                 print(traceback.format_exc())
+                print(traceback.format_exc())
                 current_page_annotations = None
 
             if current_page_annotations:
@@ -75,16 +73,23 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
                         if j == 0:
                             sentence_index_diff = 0
-                        # if annotation['annotation']['start'] > len(sentence):
-                        #     continue
                         if annotation['annotation']['state'] == 'deleted':
                             deleted_annotation += 1
                             continue
 
-                        annotated_content = annotation['annotation']['content']
-                        # start_index = annotation['annotation']['start']
-                        # end_index = annotation['annotation']['end']
 
+                        start_index_init = annotation['annotation']['start']
+                        end_index_init = annotation['annotation']['end']
+                        true_orig_init = pdf_text[start_index_init:end_index_init]
+                        
+                        annotated_content = annotation['annotation']['content']
+                        annotated_content_last = annotated_content[-1]
+
+                        while annotated_content_last.isspace() | (annotated_content_last == " "):
+                            end_index_init = end_index_init - 1
+                            annotated_content = annotated_content[:-1]
+                            annotated_content_last = annotated_content[-1]
+                            
                         # content_index_diff = 0
                         # content = annotated_content.strip()
                         # if content.endswith('.'):
@@ -98,14 +103,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         # else:
                         #     print(f'index error {data_number+1}')
 
-                        true_content = sentence[annotation['annotation']['start'] - page_index_diff:annotation['annotation']['end'] - page_index_diff]
-                        true_original = pdf_text[annotation['annotation']['start']:annotation['annotation']['end']]                        
+                        true_content = sentence[start_index_init - page_index_diff:end_index_init - page_index_diff]
+
+                        true_original = pdf_text[annotation['annotation']['start']:end_index_init]
+                        
                         if print_stats:
                             print(f'----------annotation_stats: {data_number + 1} - {k} - {i} - {j} -------------')
-                            print("|" + true_original + "|")
-                            print("|" + true_content + "|")                            
-                            print("|" + annotated_content + "|")
-                            print(true_original == annotated_content)
+                            print(f'true original index content: |{true_orig_init}|')
+                            print(f'true modified original index content: |{true_original}|')
+                            print(f'true index content: |{true_content}|')
+                            print(f'annotated content:  |{annotated_content}|')
+                            print(f"true == annotated: {true_original == annotated_content}")
                             print(len(pdf_text) > annotation['annotation']['end'])
                             if len(pdf_text) > annotation['annotation']['end']:
                                 print(annotation['annotation']['end'])
@@ -114,29 +122,33 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 print(sentence[annotation['annotation']['start'] - page_index_diff + 1:annotation['annotation']['end'] - page_index_diff + 1])
                         
                         if true_original == annotated_content and len(pdf_text) > annotation['annotation']['end']:
-                            if pdf_text[annotation['annotation']['end']].isalpha():
-                                print('fuck')
-                                if pdf_text[annotation['annotation']['end'] - 1].isalpha():
-                                    print("testing4")
-                                    continue
-                                if pdf_text[annotation['annotation']['end'] - 1] == ' ':
-                                    print("stupid1")
-                                    print(data_number + 1)
-                                    print(i)
-                                    print(page_num)
-                                    print(j)
-                                    print("|" + true_original + "|")
-                                    print(pdf_text[annotation['annotation']['end']])
-                                    print(sentence)
-                                    print("---------------")
-                                
-                            if pdf_text[annotation['annotation']['end']] == '`':
-                                print("stupid2")
-                                print("|" + true_original + "|")
-                                print(pdf_text[annotation['annotation']['end']])
-                                print(sentence)
-                                print("---------------")
+                            if print_stats:
+                                if pdf_text[annotation['annotation']['end']].isalpha():
+                                    print('fuck')
+                                    if pdf_text[annotation['annotation']['end'] - 1].isalpha():
+                                        print("testing4")
+                                        continue
+                                    if pdf_text[annotation['annotation']['end'] - 1] == ' ':
+                                        print("stupid1")
+                                        print(data_number + 1)
+                                        print(i)
+                                        print(page_num)
+                                        print(j)
+                                        print("|" + true_original + "|")
+                                        print(pdf_text[annotation['annotation']['end']])
+                                        print(sentence)
+                                        print("---------------")
 
+                                try:
+                                    if pdf_text[end_index_init+1] == '`':
+                                        print("stupid2")
+                                        print("|" + true_original + "|")
+                                        print(sentence)
+                                        print("---------------")
+                                except Exception as ex:
+                                    print("end index out of range")
+                                    print(traceback.format_exc())
+                                
                         entity = annotation['annotation']['annotation']
 
                         content_index_diff = 0
@@ -144,25 +156,43 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         if true_original != annotated_content:
                             wrong_raw_index += 1
                         else:
-                            try:
-                                match = re.search(re.escape(annotated_content +'[^0-9a-zA-Z]'), sentence_anon)
-                                if match:
-                                    start_index = match.start()
-                                    end_index = match.end() - 1
+                            try:                            
+                                match1 = re.search(re.escape(annotated_content +'[^0-9a-zA-Z]'), sentence_anon)
+                                match2 = re.search(annotated_content +'[^0-9a-zA-Z]', sentence_anon)
+                                
+                                if match1:
+                                    print()
+                                    print(f"manual marcel match1: {match1}")
+                                    print()
+                                    start_index = match1.start()
+                                    end_index = match1.end() - 1
                                     manual_match = True
-                                    manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
-                                    if (manual_computed_diff < 10) and (manual_computed_diff > -10):
-                                        manual_match = True
+                                    #manual_computed_diff = (annotation['annotation']['start'] - page_index_diff) - start_index
+                                    #if (manual_computed_diff < 10) and (manual_computed_diff > -10):
+                                     #   manual_match = True
+                                elif match2:
+                                    print()
+                                    print(f"manual marcel match2: {match2}")
+                                    print()
+                                    start_index = match2.start()
+                                    end_index = match2.end() - 1
+                                    manual_match = True                                    
+                                else: 
+                                    print()
+                                    print(f"No marcel match")
+                                    print()
+                                if true_content == annotated_content:
+                                    manual_match = False
+                                
                             except Exception as ex:
-                                print(
-                                    f"weird search error at {data_number + 1}")
+                                print(f"weird search error at {data_number + 1}")
                                 print(traceback.format_exc())
                                 manual_match = False
 
                         if not manual_match:
                             if true_content != annotated_content:
-                                true_content_skewed = sentence[annotation['annotation']['start'] - page_index_diff + 1:annotation['annotation']['end'] - page_index_diff + 1]
-                                true_content_skewed2 = sentence[annotation['annotation']['start'] - page_index_diff - 1:annotation['annotation']['end'] - page_index_diff - 1]
+                                true_content_skewed = sentence[start_index_init - page_index_diff + 1:end_index_init - page_index_diff + 1]
+                                true_content_skewed2 = sentence[start_index_init - page_index_diff - 1:end_index_init - page_index_diff - 1]
                                 if true_content_skewed == annotated_content:
                                     true_content = true_content_skewed
                                     content_index_diff = 1
@@ -173,7 +203,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                 print(f'index error at {data_number + 1}')
                                 wrong_index += 1
 
-                        if annotated_content == true_content or manual_match:
+                        if (annotated_content == true_content) or manual_match:
                             correct_index += 1
                             list_content = re.split(r'( |,|\. |\.\n)',
                                                     annotated_content)
@@ -198,8 +228,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
                             if insert_annotation:
                                 if not manual_match:
-                                    start_index = annotation['annotation']['start'] - page_index_diff + content_index_diff
-                                    end_index = annotation['annotation']['end'] - page_index_diff + content_index_diff
+                                    start_index = start_index_init - page_index_diff + content_index_diff
+                                    end_index = end_index_init - page_index_diff + content_index_diff
                                 try:
                                     if sentence_anon[end_index] == '\.':
                                         annotation_to_insert = annotation_to_insert + ' '
@@ -239,17 +269,22 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     print(
                         f'len(words): {len(words)}, len(tags): {len(tags)}')
 
-                to_remove = [" ", "", "\n"]
+                to_remove = [" ", "", "\n", "\\"]
                 words_final = list(filter(lambda word: word.strip().rstrip('\\n').strip() not in to_remove, words))
                 words_final[-1] = words_final[-1].strip()
 
-                tags_no_whitespace = list(filter(lambda tag: tag not in to_remove,tags))
+                tags_no_whitespace = list(filter(lambda tag: tag.strip().rstrip('\\n').strip() not in to_remove,tags))
+                
                 tags_final = [tag if (tag.startswith(("B-", "U-", "I-", "L-")) and tag[2:].isupper()) else "O" for tag in tags_no_whitespace]
 
                 if print_stats and (
                     len(words_final) != len(tags_final)):
-                    print(
-                        f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                    print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                    print("--------------Annotations---------------")
+                    for annot in current_page_annotations:
+                        print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
+                    print('----------------------------------------')
+                        
                     if print_each_sentence == 1:
                         print("---------------------")
                         print(sentence)
@@ -257,6 +292,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         print(words_final)
                         print('--')
                         print(sentence_anon)
+                        print('-')
+                        print(tags_no_whitespace)
                         print('-')
                         print(tags_final)
                         print("---------------------")
