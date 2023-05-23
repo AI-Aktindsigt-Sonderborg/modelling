@@ -14,9 +14,8 @@ if len(args) > 2:
                       x['page_number'] == int(args[2])]
 
 for i, x in enumerate(bilou_filtered):
-    if ("Kiss-Kidd") in x['words']:
-        print(f"------------------{i}-------------------")
-        print(x['words'])
-        print(x['tags'])
-        print(f"-------------------------------------")
+    print(f"------------------{i}-------------------")
+    print(x['words'])
+    print(x['tags'])
+    print(f"-------------------------------------")
 

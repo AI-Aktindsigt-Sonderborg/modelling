@@ -43,9 +43,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
         index_diff = 0
         pdf_altered = pdf_text
         page_num = f'page_no:{k + 1}'
-
+        
         new_sentences, new_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
-
+        
         if len(input_data['text_annotation']) >= k + 1:
             try:
                 current_page_annotations = input_data['text_annotation'][page_num]
@@ -68,7 +68,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                         page_index_diff += len(new_sentences2[i - 1]) + 2
                     current_sentence_annotations = [x for x in current_page_annotations if (x['annotation']['start'] < (len(sentence) + page_index_diff) and x['annotation']['start'] >= (page_index_diff))]
                     sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'], reverse=True)
-                    for j, annotation in enumerate(sorted_sentence_annotations):
+                    filtered_sentence_annotations = [x for x in sorted_sentence_annotations if x['annotation']['annotation'] not in ['EMAIL']]
+
+                    for j, annotation in enumerate(filtered_sentence_annotations):
                         manual_match = False
 
                         if j == 0:
@@ -82,8 +84,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                         end_index_init = annotation['annotation']['end']
                         true_orig_init = pdf_text[start_index_init:end_index_init]
                         
-                        annotated_content = annotation['annotation']['content']
+                        annotated_content = annotation['annotation']['content'].replace(" |", "")
                         annotated_content_last = annotated_content[-1]
+                        
+                        
 
                         while annotated_content_last.isspace() | (annotated_content_last == " "):
                             end_index_init = end_index_init - 1
@@ -108,7 +112,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                         true_original = pdf_text[annotation['annotation']['start']:end_index_init]
                         
                         if print_stats:
-                            print(f'----------annotation_stats: {data_number + 1} - {k} - {i} - {j} -------------')
+                            print(f'----------annotation_stats: {data_number + 1} - page_number: {k+1} - {i} - anno_nr: {j} -------------')
                             print(f'true original index content: |{true_orig_init}|')
                             print(f'true modified original index content: |{true_original}|')
                             print(f'true index content: |{true_content}|')
@@ -162,7 +166,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                                 
                                 if match1:
                                     print()
-                                    print(f"manual marcel match1: {match1}")
+                                    print(f"manual match1: {match1}")
                                     print()
                                     start_index = match1.start()
                                     end_index = match1.end() - 1
@@ -171,6 +175,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                                     #if (manual_computed_diff < 10) and (manual_computed_diff > -10):
                                      #   manual_match = True
                                 elif match2:
+                                    print()
+                                    print(f"manual match2: {match1}")
+                                    print()                                    
                                     start_index = match2.start()
                                     end_index = match2.end() - 1
                                     manual_match = True                                    
@@ -255,9 +262,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                 zip(new_sentences2, sentences_anon)):
                 
                 sentence = sentence + '\n'
+                sentence_anon = sentence_anon + '\n'
 
-                words = re.split(r'( |,|\. |\.\n|,\n)', sentence)
-                tags = re.split(r'( |,|\. |\.\n|,\n)', sentence_anon)
+                words = re.split(r'( |,|\. |\.\n)', sentence)
+                tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
                 if print_stats and (len(words) != len(tags)):
                     print(
                         f'len(words): {len(words)}, len(tags): {len(tags)}')
@@ -269,12 +277,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                 tags_no_whitespace = list(filter(lambda tag: tag.strip().rstrip('\\n').strip() not in to_remove,tags))
                 
                 tags_final = [tag if (tag.startswith(("B-", "U-", "I-", "L-")) and tag[2:].isupper()) else "O" for tag in tags_no_whitespace]
+                tags_final[-1] = tags_final[-1].strip()
 
                 if print_stats and (
                     len(words_final) != len(tags_final)):
                     print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                    print(f'len(words_final): {len(words_final)}, len(tags_no_whitespace): {len(tags_no_whitespace)}')
                     print("--------------Annotations---------------")
-                    for annot in current_page_annotations:
+                    for annot in sorted_sentence_annotations:
                         print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
                     print('----------------------------------------')
                         
@@ -282,9 +292,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                         print("---------------------")
                         print(sentence)
                         print('-')
-                        print(words_final)
-                        print('--')
                         print(sentence_anon)
+                        print('--')
+                        print(words_final)
                         print('-')
                         print(tags_no_whitespace)
                         print('-')
