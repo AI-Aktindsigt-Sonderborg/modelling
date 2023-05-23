@@ -95,9 +95,6 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
 
         new_sentences, new_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
 
-
-        
-
         for i, sentence in enumerate(new_sentences2):
             sentence_anon = sentence
             if current_page_annotations:
@@ -118,12 +115,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         deleted_annotation += 1
                         continue
 
-
+    
                     start_index_init = annotation['annotation']['start']
                     end_index_init = annotation['annotation']['end']
                     true_orig_init = pdf_text[start_index_init:end_index_init]
 
+                    # Handle specific crap case
                     annotated_content = annotation['annotation']['content'].replace(" |", "")
+                    if annotated_content == 'Ankestyrelsen' and ('Ankestyrelsens' in  pdf_text[start_index_init-3:end_index_init + 3]):
+                        annotated_content = 'Ankestyrelsens'
+                        end_index_init += 1 
+                    
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
 
@@ -323,17 +325,32 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                 
                 tags_final = [tag if (tag.startswith(("B-", "U-", "I-", "L-")) and tag[2:].isupper()) else "O" for tag in tags_no_whitespace]
 
+                if "Du kan læse mere om" in sentence and (data_number+1 == 503):
+                    print("TRALALA")
+                    for annot in current_page_annotations:
+                        print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
+                    print("---------------------")
+                    print(f'|{sentence}|')
+                    print('-')
+                    print(f'|{sentence_anon}|')
+                    print('--')
+                    print(words_final)
+                    print('-')
+                    print(tags_no_whitespace)
+                    print('-')
+                    print(tags_final)
+                    print("---------------------")
+
                 print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
                 
                 if print_stats and (len(words_final) != len(tags_final)):
                     print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
                     print(f'len(words_final): {len(words_final)}, len(tags_no_whitespace): {len(tags_no_whitespace)}')
                     print("--------------Annotations---------------")
-                    for annot in sorted_sentence_annotations:
+                    for annot in current_page_annotations:
                         print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
                         
                     if print_each_sentence == 1:
-                        print("--------PRINTING-------------")
                         print(f'|{sentence}|')
                         print('-')
                         print(f'|{sentence_anon}|')
@@ -346,8 +363,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         print("---------------------")
                 if len(tags_final) != len(words_final):
                     word_tag_mismatch_error += 1
-                    print('AMIHERE')
                     print(f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}.")
+                    print(f'|{sentence}|')
+                    print('-')
+                    print(f'|{sentence_anon}|')
+                    print('--')
+                    print(words_final)
+                    print('-')
+                    print(tags_no_whitespace)
+                    print('-')
+                    print(tags_final)
+                    print("---------------------")
                 assert len(tags_final) == len(words_final)
                 total_sentence += 1
                 output_data.append({'words': words_final, 'tags': tags_final})
@@ -390,6 +416,7 @@ if len(args) == 4:
 
 else:
     for i, obs in enumerate(raw_data):
+        print(f'creating bilou from document number {i+1}')
         single_obs_data, errors = create_bilou_from_one_document(input_data=obs,
                                                                  data_number=i)
         word_tag_mismatch_errors += errors[0]
