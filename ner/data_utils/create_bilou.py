@@ -120,8 +120,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                     end_index_init = annotation['annotation']['end']
                     true_orig_init = pdf_text[start_index_init:end_index_init]
 
-                    # Handle specific crap case
+
                     annotated_content = annotation['annotation']['content'].replace(" |", "")
+                    # FixMe: Handle specific crap case - find more generic way?
                     if annotated_content == 'Ankestyrelsen' and ('Ankestyrelsens' in  pdf_text[start_index_init-3:end_index_init + 3]):
                         annotated_content = 'Ankestyrelsens'
                         end_index_init += 1 
