@@ -29,7 +29,7 @@ deleted_annotations: int = 0
 
 
 def fix_faulty_indices(current_page_annotations, pdf_text):
-
+    indices_reindexed = 0
     for annotation_num, annotation in enumerate(current_page_annotations):
         start_index_init = annotation['annotation']['start']
         end_index_init = annotation['annotation']['end']
@@ -57,13 +57,15 @@ def fix_faulty_indices(current_page_annotations, pdf_text):
                     manual_end_index = match1.end() - 1
                     current_page_annotations[annotation_num]['annotation']['start'] = manual_start_index
                     current_page_annotations[annotation_num]['annotation']['end'] = manual_end_index
+                    indices_reindexed += 1
                 elif match2:
                     manual_start_index = match2.start()
                     manual_end_index = match2.end() - 1
                     current_page_annotations[annotation_num]['annotation']['start'] = manual_start_index
                     current_page_annotations[annotation_num]['annotation']['end'] = manual_end_index
+                    indices_reindexed += 1
                 else:
-                    print("no manual match")
+                    print("found no manual match")
             except:
                 print("manual search error")
                 print(traceback.format_exc())
@@ -202,9 +204,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                             match2 = re.search(annotated_content +'[^0-9a-zA-Z]', sentence_anon)
 
                             if match1:
-                                print()
-                                print(f"manual match1: {match1}")
-                                print()
+                                # print()
+                                # print(f"manual match1: {match1}")
+                                # print()
                                 start_index = match1.start()
                                 end_index = match1.end() - 1
                                 manual_match = True
@@ -212,9 +214,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
                                 #if (manual_computed_diff < 10) and (manual_computed_diff > -10):
                                  #   manual_match = True
                             elif match2:
-                                print()
-                                print(f"manual match2: {match1}")
-                                print()
+                                # print()
+                                # print(f"manual match2: {match1}")
+                                # print()
                                 start_index = match2.start()
                                 end_index = match2.end() - 1
                                 manual_match = True
