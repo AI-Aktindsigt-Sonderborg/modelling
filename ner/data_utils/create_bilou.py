@@ -45,7 +45,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
         index_diff = 0
         pdf_altered = pdf_text
         page_num = f'page_no:{k + 1}'
-        current_page_annotations = input_data['text_annotation'][page_num]
+        # current_page_annotations = input_data['text_annotation'][page_num]
 
         # for s, annotation in enumerate(current_page_annotations):
         #
