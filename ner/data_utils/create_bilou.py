@@ -94,10 +94,13 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
             current_page_annotations, indices_reindexed = fix_faulty_indices(current_page_annotations, pdf_text, data_number)
 
         new_sentences, new_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
+
+
         
-        if current_page_annotations:
-            for i, sentence in enumerate(new_sentences2):
-                sentence_anon = sentence
+
+        for i, sentence in enumerate(new_sentences2):
+            sentence_anon = sentence
+            if current_page_annotations:
                 if i == 0:
                     page_index_diff = 0
                 else:
@@ -245,7 +248,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         except Exception as ex:
                             print(f"weird search error at {data_number + 1}")
                             print(traceback.format_exc())
-                            manual_match = False                        
+                            manual_match = False
 
                     if (annotated_content.lower() == true_content.lower()) or manual_match:
                         correct_index += 1
@@ -254,7 +257,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         list_content = list(filter(lambda tag: tag.strip() not in to_remove, list_content))
                         insert_annotation: bool = True
 
-                        if len(list_content) == 1:                            
+                        if len(list_content) == 1:
                             annotation_to_insert = 'U-' + entity
                             if first_is_space:
                                 annotation_to_insert = ' ' + annotation_to_insert
@@ -289,18 +292,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                                 print(traceback.format_exc())
 
                             sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
-                            # print("---------------------")
-                            # print(sentence_anon)
-                            # print('-')
-                            # sentence_index_diff = len(sentence_anon) - len(sentence)
                     else:
                         sentence_anon = sentence_anon
-                sentences_anon.append(sentence_anon + '\n')
-        else:
-            sentences_anon.append(sentence + '\n')
-                        
+
+            sentences_anon.append(sentence_anon + '\n')
+
         try:
-            ANON_LENGTH = len(sentences_anon)                        
 
             # assert len(new_sentences_anon2) == len(new_sentences2)
             for s, (sentence, sentence_anon) in enumerate(
