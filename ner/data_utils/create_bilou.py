@@ -19,15 +19,6 @@ bilou = read_json_lines(input_dir=DATA_DIR, filename=args[1])
 
 sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
-word_tag_mismatch_errors: int = 0
-wrong_index_errors: int = 0
-wrong_raw_index_errors: int = 0
-correct_indexes: int = 0
-entity_data: List[dict] = []
-total_sentences: int = 0
-deleted_annotations: int = 0
-
-
 def fix_faulty_indices(current_page_annotations, pdf_text):
     indices_reindexed = 0
     for annotation_num, annotation in enumerate(current_page_annotations):
@@ -70,10 +61,11 @@ def fix_faulty_indices(current_page_annotations, pdf_text):
                 print("manual search error")
                 print(traceback.format_exc())
 
-    return current_page_annotations
+
+    return current_page_annotations, indices_reindexed
 
 
-def create_bilou_from_one_document(input_data: dict, data_number: int,print_stats: bool = False,print_each_sentence: int = 0):
+def create_bilou_from_one_document(input_data: dict, data_number: int, print_stats: bool = False,print_each_sentence: int = 0):
     word_tag_mismatch_error: int = 0
     wrong_raw_index: int = 0
     wrong_index: int = 0
@@ -94,7 +86,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
             current_page_annotations = None
         else:
             current_page_annotations = input_data['text_annotation'][page_num]
-            current_page_annotations = fix_faulty_indices(current_page_annotations, pdf_text)
+            current_page_annotations, indices_reindexed = fix_faulty_indices(current_page_annotations, pdf_text)
 
         new_sentences, new_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
         
@@ -354,8 +346,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,print_stat
             print(traceback.format_exc())
 
     return output_data, [word_tag_mismatch_error, wrong_index, correct_index,
-                         total_sentence, deleted_annotation, wrong_raw_index]
+                         total_sentence, deleted_annotation, wrong_raw_index, indices_reindexed]
 
+
+
+word_tag_mismatch_errors: int = 0
+wrong_index_errors: int = 0
+wrong_raw_index_errors: int = 0
+correct_indexes: int = 0
+entity_data: List[dict] = []
+total_sentences: int = 0
+deleted_annotations: int = 0
+total_indices_reindexed: int = 0
 
 if len(args) == 4:
     args[2] = int(args[2])
@@ -372,6 +374,7 @@ if len(args) == 4:
     total_sentences += errors[3]
     deleted_annotations += errors[4]
     wrong_raw_index_errors += errors[5]
+    total_indices_reindexed += errors[6]
 
 else:
     for i, obs in enumerate(raw_data):
@@ -383,6 +386,7 @@ else:
         total_sentences += errors[3]
         deleted_annotations += errors[4]
         wrong_raw_index_errors += errors[5]
+        total_indices_reindexed += errors[6]
 
         entity_data.extend(single_obs_data)
 
@@ -393,7 +397,7 @@ else:
 print(f'word/tag length mismatch errors: {word_tag_mismatch_errors}')
 print(f'wrong index errors: {wrong_index_errors}')
 print(f'wrong raw index errors: {wrong_raw_index_errors}')
+print(f'Total indices reindexed: {total_indices_reindexed}')
 print(f'deleted annotations: {deleted_annotations}')
 print(f'correct indexes: {correct_indexes}')
-
 print(f'total sentences: {total_sentences}')
