@@ -67,16 +67,18 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 print("manual search error")
                 print(traceback.format_exc())
 
-        # Handle special case where annotation does not include the last s in word
-        if true_original.lower() == annotated_content.lower() and pdf_text[end_index_init:end_index_init+2] == "s ":
-            current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
-            current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
+        # Handle special cases
+        if true_original.lower() == annotated_content.lower():
+            # where annotation does not include the last s in word
+            if (len(pdf_text) > end_index+2):
+                if pdf_text[end_index_init:end_index_init+2] == "s ":
+                    current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
+                    current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
 
         # Handle special case where there is no space after number
-        if true_original.lower() == annotated_content.lower() and pdf_text[end_index_init+1].isdigit() and pdf_text[end_index_init+1].isalpha():
-            current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
-            current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
-
+        # if true_original.lower() == annotated_content.lower() and pdf_text[end_index_init+1].isdigit() and pdf_text[end_index_init+1].isalpha():
+        #     current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
+        #     current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
 
     return current_page_annotations, indices_reindexed
 
@@ -135,6 +137,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
 
                     annotated_content = annotation['annotation']['content'].replace(" |", "")
 
+                    if annotated_content == "10":
+                        print()
 
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
@@ -149,8 +153,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         first_is_space = True
 
                     true_content = sentence[start_index_init - page_index_diff:end_index_init - page_index_diff]
+                    if (annotated_content.lower() == true_content.lower()) and sentence[end_index_init - page_index_diff].isalpha() and sentence[end_index_init - page_index_diff - 1].isdigit():
+                        sentence = sentence[:start_index_init - page_index_diff] + annotated_content + " " + sentence[end_index_init - page_index_diff:]
 
                     true_original = pdf_text[annotation['annotation']['start']:end_index_init]
+
+
 
                     if print_stats:
                         print(f'----------annotation_stats: {data_number + 1} - page_number: {k+1} - {i} - anno_nr: {j} -------------')
