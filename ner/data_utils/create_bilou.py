@@ -67,6 +67,9 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 print("manual search error")
                 print(traceback.format_exc())
 
+        if true_original.lower() == annotated_content.lower() and pdf_text[end_index_init:end_index_init+2] == "s ":
+            current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
+            current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
 
     return current_page_annotations, indices_reindexed
 
@@ -123,10 +126,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
 
                     annotated_content = annotation['annotation']['content'].replace(" |", "")
                     # FixMe: Handle specific crap case - find more generic way?
-                    if annotated_content == 'Ankestyrelsen' and ('Ankestyrelsens' in  pdf_text[start_index_init-3:end_index_init + 3]):
-                        annotated_content = 'Ankestyrelsens'
-                        end_index_init += 1 
-                    
+
+
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
 
@@ -285,7 +286,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                                 start_index = start_index_init - page_index_diff + content_index_diff
                                 end_index = end_index_init - page_index_diff + content_index_diff
                             try:
-                                if sentence_anon[end_index] == '\.':
+                                if sentence_anon[end_index] == r"\.":
                                     annotation_to_insert = annotation_to_insert + ' '
                                 if sentence_anon[end_index].isalpha() and \
                                     sentence_anon[end_index].islower():
@@ -295,8 +296,6 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                                 print(traceback.format_exc())
 
                             sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
-                    else:
-                        sentence_anon = sentence_anon
 
             sentences_anon.append(sentence_anon + '\n')
 
