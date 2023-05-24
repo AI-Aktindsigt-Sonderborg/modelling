@@ -71,9 +71,19 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         if true_original.lower() == annotated_content.lower():
             # where annotation does not include the last s in word
             if (len(pdf_text) > end_index+2):
+                                        
                 if pdf_text[end_index_init:end_index_init+2] == "s ":
                     current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
                     current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
+                if pdf_text[end_index_init:end_index_init+3] == "'s ":
+                    current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "s"
+                    current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
+                if pdf_text[end_index_init:end_index_init+2] == "k ":
+                    current_page_annotations[annotation_num]['annotation']['content'] = current_page_annotations[annotation_num]['annotation']['content'] + "k"
+                    current_page_annotations[annotation_num]['annotation']['end'] = current_page_annotations[annotation_num]['annotation']['end'] + 1
+    
+    #for annot in current_page_annotations:
+     #   print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
 
         # Handle special case where there is no space after number
         # if true_original.lower() == annotated_content.lower() and pdf_text[end_index_init+1].isdigit() and pdf_text[end_index_init+1].isalpha():
@@ -119,7 +129,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                     page_index_diff += len(splitted_sentences2[i - 1]) + 2
                 current_sentence_annotations = [x for x in current_page_annotations if (x['annotation']['start'] < (len(sentence) + page_index_diff) and x['annotation']['start'] >= (page_index_diff))]            
                 sorted_sentence_annotations = sorted(current_sentence_annotations, key=lambda x: x['annotation']['start'], reverse=True)
-                filtered_sentence_annotations = [x for x in sorted_sentence_annotations if x['annotation']['annotation'] not in ['EMAIL', 'PRIS', 'DATO', 'URL']]
+                filtered_sentence_annotations = [x for x in sorted_sentence_annotations if x['annotation']['annotation'] not in ['EMAIL', 'PRIS', 'DATO', 'URL', 'CVR']]
 
                 for j, annotation in enumerate(filtered_sentence_annotations):
                     manual_match = False
@@ -304,8 +314,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                 sentence = re.sub(r'\s+', ' ', sentence + '\n')
                 sentence_anon = re.sub(r'\s+', ' ', sentence_anon + '\n')
 
-                words = re.split(r'( |,|\. |\.\n)', sentence)
-                tags = re.split(r'( |,|\. |\.\n)', sentence_anon)
+                words = re.split(r'( |,|\. |\.\n|:)', sentence)
+                tags = re.split(r'( |,|\. |\.\n|:)', sentence_anon)
                 if print_stats and (len(words) != len(tags)):
                     print( f'len(words): {len(words)}, len(tags): {len(tags)}')
                 
@@ -330,19 +340,40 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
                     print(f"data_number: {data_number} - doc_id: {input_data['document_id']}")
                     if print_each_sentence == 1:
+                        print("----sentence-----")
                         print(f'|{sentence}|')
-                        print('-')
+                        print("----sentence_anon-----")
                         print(f'|{sentence_anon}|')
-                        print('--')
+                        print("----words_final-----")
                         print(words_final)
-                        print('-')
+                        print("----tags_no_whitespace-----")
                         print(tags_no_whitespace)
-                        print('-')
+                        print("----tags_final-----")
                         print(tags_final)
                         print("---------------------")
-                if len(tags_final) != len(words_final):
+                        for count in range(len(words_final)):
+                            print(f'{words_final[count]} - {tags_no_whitespace[count]}')
+
+                        
+                if len(tags_final) != len(words_final):                
                     word_tag_mismatch_error += 1
                     print(f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}.")
+                    # print(f"--------------Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------")
+                    # for annot in sorted_page_annotations:
+                        # print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
+                    # print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
+                    # print("----sentence-----")
+                    # print(f'|{sentence}|')
+                    # print("----sentence_anon-----")
+                    # print(f'|{sentence_anon}|')
+                    # print("----words_final-----")
+                    # print(words_final)
+                    # print("----tags_no_whitespace-----")
+                    # print(tags_no_whitespace)
+                    # print("----tags_final-----")
+                    # print(tags_final)
+                    # print("---------------------")
+                    
 
                 sentence_index_diff += len(sentence)
 
