@@ -342,7 +342,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         print("---------------------")
                 if len(tags_final) != len(words_final):
                     word_tag_mismatch_error += 1
-                    
+                    print(f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}.")
 
                 sentence_index_diff += len(sentence)
 
