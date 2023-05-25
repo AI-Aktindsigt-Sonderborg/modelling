@@ -128,7 +128,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
             if not is_danish:
                 print(f"----sentence is not danish-----: {sentence}")
                 not_danish_counter += 1
-
+            entities = []
             sentence_anon = sentence
 
             if current_page_annotations:
@@ -297,6 +297,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                             continue
 
                         if insert_annotation:
+                            entities.append(entity)
                             if not manual_match:
                                 start_index = start_index_init - page_index_diff + content_index_diff
                                 end_index = end_index_init - page_index_diff + content_index_diff
@@ -314,8 +315,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
             if is_danish:
                 sentences_anon.append(sentence_anon + '\n')
                 modified_sentences.append(sentence + '\n')
-                sentence_data.append({"sentence": sentence + '\n', "sentence_anon": sentence_anon + '\n', 
-                    "doc_id": input_data["document_id"], "page_no": page_num, "sentence_no": i})
+                sentence_data.append({"sentence": sentence + '\n', "sentence_anon": sentence_anon + '\n',
+                    "doc_id": input_data["document_id"], "page_no": page_num, "sentence_no": i, "entities": entities})
             
         try:
             sentence_index_diff = 0
