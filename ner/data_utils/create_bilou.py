@@ -5,9 +5,10 @@ from typing import List
 
 import nltk
 
-from ner.data_utils.helpers import split_sentences_bilou
+from ner.data_utils.helpers import split_sentences_bilou, filter_language
 from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json_lines, write_json_lines
+from langdetect import detect_langs
 
 args: list = sys.argv[1:]
 
@@ -121,7 +122,9 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
 
        
         for i, sentence in enumerate(splitted_sentences2):
+            # is_danish = filter_language(string=sentence, approved_languages=['da', 'no'])
             sentence_anon = sentence
+
             if current_page_annotations:
                 if i == 0:
                     page_index_diff = 0
@@ -350,9 +353,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         print(tags_no_whitespace)
                         print("----tags_final-----")
                         print(tags_final)
+                        print("-------LANGUAGES--------------")
+                        is_danish, language_codes = filter_language(string=sentence, approved_languages=['da', 'no'])
+                        print(language_codes)
                         print("---------------------")
-                        if "Children" in sentence:
-                            
+                        # if "Children" in sentence:
                         # for count in range(len(words_final)):
                             # if "Children" in words_final[count]:
                                 # matches = re.findall(r'[^a-zA-Z0-9\s]', words_final[count])
@@ -361,7 +366,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                                 # print(f'{words_final[count]} - {tags_no_whitespace[count]}')
 
                         
-                if len(tags_final) != len(words_final):                
+                if len(tags_final) != len(words_final):
                     word_tag_mismatch_error += 1
                     print(f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}.")
                     # print(f"--------------Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------")
