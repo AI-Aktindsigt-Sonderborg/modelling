@@ -351,8 +351,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         print("----tags_final-----")
                         print(tags_final)
                         print("---------------------")
-                        for count in range(len(words_final)):
-                            print(f'{words_final[count]} - {tags_no_whitespace[count]}')
+                        if "Children" in sentence:
+                            
+                        # for count in range(len(words_final)):
+                            # if "Children" in words_final[count]:
+                                # matches = re.findall(r'[^a-zA-Z0-9\s]', words_final[count])
+                                # print(f'matches: {matches} - {words_final[count]} - {tags_no_whitespace[count]}')
+                            # else:
+                                # print(f'{words_final[count]} - {tags_no_whitespace[count]}')
 
                         
                 if len(tags_final) != len(words_final):                
