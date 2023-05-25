@@ -402,7 +402,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                 
                 output_data.append({'words': words_final, 'tags': tags_final, "sentence": sentence_data[s]["sentence"], "sentence_anon": sentence_data[s]["sentence_anon"], 
                                     "doc_id": input_data["document_id"], "page_no": sentence_data[s]["page_no"], "sentence_no": sentence_data[s]["sentence_no"], 
-                                    "origin_line_no": data_number+1})
+                                    "origin_line_no": data_number+1, "entities": sentence_data[s]["entities"]})
                 
 
         except Exception as e:
