@@ -83,12 +83,17 @@ def split_sentences_bilou(
     return new_sentences, text_splitted2
 
 def filter_language(string: str, approved_languages: List[str]):
-    language_codes = detect_langs(string)
-    languages = [lang.lang for lang in language_codes]
-    result = any(item for item in languages if item in approved_languages)
-    if result:
-        probs = [lang.prob for lang in language_codes if lang.lang in approved_languages]
-        return True, language_codes
+    try:
+        language_codes = detect_langs(string)
 
-    return False, language_codes
+        languages = [lang.lang for lang in language_codes]
+        result = any(item for item in languages if item in approved_languages)
+        if result:
+            probs = [lang.prob for lang in language_codes if lang.lang in approved_languages]
+            return True, language_codes
+
+        return False, language_codes
+    except:
+        print('No language detected')
+        return False, None
 

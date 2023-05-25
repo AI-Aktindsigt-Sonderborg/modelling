@@ -101,9 +101,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
     correct_index: int = 0
     total_sentence: int = 0
     deleted_annotation: int = 0
+    not_danish_counter: int = 0
     output_data = []
 
     for k, pdf_text in enumerate(input_data['pdf_text']):
+        sentence_data = []
         sentences_anon = []
         modified_sentences = []
         index_diff = 0
@@ -119,10 +121,14 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
             sorted_page_annotations = sorted(current_page_annotations, key=lambda x: x['annotation']['start'])
 
         splitted_sentences, splitted_sentences2 = split_sentences_bilou(data=pdf_text, sentence_splitter=sentence_splitter)
-
+        splitted_sentences2 = pdf_text.split("\n\n")
        
         for i, sentence in enumerate(splitted_sentences2):
-            # is_danish = filter_language(string=sentence, approved_languages=['da', 'no'])
+            is_danish, language_codes = filter_language(string=sentence, approved_languages=['da', 'no'])
+            if not is_danish:
+                print(f"----sentence is not danish-----: {sentence}")
+                not_danish_counter += 1
+
             sentence_anon = sentence
 
             if current_page_annotations:
@@ -225,42 +231,43 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                     if true_original.lower() != annotated_content.lower():
                         index_match = False
                         wrong_raw_index += 1
+                        skewness_list = [-3, -2, -1, 1, 2, 3]
                         if true_content.lower() != annotated_content.lower():
-                            true_content_skewed = sentence[start_index_init - page_index_diff + 1:end_index_init - page_index_diff + 1]
-                            true_content_skewed2 = sentence[start_index_init - page_index_diff - 1:end_index_init - page_index_diff - 1]
-                            if true_content_skewed.lower() == annotated_content.lower():
-                                true_content = true_content_skewed
-                                content_index_diff = 1
-                                index_match = True
-                            elif true_content_skewed2.lower() == annotated_content.lower():
-                                true_content = true_content_skewed2
-                                content_index_diff = -1
-                                index_match = True
-                            else:
+                            for skewness in skewness_list:
+                                true_content_skewed = sentence[start_index_init - page_index_diff + skewness:end_index_init - page_index_diff + skewness]                                                             
+                                if true_content_skewed.lower() == annotated_content.lower():
+                                    true_content = true_content_skewed
+                                    content_index_diff = skewness
+                                    index_match = True
+                                    break
+                                else:
+                                    continue
+                                    
+                            if not index_match:
                                 print(f'index error at {data_number + 1}')
                                 wrong_index += 1
                                 index_match = False
 
-                    if not index_match:
-                        try:
-                            match1 = None # = re.search(re.escape(annotated_content +'[^0-9a-zA-Z]'), sentence_anon)
-                            match2 = None # = re.search(annotated_content +'[^0-9a-zA-Z]', sentence_anon)
-
-                            if match1:
-                                start_index = match1.start()
-                                end_index = match1.end() - 1
-                                manual_match = True
-                            elif match2:
-                                start_index = match2.start()
-                                end_index = match2.end() - 1
-                                manual_match = True
-                            else:
-                                if true_content == annotated_content:
-                                    manual_match = False
-                        except Exception as ex:
-                            print(f"weird search error at {data_number + 1}")
-                            print(traceback.format_exc())
-                            manual_match = False
+                    # if not index_match:
+                        # try:
+                            # match1 = None # = re.search(re.escape(annotated_content +'[^0-9a-zA-Z]'), sentence_anon)
+                            # match2 = None # = re.search(annotated_content +'[^0-9a-zA-Z]', sentence_anon)
+# 
+                            # if match1:
+                                # start_index = match1.start()
+                                # end_index = match1.end() - 1
+                                # manual_match = True
+                            # elif match2:
+                                # start_index = match2.start()
+                                # end_index = match2.end() - 1
+                                # manual_match = True
+                            # else:
+                                # if true_content == annotated_content:
+                                    # manual_match = False
+                        # except Exception as ex:
+                            # print(f"weird search error at {data_number + 1}")
+                            # print(traceback.format_exc())
+                            # manual_match = False
 
                     if (annotated_content.lower() == true_content.lower()) or manual_match:
                         correct_index += 1
@@ -304,9 +311,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                                 print(traceback.format_exc())
 
                             sentence_anon = sentence_anon[:start_index] + annotation_to_insert + sentence_anon[end_index:]
-
-            sentences_anon.append(sentence_anon + '\n')
-            modified_sentences.append(sentence + '\n')
+            if is_danish:
+                sentences_anon.append(sentence_anon + '\n')
+                modified_sentences.append(sentence + '\n')
+                sentence_data.append({"sentence": sentence + '\n', "sentence_anon": sentence_anon + '\n', 
+                    "doc_id": input_data["document_id"], "page_no": page_num, "sentence_no": i})
             
         try:
             sentence_index_diff = 0
@@ -357,13 +366,12 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                         is_danish, language_codes = filter_language(string=sentence, approved_languages=['da', 'no'])
                         print(language_codes)
                         print("---------------------")
-                        # if "Children" in sentence:
-                        # for count in range(len(words_final)):
+                        for count in range(len(words_final)):
                             # if "Children" in words_final[count]:
                                 # matches = re.findall(r'[^a-zA-Z0-9\s]', words_final[count])
                                 # print(f'matches: {matches} - {words_final[count]} - {tags_no_whitespace[count]}')
                             # else:
-                                # print(f'{words_final[count]} - {tags_no_whitespace[count]}')
+                            print(f'{words_final[count]} - {tags_no_whitespace[count]}')
 
                         
                 if len(tags_final) != len(words_final):
@@ -390,7 +398,10 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
 
                 assert len(tags_final) == len(words_final)
                 total_sentence += 1
-                output_data.append({'words': words_final, 'tags': tags_final})
+                
+                output_data.append({'words': words_final, 'tags': tags_final, "sentence": sentence_data[s]["sentence"], "sentence_anon": sentence_data[s]["sentence_anon"], 
+                                    "doc_id": input_data["document_id"], "page_no": sentence_data[s]["page_no"], "sentence_no": sentence_data[s]["sentence_no"], 
+                                    "origin_line_no": data_number+1})
                 
 
         except Exception as e:
@@ -398,7 +409,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
             print(traceback.format_exc())
 
     return output_data, [word_tag_mismatch_error, wrong_index, correct_index,
-                         total_sentence, deleted_annotation, wrong_raw_index, indices_reindexed]
+                         total_sentence, deleted_annotation, wrong_raw_index, indices_reindexed, not_danish_counter]
 
 
 
@@ -410,6 +421,7 @@ entity_data: List[dict] = []
 total_sentences: int = 0
 deleted_annotations: int = 0
 total_indices_reindexed: int = 0
+total_not_danish_counter: int = 0
 
 if len(args) == 4:
     args[2] = int(args[2])
@@ -427,6 +439,7 @@ if len(args) == 4:
     deleted_annotations += errors[4]
     wrong_raw_index_errors += errors[5]
     total_indices_reindexed += errors[6]
+    total_not_danish_counter += errors[7]
 
 else:
     for i, obs in enumerate(raw_data):
@@ -440,7 +453,7 @@ else:
         deleted_annotations += errors[4]
         wrong_raw_index_errors += errors[5]
         total_indices_reindexed += errors[6]
-
+        total_not_danish_counter += errors[7]
         entity_data.extend(single_obs_data)
 
     write_json_lines(out_dir=DATA_DIR, data=entity_data,
@@ -453,4 +466,6 @@ print(f'wrong raw index errors: {wrong_raw_index_errors}')
 print(f'Total indices reindexed: {total_indices_reindexed}')
 print(f'deleted annotations: {deleted_annotations}')
 print(f'correct indexes: {correct_indexes}')
+print(f'sentences not danish: {total_not_danish_counter}')
+
 print(f'total sentences: {total_sentences}')
