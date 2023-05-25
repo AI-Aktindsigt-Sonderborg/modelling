@@ -20,6 +20,13 @@ j = 0
 bilou_error_count = 0
 total_entities = []
 for i, obs in enumerate(data_bilou):
+    for tag in obs['tags']:
+        if 'FORBRYDELSE' in tag:
+            print("-----------------------")
+            print(obs['words'])
+            print(obs['tags']) 
+            print("-----------------------")
+            continue
 
     if len(obs['words']) != len(obs['tags']):
         bilou_error_count = bilou_error_count + 1
@@ -34,7 +41,9 @@ for i, obs in enumerate(data_bilou):
 total_entities.sort()
 grouped = [list(group) for key, group in groupby(total_entities)]
 
-for group in grouped:
+sorted_list = sorted(grouped, key=lambda x: len(x), reverse=True)
+
+for group in sorted_list:
     print(f"Entitet: {group[0]} - antal: {len(group)}")
 
 print(f"Total sentences: {len(data_bilou)}")
