@@ -22,6 +22,10 @@ sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 
 def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
     indices_reindexed = 0
+    # print(f"-------------- Annotations ----------------")
+    # for annot in current_page_annotations:
+        # print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
+
     for annotation_num, annotation in enumerate(current_page_annotations):
         start_index_init = annotation['annotation']['start']
         end_index_init = annotation['annotation']['end']
@@ -34,10 +38,31 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         end_index = end_index_init
         while annotated_content_last.isspace() | (annotated_content_last == " "):
             end_index = end_index - 1
+            annotation['annotation']['end'] -= 1            
             annotated_content = annotated_content[:-1]
+            annotation['annotation']['content'] = annotated_content
             annotated_content_last = annotated_content[-1]
+                    
+        while annotated_content_last == '.':
+            end_index = end_index - 1
+            annotation['annotation']['end'] -= 1
+            annotated_content = annotated_content[:-1]
+            annotation['annotation']['content'] = annotated_content
+            try:
+                annotated_content_last = annotated_content[-1]
+            except IndexError:                
+                del current_page_annotations[annotation_num]
+                print(f"removed annotation {annotation_num} from {document_num+1}")
+                break
+
+    # print(f"-------------- Annotations2 ----------------")
+    # for annot in current_page_annotations:
+        # print(f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}")
+
 
         true_original = pdf_text[start_index:end_index]
+
+        
 
         if true_original.lower() != annotated_content.lower():
             try:
@@ -124,7 +149,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
         splitted_sentences2 = pdf_text.split("\n\n")
        
         for i, sentence in enumerate(splitted_sentences2):
-            is_danish, language_codes = filter_language(string=sentence, approved_languages=['da', 'no'])
+            # is_danish, language_codes = filter_language(string=sentence, approved_languages=['da', 'no'])
+            is_danish = True
             if not is_danish:
                 print(f"----sentence is not danish-----: {sentence}")
                 not_danish_counter += 1
@@ -346,6 +372,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int, print_sta
                 
                 if print_stats and (len(words_final) != len(tags_final)):
                 #if '0-17' in sentence:
+                    print(f'docnumber: {data_number+1}')
                     print(f'len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}')
                     print(f'len(words_final): {len(words_final)}, len(tags_no_whitespace): {len(tags_no_whitespace)}')
                     print(f"--------------Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------")
@@ -458,7 +485,7 @@ else:
         entity_data.extend(single_obs_data)
 
     write_json_lines(out_dir=DATA_DIR, data=entity_data,
-                     filename='bilou_entities_kasper')
+                     filename='bilou_entities_kasper_all')
     print(f'total valid sentences: {len(entity_data)}')
 
 print(f'word/tag length mismatch errors: {word_tag_mismatch_errors}')
