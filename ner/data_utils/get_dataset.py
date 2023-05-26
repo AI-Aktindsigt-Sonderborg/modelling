@@ -90,5 +90,24 @@ def get_label_list():
     id2label = {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG',
                 5: 'B-LOC', 6: 'I-LOC', 7: 'B-MISC',
                 8: 'I-MISC'}
+
     label2id = {v: k for k, v in id2label.items()}
+    return label_list, id2label, label2id
+
+def get_label_list_new():
+    ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
+    id2label = {}
+    label_list = ["O"]
+    for entity in ner_entities:
+        begin = "B-" + entity
+        inside = "I-" + entity
+        last = "L-" + entity
+        unique = "U-" + entity
+        label_list.extend([begin, inside, last, unique])
+
+    for i, label in enumerate(label_list):
+        id2label[i] = label
+
+    label2id = {v: k for k, v in id2label.items()}
+
     return label_list, id2label, label2id

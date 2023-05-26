@@ -5,7 +5,7 @@ from typing import List
 import evaluate
 import numpy as np
 import torch
-from datasets import ClassLabel
+from datasets import ClassLabel, load_dataset
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -17,8 +17,8 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, BertConfig
 
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
-    get_dane_val, get_dane_test
-from ner.local_constants import MODEL_DIR
+    get_dane_val, get_dane_test, get_label_list_new
+from ner.local_constants import MODEL_DIR, DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from shared.data_utils.custom_dataclasses import EvalScore
@@ -43,10 +43,13 @@ class NERModelling(Modelling):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
         self.args.labels, self.id2label, self.label2id = get_label_list()
+        self.args.labels, self.id2label, self.label2id = get_label_list_new()
 
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
+
+        self.data_dir = DATA_DIR
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
@@ -148,6 +151,13 @@ class NERModelling(Modelling):
         :param train: Whether to train model
         :param test: Whether to load test data
         """
+
+        self.args.train_data = 'bilou_entities_kasper_all.jsonl'
+        self.data.train = load_dataset(
+            'json',
+            data_files=os.path.join(self.data_dir, self.args.train_data),
+            split='train')
+
         if train:
             self.data.train = get_dane_train(subset=self.args.data_subset)
             print(f'len train: {len(self.data.train)}')
