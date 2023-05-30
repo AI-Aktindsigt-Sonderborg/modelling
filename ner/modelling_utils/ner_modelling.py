@@ -17,10 +17,10 @@ from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, BertConfig
 
 from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
-    get_dane_val, get_dane_test, get_label_list_new
-from ner.local_constants import MODEL_DIR, DATA_DIR
+    get_dane_val, get_dane_test
+from ner.local_constants import MODEL_DIR, DATA_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
-from ner.modelling_utils.helpers import align_labels_with_tokens
+from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
 from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
@@ -42,14 +42,14 @@ class NERModelling(Modelling):
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        self.args.labels, self.id2label, self.label2id = get_label_list()
-        self.args.labels, self.id2label, self.label2id = get_label_list_new()
+        # self.args.labels, self.id2label, self.label2id = get_label_list()
+        self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
 
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
 
-        self.data_dir = DATA_DIR
+        self.data_dir = PREP_DATA_DIR
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()

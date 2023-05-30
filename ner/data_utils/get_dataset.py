@@ -1,3 +1,4 @@
+from typing import List
 
 from datasets import load_dataset
 
@@ -94,20 +95,4 @@ def get_label_list():
     label2id = {v: k for k, v in id2label.items()}
     return label_list, id2label, label2id
 
-def get_label_list_new():
-    ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
-    id2label = {}
-    label_list = ["O"]
-    for entity in ner_entities:
-        begin = "B-" + entity
-        inside = "I-" + entity
-        last = "L-" + entity
-        unique = "U-" + entity
-        label_list.extend([begin, inside, last, unique])
 
-    for i, label in enumerate(label_list):
-        id2label[i] = label
-
-    label2id = {v: k for k, v in id2label.items()}
-
-    return label_list, id2label, label2id

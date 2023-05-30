@@ -14,6 +14,8 @@ ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 
+args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
+
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
 if leftovers:
