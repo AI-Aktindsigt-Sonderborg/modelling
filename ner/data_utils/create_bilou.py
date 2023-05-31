@@ -10,7 +10,7 @@ from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json_lines, write_json_lines
 from langdetect import detect_langs
 
-
+sentence_splitter = nltk.data.load('tokenizers/punkt/danish.pickle')
 def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
     indices_reindexed = 0
     # print(f"-------------- Annotations ----------------")
@@ -98,7 +98,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
             # where annotation does not include the last s in word
-            if (len(pdf_text) > end_index + 2):
+            if len(pdf_text) > end_index + 2:
 
                 if pdf_text[end_index_init:end_index_init + 2] == "s ":
                     current_page_annotations[annotation_num]['annotation'][
@@ -170,8 +170,8 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                                              key=lambda x: x['annotation'][
                                                  'start'])
 
-        splitted_sentences, splitted_sentences2 = split_sentences_bilou(
-            data=pdf_text, sentence_splitter=sentence_splitter)
+        # splitted_sentences, splitted_sentences2 = split_sentences_bilou(
+        #     data=pdf_text, sentence_splitter=sentence_splitter)
         splitted_sentences2 = pdf_text.split("\n\n")
 
         for i, sentence in enumerate(splitted_sentences2):

@@ -1,30 +1,14 @@
 import argparse
-import hashlib
-import itertools
-import json
-import os.path
 import random
-import re
-from typing import List, Tuple, Union, Optional
+from typing import List
 
-import nltk.data
-import numpy as np
-from ftfy import fix_encoding
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
 from ner.data_utils.create_bilou import create_bilou_from_one_document
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
-
 from ner.local_constants import DATA_DIR, PREP_DATA_DIR
-from sc.local_constants import CLASS_DATA_DIR
-from shared.data_utils.helpers import score_gpt2, load_model_for_ppl, \
-    find_letters_and_word_count
-from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
-    write_text_lines
-from shared.utils.helpers import count_num_lines
-
 from ner.modelling_utils.helpers import get_label_list
+from shared.utils.helpers import read_json_lines, write_json_lines
 
 
 class NERDataPreprocessing:
