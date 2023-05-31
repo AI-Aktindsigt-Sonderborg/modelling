@@ -166,8 +166,8 @@ if __name__ == "__main__":
 
     bilou = data_prep.filter_entities(prep_args)
     data_prep.train_val_test_to_json_split(args=prep_args, data=bilou,
-                                           train_size=0.95,
-                                           test_size=2,
+                                           train_size=prep_args.split,
+                                           test_size=5,
                                            train_outfile='bilou_train',
                                            val_outfile='bilou_val',
                                            test_outfile='bilou_test')

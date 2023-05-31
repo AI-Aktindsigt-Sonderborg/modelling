@@ -64,7 +64,7 @@ class DataPrepArgParser:
         self.parser.add_argument(
             '--split',
             type=float,
-            default=0.98, metavar='<float>',
+            default=0.95, metavar='<float>',
             help='training set size between 0 and 1')
         self.parser.add_argument(
             '--add_ppl',
