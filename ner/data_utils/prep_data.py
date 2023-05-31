@@ -1,5 +1,6 @@
 import argparse
 import hashlib
+import itertools
 import json
 import os.path
 import random
@@ -9,6 +10,7 @@ from typing import List, Tuple, Union, Optional
 import nltk.data
 import numpy as np
 from ftfy import fix_encoding
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from ner.data_utils.create_bilou import create_bilou_from_one_document
@@ -77,22 +79,96 @@ class NERDataPreprocessing:
         print(f'sentences not danish: {total_not_danish_counter}')
 
         print(f'total sentences: {total_sentences}')
-
-    def filter_entities(self):
+    @staticmethod
+    def filter_entities(args):
+        """
+        Filters and generates new bilou file from original with only
+            specified args.entities
+        Parameters
+        ----------
+        :param argparse.Namespace args: input arguments from :class: `.DataPrepArgParser`.
+        -------
+        """
         bilou = read_json_lines(input_dir=DATA_DIR,
-                                filename=self.args.bilou_input_file)
-        labels, id2label, label2id = get_label_list(self.args.entities)
+                                filename=args.bilou_input_file)
+        labels, id2label, label2id = get_label_list(args.entities)
 
-        out_suffix = ''.join([x[0] for x in self.args.entities])
+        out_suffix = ''.join([x[0] for x in args.entities])
 
         for i, obs in enumerate(bilou):
             obs['tags'] = [tag if (
-                    (tag[2:] in self.args.entities) or (tag == "O")) else "O"
+                    (tag[2:] in args.entities) or (tag == "O")) else "O"
                             for tag in obs['tags']]
-            print()
 
-        print()
+        write_json_lines(out_dir=DATA_DIR, filename='bilou_'+out_suffix,
+                         data=bilou)
+        return bilou
 
+    @staticmethod
+    def group_data_by_class(entities: List[str], list_data: List[dict]):
+        """
+        Group data by class
+        :param data: list of dictionarys of sentences
+        :return: list of lists of dicts
+        """
+        label_set = {x['label'] for x in list_data}
+        grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
+        return grouped
+
+    @staticmethod
+    def train_val_test_to_json_split(args, data,
+                                     train_size: float = None,
+                                     test_size: int = None,
+                                     train_outfile: str = None,
+                                     val_outfile: str = None,
+                                     test_outfile: str = None):
+        """
+        Read grouped data, split to train, val and test and save json
+        :param class_grouped_data: grouped data as list og lists of dicts
+        :param train_size: float between 0 and 1 specifying the size of the
+        train set where
+        1 is all data
+        :param test_size: int >= 1 specifying the number of sentences in each
+        class
+        :param train_outfile: if train_outfile specified generate train set
+        :param val_outfile: if val_outfile specified generate validation set
+        :param test_outfile: if test_outfile specified generate test set
+        :return:
+        """
+        assert train_outfile and test_outfile, \
+            '\n At least train_outfile and test_outfile must be specified - ' \
+            'see doc: \n' + \
+            NERDataPreprocessing.train_val_test_to_json_split.__doc__
+
+        assert train_size and test_size, \
+            'Either train or test size must be specified - see doc: \n' + \
+            NERDataPreprocessing.train_val_test_to_json_split.__doc__
+
+        if train_outfile and val_outfile and test_outfile and train_size and test_size:
+            test_ids = []
+            test_data = []
+            for entity_i in args.entities:
+                entity_i_data = [[i, x] for i, x in enumerate(data) if (entity_i in x['entities'])
+                                 and (i not in test_ids)]
+                if len(entity_i_data) >= test_size:
+                    random.seed(1) # for reproducability
+                    random_selection = random.sample(entity_i_data, test_size)
+                    test_ids.extend(x[0] for x in random_selection)
+                    test_data.extend(x[1] for x in random_selection)
+
+            train_val = [x for i, x in enumerate(data) if i not in test_ids]
+
+            train_val_split = train_test_split(train_val, train_size=train_size, random_state=1)
+
+
+            train = train_val_split[0]
+            val = train_val_split[1]
+
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile, data=val)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=test_outfile, data=test_data)
+
+        return print('datasets generated')
 
 if __name__ == "__main__":
     prep_parser = DataPrepArgParser()
@@ -103,4 +179,13 @@ if __name__ == "__main__":
     if prep_args.create_bilou:
         data_prep.create_bilou()
 
-    data_prep.filter_entities()
+
+    bilou = data_prep.filter_entities(prep_args)
+    data_prep.train_val_test_to_json_split(args=prep_args, data=bilou,
+                                           train_size=0.95,
+                                           test_size=2,
+                                           train_outfile='bilou_train',
+                                           val_outfile='bilou_val',
+                                           test_outfile='bilou_test')
+
+
