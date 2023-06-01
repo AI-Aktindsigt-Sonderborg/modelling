@@ -66,7 +66,6 @@ class NERArgParser(ModellingArgParser):
             default='last_model',
             help="foundation model from huggingface",
             metavar='<str>')
-        ner_params.add_argument("--entities")
         ner_params.add_argument(
             "--entities",
             type=str,

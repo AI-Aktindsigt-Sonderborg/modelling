@@ -91,6 +91,7 @@ class NERDataPreprocessing:
             obs['tags'] = [tag if (
                     (tag[2:] in args.entities) or (tag == "O")) else "O"
                             for tag in obs['tags']]
+            obs['ner_tags'] = [label2id[x] for x in obs['tags']]
 
         write_json_lines(out_dir=DATA_DIR, filename='bilou_'+out_suffix,
                          data=bilou)
@@ -155,7 +156,7 @@ if __name__ == "__main__":
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     prep_args.bilou_input_file = 'bilou_entities_kasper_all'
-
+    # prep_args.create_bilou = True
     data_prep = NERDataPreprocessing(prep_args)
 
     if prep_args.create_bilou:

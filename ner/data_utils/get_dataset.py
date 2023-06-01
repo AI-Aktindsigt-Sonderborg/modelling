@@ -85,7 +85,7 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
     return tokenized_dataset_new
 
 
-def get_label_list():
+def get_label_list_old():
     label_list = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC',
                   'B-MISC', 'I-MISC']
     id2label = {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG',

@@ -516,7 +516,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 assert len(tags_final) == len(words_final)
                 total_sentence += 1
 
-                output_data.append({'words': words_final, 'tags': tags_final,
+                output_data.append({'tokens': words_final, 'tags': tags_final,
                                     "sentence": sentence_data[s]["sentence"],
                                     "sentence_anon": sentence_data[s][
                                         "sentence_anon"],

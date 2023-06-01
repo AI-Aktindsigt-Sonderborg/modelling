@@ -16,7 +16,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, BertConfig
 
-from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
+from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
     get_dane_val, get_dane_test
 from ner.local_constants import MODEL_DIR, DATA_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
@@ -42,12 +42,20 @@ class NERModelling(Modelling):
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        # self.args.labels, self.id2label, self.label2id = get_label_list()
+        self.args.labels_, self.id2label_, self.label2id_ = get_label_list_old()
+
+        self.class_labels_ = ClassLabel(
+            num_classes=len(self.args.labels_),
+            names=self.args.labels_)
+
+
         self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
 
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
+
+
 
         self.data_dir = PREP_DATA_DIR
 
@@ -152,14 +160,14 @@ class NERModelling(Modelling):
         :param test: Whether to load test data
         """
 
-        self.args.train_data = 'bilou_entities_kasper_all.jsonl'
-        self.data.train = load_dataset(
-            'json',
-            data_files=os.path.join(self.data_dir, self.args.train_data),
-            split='train')
-
         if train:
-            self.data.train = get_dane_train(subset=self.args.data_subset)
+            self.args.train_data = 'bilou_train.jsonl'
+            self.data.train = load_dataset(
+                'json',
+                data_files=os.path.join(self.data_dir, self.args.train_data),
+                split='train')
+
+            # self.data.train_ = get_dane_train(subset=self.args.data_subset)
             print(f'len train: {len(self.data.train)}')
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size
@@ -177,10 +185,22 @@ class NERModelling(Modelling):
                 self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
-            self.data.eval = get_dane_val(subset=self.args.data_subset)
+            self.args.eval_data = 'bilou_val.jsonl'
+            self.data.eval = load_dataset(
+                'json',
+                data_files=os.path.join(self.data_dir, self.args.eval_data),
+                split='train')
+
+            # self.data.eval = get_dane_val(subset=self.args.data_subset)
             print(f'len eval: {len(self.data.eval)}')
 
         if test:
+            self.args.test_data = 'bilou_test.jsonl'
+            self.data.test = load_dataset(
+                'json',
+                data_files=os.path.join(self.data_dir, self.args.test_data),
+                split='train')
+
             self.data.test = get_dane_test(subset=self.args.data_subset)
 
     def load_model_and_replace_bert_head(self):
@@ -207,6 +227,8 @@ class NERModelling(Modelling):
                 padding='max_length',
                 max_length=self.args.max_length
             )
+            # examples["ner_tags"] = [self.label2id(x) for x in examples['tags']]
+
             all_labels = examples["ner_tags"]
             new_labels = []
             for i, labels in enumerate(all_labels):
