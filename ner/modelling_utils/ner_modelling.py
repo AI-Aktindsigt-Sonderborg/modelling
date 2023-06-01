@@ -140,12 +140,12 @@ class NERModelling(Modelling):
               f"eval f1: {f_1}")
 
         if conf_plot:
-            y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
-            y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
+            # y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
+            # y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
 
             plot_confusion_matrix(
-                y_true=y_true_plot,
-                y_pred=y_pred_plot,
+                y_true=y_true,
+                y_pred=y_pred,
                 labels=self.args.labels,
                 model_name=self.args.model_name,
                 plots_dir=PLOTS_DIR)
