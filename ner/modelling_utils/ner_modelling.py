@@ -130,7 +130,7 @@ class NERModelling(Modelling):
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
-        f_1_none_ = f1_score(y_true, y_pred, average=None)
+        f_1_none_ = f1_score(y_true, y_pred, average=None, labels=self.args.labels)
         f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in range(len(self.args.labels))]
         loss = float(np.mean(loss))
 
