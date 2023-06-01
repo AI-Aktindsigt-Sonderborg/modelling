@@ -14,16 +14,24 @@ from shared.utils.helpers import read_json_lines, write_json_lines
 class NERDataPreprocessing:
     """
     Class to prepare data for NER training.
+
     :param argparse.Namespace args:
         input arguments from :class: `.DataPrepArgParser`.
     """
 
     def __init__(self, args: argparse.Namespace):
         self.args = args
+    @staticmethod
+    def create_bilou(args):
+        """
+        Creates bilou file from raw file.
 
-    def create_bilou(self):
+        :param argparse.Namespace args:
+            input arguments from :class: `.DataPrepArgParser`.
+
+        """
         raw_data = read_json_lines(input_dir=DATA_DIR,
-                                   filename=self.args.origin_input_file)
+                                   filename=args.origin_input_file)
 
         word_tag_mismatch_errors: int = 0
         wrong_index_errors: int = 0
@@ -51,7 +59,7 @@ class NERDataPreprocessing:
             entity_data.extend(single_obs_data)
 
         write_json_lines(out_dir=DATA_DIR, data=entity_data,
-                         filename=self.args.bilou_input_file)
+                         filename=args.bilou_input_file)
 
         print(f'total valid sentences: {len(entity_data)}')
         print(f'word/tag length mismatch errors: {word_tag_mismatch_errors}')
@@ -87,17 +95,6 @@ class NERDataPreprocessing:
         write_json_lines(out_dir=DATA_DIR, filename='bilou_'+out_suffix,
                          data=bilou)
         return bilou
-
-    @staticmethod
-    def group_data_by_class(entities: List[str], list_data: List[dict]):
-        """
-        Group data by class
-        :param data: list of dictionarys of sentences
-        :return: list of lists of dicts
-        """
-        label_set = {x['label'] for x in list_data}
-        grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
-        return grouped
 
     @staticmethod
     def train_val_test_to_json_split(args, data,
@@ -160,8 +157,9 @@ if __name__ == "__main__":
     prep_args.bilou_input_file = 'bilou_entities_kasper_all'
 
     data_prep = NERDataPreprocessing(prep_args)
+
     if prep_args.create_bilou:
-        data_prep.create_bilou()
+        data_prep.create_bilou(args=prep_args)
 
 
     bilou = data_prep.filter_entities(prep_args)
