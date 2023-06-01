@@ -73,7 +73,7 @@ def plot_confusion_matrix(
                                    normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
-    plt.figure(figsize=(10, 7))
+    plt.figure(figsize=(30, 21))
     sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
                yticklabels=labels)
 
