@@ -42,12 +42,11 @@ class NERModelling(Modelling):
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        self.args.labels_, self.id2label_, self.label2id_ = get_label_list_old()
-
-        self.class_labels_ = ClassLabel(
-            num_classes=len(self.args.labels_),
-            names=self.args.labels_)
-
+        # self.args.labels_, self.id2label_, self.label2id_ = get_label_list_old()
+        #
+        # self.class_labels_ = ClassLabel(
+        #     num_classes=len(self.args.labels_),
+        #     names=self.args.labels_)
 
         self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
 
@@ -161,7 +160,6 @@ class NERModelling(Modelling):
         """
 
         if train:
-            self.args.train_data = 'bilou_train.jsonl'
             self.data.train = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.train_data),
@@ -185,7 +183,6 @@ class NERModelling(Modelling):
                 self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
-            self.args.eval_data = 'bilou_val.jsonl'
             self.data.eval = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.eval_data),
@@ -195,7 +192,6 @@ class NERModelling(Modelling):
             print(f'len eval: {len(self.data.eval)}')
 
         if test:
-            self.args.test_data = 'bilou_test.jsonl'
             self.data.test = load_dataset(
                 'json',
                 data_files=os.path.join(self.data_dir, self.args.test_data),
