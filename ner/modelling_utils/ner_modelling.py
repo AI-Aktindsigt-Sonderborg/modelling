@@ -60,7 +60,7 @@ class NERModelling(Modelling):
         self.data_collator = self.get_data_collator()
 
     def evaluate(self, model, val_loader: DataLoader,
-                 conf_plot: bool = True) -> EvalScore:
+                 conf_plot: bool = False) -> EvalScore:
         """
         Evaluate model at given step
         :param device:
