@@ -12,6 +12,7 @@ args = sc_parser.parser.parse_args()
 args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
 args.differential_privacy = False
+args.test = True
 
 modelling = NERModelling(args)
 

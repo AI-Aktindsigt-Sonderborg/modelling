@@ -13,6 +13,7 @@ logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
+args.test = False
 
 args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
 

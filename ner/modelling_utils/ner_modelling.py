@@ -38,7 +38,10 @@ class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
-        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+        if not args.test:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+        else:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.model_name)
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
@@ -193,10 +196,10 @@ class NERModelling(Modelling):
         if test:
             self.data.test = load_dataset(
                 'json',
-                data_files=os.path.join(self.data_dir, self.args.test_data),
+                data_files=os.path.join(self.data_dir, self.args.eval_data),
                 split='train')
 
-            self.data.test = get_dane_test(subset=self.args.data_subset)
+            # self.data.test = get_dane_test(subset=self.args.data_subset)
 
     def load_model_and_replace_bert_head(self):
         """
