@@ -36,10 +36,13 @@ class NERArgParser(ModellingArgParser):
         Add data parameters
         """
         data_params = self.parser.add_argument_group('data')
-        data_params.add_argument("--train_data", type=str, default='dane',
+        data_params.add_argument("--train_data", type=str, default='bilou_train.jsonl',
                                  help="training data file name",
                                  metavar='<str>')
-        data_params.add_argument("--eval_data", type=str, default='dane',
+        data_params.add_argument("--eval_data", type=str, default='bilou_val.jsonl',
+                                 help="validation data file name",
+                                 metavar='<str>')
+        data_params.add_argument("--test_data", type=str, default='bilou_test.jsonl',
                                  help="validation data file name",
                                  metavar='<str>')
         data_params.add_argument("--data_subset", type=int, default=None,
