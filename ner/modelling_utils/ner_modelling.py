@@ -54,15 +54,13 @@ class NERModelling(Modelling):
             num_classes=len(self.args.labels),
             names=self.args.labels)
 
-
-
         self.data_dir = PREP_DATA_DIR
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
 
     def evaluate(self, model, val_loader: DataLoader,
-                 conf_plot: bool = False) -> EvalScore:
+                 conf_plot: bool = True) -> EvalScore:
         """
         Evaluate model at given step
         :param device:
@@ -129,7 +127,8 @@ class NERModelling(Modelling):
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
-        f_1_none = f1_score(y_true, y_pred, average=None)
+        f_1_none_ = f1_score(y_true, y_pred, average=None)
+        f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in range(len(self.args.labels))]
         loss = float(np.mean(loss))
 
         print(f"\n"
@@ -149,7 +148,7 @@ class NERModelling(Modelling):
                 plots_dir=PLOTS_DIR)
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
-                         f_1_none=list(f_1_none))
+                         f_1_none=f_1_none)
 
     def load_data(self, train: bool = True, test: bool = False):
         """
