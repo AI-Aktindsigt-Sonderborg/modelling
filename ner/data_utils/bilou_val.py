@@ -1,7 +1,7 @@
 import sys
 from itertools import groupby
 from shared.utils.helpers import read_json_lines
-from ner.local_constants import DATA_DIR
+from ner.local_constants import PREP_DATA_DIR
 import traceback
 from itertools import groupby
 
@@ -10,7 +10,7 @@ from ner.data_utils.data_prep_input_args import DataPrepArgParser
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
 
-data_bilou = read_json_lines(DATA_DIR, prep_args.bilou_input_file)
+data_bilou = read_json_lines(PREP_DATA_DIR, prep_args.bilou_input_file)
 error_count = 0
 annotation_errors = 0
 annotation_counter = 0

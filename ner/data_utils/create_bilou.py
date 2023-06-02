@@ -189,13 +189,22 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 else:
                     page_index_diff += len(splitted_sentences2[i - 1]) + 2
                 current_sentence_annotations = [x for x in
-                                                current_page_annotations if (
-                                                        x['annotation'][
-                                                            'start'] < (
-                                                                len(sentence) + page_index_diff) and
-                                                        x['annotation'][
-                                                            'start'] >= (
-                                                            page_index_diff))]
+                                                current_page_annotations if 
+                                                (x['annotation']['start'] < (len(sentence) + page_index_diff) 
+                                                and x['annotation']['start'] >= (page_index_diff))]
+                wrong_sentence_annotations = [x for x in
+                                                current_page_annotations if 
+                                                (x['annotation']['start'] > (len(sentence) + page_index_diff) 
+                                                or x['annotation']['start'] <= (page_index_diff))]
+                if len(wrong_sentence_annotations) > 0:
+                    for element in wrong_sentence_annotations:
+                        if element['annotation']['annotation'] == 'HELBRED':
+
+                            print("---Wrong sentence annotation----")
+                            print(f"document_num: {data_number+1} - page_num: {page_num}")
+                            print(element)
+                
+                                                            
                 sorted_sentence_annotations = sorted(
                     current_sentence_annotations,
                     key=lambda x: x['annotation']['start'], reverse=True)
@@ -321,7 +330,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     if true_original.lower() != annotated_content.lower():
                         index_match = False
                         wrong_raw_index += 1
-                        skewness_list = [-3, -2, -1, 1, 2, 3]
+                        skewness_list = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
                         if true_content.lower() != annotated_content.lower():
                             for skewness in skewness_list:
                                 true_content_skewed = sentence[

@@ -25,9 +25,15 @@ bilou_1_only = list(set(tuple(sublist) for sublist in bilou_1_tokens) - set(tupl
 
 
 if args[2] == "2":
-    for element in bilou_2_only:
+    print(f"Only in {args[1]}")
+    for element in bilou_2_only[:5]:
+        print("-----------")
         print(element)
+    print(len(bilou_2_only))
 
 if args[2] == "1":
-    for element in bilou_1_only:
+    print(f"Only in {args[0]}")
+    for element in bilou_1_only[:5]:
+        print("-----------")
         print(element)
+    print(len(bilou_1_only))
