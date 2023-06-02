@@ -5,13 +5,12 @@ from ner.local_constants import DATA_DIR
 import traceback
 from itertools import groupby
 
-args = sys.argv[1:]
+from ner.data_utils.data_prep_input_args import DataPrepArgParser
 
+prep_parser = DataPrepArgParser()
+prep_args = prep_parser.parser.parse_args()
 
-filename_bilou = args[0]
-
-
-data_bilou = read_json_lines(DATA_DIR, filename_bilou)
+data_bilou = read_json_lines(DATA_DIR, prep_args.bilou_input_file)
 error_count = 0
 annotation_errors = 0
 annotation_counter = 0
@@ -20,13 +19,7 @@ j = 0
 bilou_error_count = 0
 total_entities = []
 for i, obs in enumerate(data_bilou):
-    # for tag in obs['tags']:
-        # if 'FORBRYDELSE' in tag:
-            # print("-----------------------")
-            # print(obs['words'])
-            # print(obs['tags'])
-            # print("-----------------------")
-            # continue
+    if prep_args.print_entity:
 
     if len(obs['words']) != len(obs['tags']):
         bilou_error_count = bilou_error_count + 1

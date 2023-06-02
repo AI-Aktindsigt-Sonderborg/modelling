@@ -117,3 +117,9 @@ class DataPrepArgParser:
                      "KOMMUNE", "TELEFONNUMMER"],
             metavar='<str>',
             help="define eval metrics to evaluate best model")
+        self.parser.add_argument(
+            '--print_entity',
+            type=str,
+            metavar='<str>',
+            default=None,
+            help="Print specific entity for data inspection.")

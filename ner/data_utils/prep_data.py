@@ -155,7 +155,7 @@ class NERDataPreprocessing:
 if __name__ == "__main__":
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    prep_args.bilou_input_file = 'bilou_entities_kasper_all'
+    # prep_args.bilou_input_file = 'bilou_entities_kasper_all'
     # prep_args.create_bilou = True
     data_prep = NERDataPreprocessing(prep_args)
 
