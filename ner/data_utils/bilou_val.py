@@ -19,9 +19,13 @@ j = 0
 bilou_error_count = 0
 total_entities = []
 for i, obs in enumerate(data_bilou):
-    if prep_args.print_entity:
+    if prep_args.print_entity and prep_args.print_entity in obs['entities']:
+        print("----- Tokens -------")
+        print(obs['tokens'])
+        print("----- Tags ---------")
+        print(obs['tags'])
 
-    if len(obs['words']) != len(obs['tags']):
+    if len(obs['tokens']) != len(obs['tags']):
         bilou_error_count = bilou_error_count + 1
         print(f'len(Words) != len(tags): Bilou data med linjenummer {i + 1} fejlede')
         print(obs['sentence'])
