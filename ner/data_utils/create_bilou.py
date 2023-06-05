@@ -62,14 +62,14 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             true_content_skewed = true_original
             for skewness in skewness_list:
                 try:
-                    true_content_skewed = pdf_text[start_index_init + skewness:end_index_init + skewness]
+                    true_content_skewed = pdf_text[start_index + skewness:end_index + skewness]
                 except IndexError as ex:
                     print("skewness search error")
                     print(traceback.format_exc())
                 if true_content_skewed.lower() == annotated_content.lower():
-                    current_page_annotations[annotation_num]['annotation']['start'] = start_index_init + skewness
-                    current_page_annotations[annotation_num]['annotation']['end'] = end_index_init + skewness
-                    true_original = pdf_text[start_index_init + skewness:end_index_init + skewness]
+                    current_page_annotations[annotation_num]['annotation']['start'] = start_index + skewness
+                    current_page_annotations[annotation_num]['annotation']['end'] = end_index + skewness
+                    true_original = pdf_text[start_index + skewness:end_index + skewness]
                     indices_reindexed += 1
                     break
                 else:
