@@ -54,9 +54,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
         true_original = pdf_text[start_index:end_index]
 
-        index_match = True
         if true_original.lower() != annotated_content.lower():
-            index_match = False
             # skewness_list = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
             skewness_list = list(range(-25, 25))
             true_content_skewed = true_original
@@ -75,6 +73,8 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                     print(current_page_annotations[annotation_num])
                     break
                 else:
+                    print("did not find")
+                    print(current_page_annotations[annotation_num])
                     continue
 
         if true_original.lower() != annotated_content.lower():
