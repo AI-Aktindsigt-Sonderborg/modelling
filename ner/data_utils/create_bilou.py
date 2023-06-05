@@ -58,7 +58,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         if true_original.lower() != annotated_content.lower():
             index_match = False
             # skewness_list = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5]
-            skewness_list = list(range(-20, 20))
+            skewness_list = list(range(-25, 25))
             try:
                 for skewness in skewness_list:
                     true_content_skewed = pdf_text[start_index_init + skewness:end_index_init + skewness]
@@ -188,9 +188,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
             current_page_annotations = input_data['text_annotation'][page_num]
             current_page_annotations, indices_reindexed = fix_faulty_indices(
                 current_page_annotations, pdf_text, data_number)
-            sorted_page_annotations = sorted(current_page_annotations,
-                                             key=lambda x: x['annotation'][
-                                                 'start'])
+            sorted_page_annotations = sorted(current_page_annotations, key=lambda x: x['annotation']['start'])
 
         # splitted_sentences, splitted_sentences2 = split_sentences_bilou(
         #     data=pdf_text, sentence_splitter=sentence_splitter)
