@@ -283,8 +283,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                         print("weird index error")
                         print(traceback.format_exc())
 
-                    true_original = pdf_text[annotation['annotation'][
-                                                 'start']:end_index_init]
+                    true_original = pdf_text[annotation['annotation']['start']:end_index_init]
 
                     if print_stats:
                         print(
@@ -391,15 +390,11 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                     # print(traceback.format_exc())
                     # manual_match = False
 
-                    if (
-                        annotated_content.lower() == true_content.lower()) or manual_match:
+                    if (annotated_content.lower() == true_content.lower()) or manual_match:
                         correct_index += 1
-                        list_content = re.split(r'( |,|\. |\.\n)',
-                                                annotated_content)
+                        list_content = re.split(r'( |,|\. |\.\n)', annotated_content)
                         to_remove = [" ", ""]
-                        list_content = list(
-                            filter(lambda tag: tag.strip() not in to_remove,
-                                   list_content))
+                        list_content = list(filter(lambda tag: tag.strip() not in to_remove, list_content))
                         insert_annotation: bool = True
 
                         if len(list_content) == 1:
@@ -465,7 +460,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 if print_stats and (len(words) != len(tags)):
                     print(f'len(words): {len(words)}, len(tags): {len(tags)}')
 
-                to_remove = [" ", "", "\n"]
+                to_remove = [" ", "", "\n", "[", "]", "(", ")", "*"]
                 words_final = list(filter(lambda word: word.strip().rstrip(
                     '\\n').strip() not in to_remove, words))
                 words_final[-1] = words_final[-1].strip()
