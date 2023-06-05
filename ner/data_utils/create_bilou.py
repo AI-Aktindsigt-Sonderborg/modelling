@@ -43,9 +43,10 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             try:
                 annotated_content_last = annotated_content[-1]
             except IndexError:
+                print(f"removing annotation {annotation_num} from {document_num + 1}")
+                print(current_page_annotations[annotation_num])
                 del current_page_annotations[annotation_num]
-                print(
-                    f"removed annotation {annotation_num} from {document_num + 1}")
+                print(f"removed annotation {annotation_num} from {document_num + 1}")
                 break
 
         # print(f"-------------- Annotations2 ----------------")
