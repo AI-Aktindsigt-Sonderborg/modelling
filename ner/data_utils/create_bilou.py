@@ -460,23 +460,18 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                 if print_stats and (len(words) != len(tags)):
                     print(f'len(words): {len(words)}, len(tags): {len(tags)}')
 
-                to_remove = [" ", "", "\n", "[", "]", "(", ")", "*"]
-                words_final = list(filter(lambda word: word.strip().rstrip(
-                    '\\n').strip() not in to_remove, words))
+                to_remove = [" ", "", "\n", "[", "]", "(", ")", "*", ":", ";"]
+                words_final = list(filter(lambda word: word.strip().rstrip('\\n').strip() not in to_remove, words))
                 words_final[-1] = words_final[-1].strip()
 
-                tags_no_whitespace = list(filter(lambda tag: tag.strip().rstrip(
-                    '\\n').strip() not in to_remove, tags))
+                tags_no_whitespace = list(filter(lambda tag: tag.strip().rstrip('\\n').strip() not in to_remove, tags))
                 tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
 
-                if words_final[-1] == '.' and not (
-                    tags_no_whitespace[-1] == '.'):
+                if words_final[-1] == '.' and not (tags_no_whitespace[-1] == '.'):
                     tags_no_whitespace.append('.')
 
                 tags_final = [tag if (
-                        tag.startswith(("B-", "U-", "I-", "L-")) and tag[
-                                                                     2:].isupper() and tag[
-                                                                                       2:].isalpha()) else "O"
+                        tag.startswith(("B-", "U-", "I-", "L-")) and tag[2:].isupper() and tag[2:].isalpha()) else "O"
                               for tag in tags_no_whitespace]
 
                 if print_stats and (len(words_final) != len(tags_final)):
@@ -514,8 +509,7 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
                             # matches = re.findall(r'[^a-zA-Z0-9\s]', words_final[count])
                             # print(f'matches: {matches} - {words_final[count]} - {tags_no_whitespace[count]}')
                             # else:
-                            print(
-                                f'{words_final[count]} - {tags_no_whitespace[count]}')
+                            print(f'{words_final[count]} - {tags_no_whitespace[count]}')
 
                 if len(tags_final) != len(words_final):
                     word_tag_mismatch_error += 1
@@ -541,17 +535,17 @@ def create_bilou_from_one_document(input_data: dict, data_number: int,
 
                 assert len(tags_final) == len(words_final)
                 total_sentence += 1
-
-                output_data.append({'tokens': words_final, 'tags': tags_final,
-                                    "sentence": sentence_data[s]["sentence"],
-                                    "sentence_anon": sentence_data[s][
-                                        "sentence_anon"],
-                                    "doc_id": input_data["document_id"],
-                                    "page_no": sentence_data[s]["page_no"],
-                                    "sentence_no": sentence_data[s][
-                                        "sentence_no"],
-                                    "origin_line_no": data_number + 1,
-                                    "entities": sentence_data[s]["entities"]})
+                if len(tags_final) >= 5:
+                    output_data.append({'tokens': words_final, 'tags': tags_final,
+                                        "sentence": sentence_data[s]["sentence"],
+                                        "sentence_anon": sentence_data[s][
+                                            "sentence_anon"],
+                                        "doc_id": input_data["document_id"],
+                                        "page_no": sentence_data[s]["page_no"],
+                                        "sentence_no": sentence_data[s][
+                                            "sentence_no"],
+                                        "origin_line_no": data_number + 1,
+                                        "entities": sentence_data[s]["entities"]})
 
 
         except Exception as e:
