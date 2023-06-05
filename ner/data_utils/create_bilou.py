@@ -71,6 +71,8 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                     current_page_annotations[annotation_num]['annotation']['end'] = end_index + skewness
                     true_original = pdf_text[start_index + skewness:end_index + skewness]
                     indices_reindexed += 1
+                    print("sentence reindexed")
+                    print(current_page_annotations[annotation_num])
                     break
                 else:
                     continue
