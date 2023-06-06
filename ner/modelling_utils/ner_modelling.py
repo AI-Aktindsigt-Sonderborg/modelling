@@ -50,12 +50,18 @@ class NERModelling(Modelling):
         # self.class_labels_ = ClassLabel(
         #     num_classes=len(self.args.labels_),
         #     names=self.args.labels_)
+        if args.train_data == 'dane':
+            self.args.labels, self.id2label, self.label2id = get_label_list_old()
 
-        self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
+            self.class_labels_ = ClassLabel(
+                num_classes=len(self.args.labels),
+                names=self.args.labels)
+        else:
+            self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
 
-        self.class_labels = ClassLabel(
-            num_classes=len(self.args.labels),
-            names=self.args.labels)
+            self.class_labels = ClassLabel(
+                num_classes=len(self.args.labels),
+                names=self.args.labels)
 
         self.data_dir = PREP_DATA_DIR
 
@@ -162,12 +168,15 @@ class NERModelling(Modelling):
         """
 
         if train:
-            self.data.train = load_dataset(
-                'json',
-                data_files=os.path.join(self.data_dir, self.args.train_data),
-                split='train')
+            if self.args.train_data == 'dane':
+                self.data.train = get_dane_train(subset=self.args.data_subset)
+            else:
+                self.data.train = load_dataset(
+                    'json',
+                    data_files=os.path.join(self.data_dir, self.args.train_data),
+                    split='train')
 
-            # self.data.train_ = get_dane_train(subset=self.args.data_subset)
+
             print(f'len train: {len(self.data.train)}')
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size
@@ -185,12 +194,14 @@ class NERModelling(Modelling):
                 self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
-            self.data.eval = load_dataset(
-                'json',
-                data_files=os.path.join(self.data_dir, self.args.eval_data),
-                split='train')
+            if self.args.train_data == 'dane':
+                self.data.eval = get_dane_val(subset=self.args.data_subset)
+            else:
+                self.data.eval = load_dataset(
+                    'json',
+                    data_files=os.path.join(self.data_dir, self.args.eval_data),
+                    split='train')
 
-            # self.data.eval = get_dane_val(subset=self.args.data_subset)
             print(f'len eval: {len(self.data.eval)}')
 
         if test:
