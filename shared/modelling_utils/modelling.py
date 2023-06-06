@@ -356,7 +356,8 @@ class Modelling:
                 model=model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
-                tokenizer=self.tokenizer
+                tokenizer=self.tokenizer,
+                dp=self.args.differential_privacy
             )
         self.model = model
 
@@ -496,13 +497,17 @@ class Modelling:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
-                            step=f'/epoch-{epoch}_step-{step}')
+                            step=f'/epoch-{epoch}_step-{step}',
+                            dp=self.args.differential_privacy
+                            )
 
         if save_best_model:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
-                            step='/best_model')
+                            step='/best_model',
+                            dp=self.args.differential_privacy
+                            )
 
     def get_data_collator(self):
         """
@@ -592,7 +597,7 @@ class Modelling:
     def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
-                   step: str = ""):
+                   step: str = "", dp: bool = False):
         """
         Wrap model in trainer class and save to pytorch object
         :param model: BertForMaskedLM to save
@@ -610,6 +615,8 @@ class Modelling:
             tokenizer=tokenizer
         )
         trainer_test.save_model(output_dir=output_dir)
+        if dp:
+            model._module.config.save_pretrained(output_dir)
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
 

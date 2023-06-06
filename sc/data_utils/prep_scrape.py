@@ -17,7 +17,7 @@ class ClassifiedScrapePreprocessing:
     train and validation data.
 
     :param argparse.Namespace args:
-        input arguments from :ref:`DataPrepArgParser <data-prep-arg-parser>`.
+        input arguments from :class:`.DataPrepArgParser`.
 
     :Eksempel:
         ::
