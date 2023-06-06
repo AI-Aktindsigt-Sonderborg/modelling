@@ -617,8 +617,8 @@ class Modelling:
         trainer_test.save_model(output_dir=output_dir)
         if dp:
             model._module.config.save_pretrained(output_dir)
-        else:
-            model.config.save_pretrained(output_dir)
+        # else:
+        #     model.config.save_pretrained(output_dir)
 
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
