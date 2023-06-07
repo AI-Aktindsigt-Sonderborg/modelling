@@ -22,7 +22,7 @@ from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
     save_key_metrics, validate_model, predefined_hf_models
-from shared.utils.helpers import append_json_lines, TimeCode
+from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
@@ -469,7 +469,7 @@ class Modelling:
                     model=model,
                     epoch=epoch,
                     step=step,
-                    save_best_model=save_best_model)
+                    save_best_model=save_best_model, eval_score=eval_score)
 
         train_losses.append(loss.item())
         append_json_lines(output_dir=self.metrics_dir,
@@ -483,7 +483,7 @@ class Modelling:
         return model, optimizer, eval_scores, train_losses, learning_rates
 
     def save_model_at_step(self, model, epoch, step,
-                           save_best_model: bool):
+                           save_best_model: bool, eval_score):
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
@@ -500,6 +500,9 @@ class Modelling:
                             step=f'/epoch-{epoch}_step-{step}',
                             dp=self.args.differential_privacy
                             )
+            write_json_lines(out_dir=self.output_dir,
+                              filename='eval_scores',
+                              data=[dataclasses.asdict(eval_score)])
 
         if save_best_model:
             self.save_model(model, output_dir=self.output_dir,
@@ -508,6 +511,11 @@ class Modelling:
                             step='/best_model',
                             dp=self.args.differential_privacy
                             )
+            write_json_lines(out_dir=self.output_dir,
+                              filename='eval_scores',
+                              data=[dataclasses.asdict(eval_score)])
+
+
 
     def get_data_collator(self):
         """
