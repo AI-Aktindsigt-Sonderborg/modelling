@@ -605,7 +605,7 @@ class Modelling:
     def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
-                   step: str = "", dp: bool = False, label2id):
+                   step: str = "", dp: bool = False, label2id = None):
         """
         Wrap model in trainer class and save to pytorch object
         :param model: BertForMaskedLM to save
