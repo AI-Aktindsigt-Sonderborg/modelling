@@ -463,9 +463,8 @@ class NERModellingDP(NERModelling):
         :param model: Model of type GradSampleModule
         :return: un-freezed model
         """
-        for name, param in model.named_parameters():
-            # ToDo: Find out if relevant for NER
-            if not name.startswith("_module.bert.embeddings"):
+        for name, param in model._module.named_parameters():
+            if not name.startswith("bert.embeddings"):
                 param.requires_grad = True
         model.train()
         return model

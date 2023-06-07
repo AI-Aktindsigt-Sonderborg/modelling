@@ -458,8 +458,9 @@ class Modelling:
                               data=dataclasses.asdict(eval_score))
             eval_scores.append(eval_score)
 
-            # Todo: fix step > self.args.freeze_layers_n_steps and
-            if self.args.save_steps is not None and (step % self.args.save_steps == 0):
+            if self.args.save_steps is not None and (
+                step > self.args.freeze_layers_n_steps and
+                step % self.args.save_steps == 0):
                 _, save_best_model = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)

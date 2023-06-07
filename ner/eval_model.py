@@ -16,7 +16,7 @@ args.test = True
 
 modelling = NERModelling(args)
 
-modelling.load_data(train=False, test=True)
+modelling.load_data(train=False, test=args.test)
 
 wrapped, test_loader = create_data_loader(
     data_wrapped=modelling.tokenize_and_wrap_data(modelling.data.test),
