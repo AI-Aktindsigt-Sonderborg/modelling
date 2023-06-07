@@ -500,7 +500,7 @@ class Modelling:
                             step=f'/epoch-{epoch}_step-{step}',
                             dp=self.args.differential_privacy
                             )
-            write_json_lines(out_dir=self.output_dir,
+            write_json_lines(out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
 
@@ -511,7 +511,7 @@ class Modelling:
                             step='/best_model',
                             dp=self.args.differential_privacy
                             )
-            write_json_lines(out_dir=self.output_dir,
+            write_json_lines(out_dir=self.output_dir + '/best_model',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
 
