@@ -207,7 +207,7 @@ class NERModelling(Modelling):
         if test:
             self.data.test = load_dataset(
                 'json',
-                data_files=os.path.join(self.data_dir, self.args.eval_data),
+                data_files=os.path.join(self.data_dir, self.args.test_data),
                 split='train')
 
             # self.data.test = get_dane_test(subset=self.args.data_subset)
