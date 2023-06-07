@@ -35,3 +35,4 @@ eval_scores = modelling.evaluate(
     conf_plot=True)
 
 print(eval_scores)
+print(model.config.label2id)
