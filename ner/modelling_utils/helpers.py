@@ -36,7 +36,9 @@ def get_label_list(ner_entities: List[str]):
 
     for i, label in enumerate(label_list):
         id2label[i] = label
-
-    label2id = {v: k for k, v in id2label.items()}
+        
+    label2id = OrderedDict()
+    for i, label in enumerate(label_list):
+        label2id[label] = i
 
     return label_list, id2label, label2id
