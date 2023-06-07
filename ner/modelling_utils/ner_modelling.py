@@ -116,17 +116,17 @@ class NERModelling(Modelling):
 
         # To Søren: this block is only used for comparing different f1 scores
         # Dont worry about it
-        all_metrics = seqeval.compute(
-            predictions=y_pred,
-            references=y_true,
-            scheme='IOB2')
-
-        for k, v in all_metrics.items():
-            if isinstance(v, dict):
-                for j, u in v.items():
-                    all_metrics[k][j] = float(u)
-            else:
-                all_metrics[k] = float(v)
+        # all_metrics = seqeval.compute(
+        #     predictions=y_pred,
+        #     references=y_true,
+        #     scheme='IOB2')
+        #
+        # for k, v in all_metrics.items():
+        #     if isinstance(v, dict):
+        #         for j, u in v.items():
+        #             all_metrics[k][j] = float(u)
+        #     else:
+        #         all_metrics[k] = float(v)
         # --------------------------------------------------------------------
 
         append_json_lines(output_dir=self.metrics_dir, data=all_metrics,

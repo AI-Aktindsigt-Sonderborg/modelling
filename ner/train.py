@@ -19,6 +19,7 @@ args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KO
 
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
+
 if leftovers:
     logger.warning(f'The following args is not relevant for model '
                    f'{model_name_to_print}: '
