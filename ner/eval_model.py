@@ -27,6 +27,7 @@ wrapped, test_loader = create_data_loader(
 )
 
 model = modelling.get_model()
+model.config.label2id = modelling.label2id
 
 eval_scores = modelling.evaluate(
     model=model,
