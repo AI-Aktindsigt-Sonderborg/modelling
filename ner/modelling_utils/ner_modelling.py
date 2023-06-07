@@ -115,7 +115,7 @@ class NERModelling(Modelling):
                 loss.append(batch_loss)
 
         # To Søren: this block is only used for comparing different f1 scores
-        # Dont worry about it
+        # Dont worry about it - seqeval not working for sonderborg NER classes
         # all_metrics = seqeval.compute(
         #     predictions=y_pred,
         #     references=y_true,
@@ -127,10 +127,10 @@ class NERModelling(Modelling):
         #             all_metrics[k][j] = float(u)
         #     else:
         #         all_metrics[k] = float(v)
+        # append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
+        #             filename='seqeval_metrics')
         # --------------------------------------------------------------------
 
-        append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
-                    filename='seqeval_metrics')
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
         # calculate metrics of interest
