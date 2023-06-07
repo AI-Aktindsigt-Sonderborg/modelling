@@ -357,8 +357,7 @@ class Modelling:
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
                 tokenizer=self.tokenizer,
-                dp=self.args.differential_privacy, label2id=self.label2id
-            )
+                dp=self.args.differential_privacy)
         self.model = model
 
     def train_epoch(self, model, train_loader: DataLoader,
@@ -469,7 +468,7 @@ class Modelling:
                     model=model,
                     epoch=epoch,
                     step=step,
-                    save_best_model=save_best_model, eval_score=eval_score, label2id=self.label2id)
+                    save_best_model=save_best_model, eval_score=eval_score)
 
         train_losses.append(loss.item())
         append_json_lines(output_dir=self.metrics_dir,
@@ -498,8 +497,7 @@ class Modelling:
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}',
-                            dp=self.args.differential_privacy,
-                            label2id=self.label2id)
+                            dp=self.args.differential_privacy)
             write_json_lines(out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
@@ -509,8 +507,7 @@ class Modelling:
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
                             step='/best_model',
-                            dp=self.args.differential_privacy,
-                            label2id=self.label2id)
+                            dp=self.args.differential_privacy)
             write_json_lines(out_dir=self.output_dir + '/best_model',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
@@ -605,7 +602,7 @@ class Modelling:
     def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
-                   step: str = "", dp: bool = False, label2id = None):
+                   step: str = "", dp: bool = False):
         """
         Wrap model in trainer class and save to pytorch object
         :param model: BertForMaskedLM to save
@@ -624,7 +621,6 @@ class Modelling:
         )
         trainer_test.save_model(output_dir=output_dir)
         if dp:
-            model._module.config.label2id=label2id
             model._module.config.save_pretrained(output_dir)
         # else:
         #     model.config.save_pretrained(output_dir)
