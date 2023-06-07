@@ -13,6 +13,7 @@ args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
 args.differential_privacy = False
 args.test = True
+args.test_data = "bilou_val.jsonl"
 
 modelling = NERModelling(args)
 
