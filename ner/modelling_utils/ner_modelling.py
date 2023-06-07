@@ -449,8 +449,8 @@ class NERModellingDP(NERModelling):
         :param model: Model of type GradSampleModule
         :return: freezed model
         """
-        for name, param in model.named_parameters():
-            if not (name.startswith('_module.bert.encoder.layer.11') or name.startswith(
+        for name, param in model._module.named_parameters():
+            if not (name.startswith('bert.encoder.layer.11') or name.startswith(
                 'classifier')):
                 param.requires_grad = False
         model.train()
