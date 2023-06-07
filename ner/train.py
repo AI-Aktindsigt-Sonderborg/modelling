@@ -24,11 +24,10 @@ if leftovers:
                    f'{model_name_to_print}: '
                    f'{leftovers}. Ignoring...')
 
-# if args.freeze_layers:
-#     logger.warning(
-#         f'Freezing layers for model {model_name_to_print} has not been '
-#         f'implemented')
-#     args.freeze_layers = False
+if args.freeze_layers and args.lr_freezed < args.learning_rate:
+    logger.warning(f'lr_freezed must be higher than lr')
+    print('exiting - try again')
+    ner_parser.parser.exit()
 
 args.cmd_line_args = sys.argv
 

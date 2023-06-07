@@ -219,7 +219,7 @@ class Modelling:
           after the frozen layers have been trained.
           """
 
-        if self.args.freeze_layers:
+        if self.args.freeze_layers and not self.args.lr_freezed_warmup_steps:
             self.args.lr_freezed_warmup_steps = \
                 int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 

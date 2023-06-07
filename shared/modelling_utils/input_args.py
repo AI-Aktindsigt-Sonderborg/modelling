@@ -243,11 +243,11 @@ class ModellingArgParser:
             type=float,
             default=0.0005,
             metavar='<float>',
-            help="number of steps to train head only")
+            help="number of steps to train head only - must be higher than lr")
         lr_params.add_argument(
             "-lrfws", "--lr_freezed_warmup_steps",
             type=int,
-            default=1000,
+            default=None,
             help="number of steps to train head only",
             metavar='<int>')
         lr_params.add_argument(
