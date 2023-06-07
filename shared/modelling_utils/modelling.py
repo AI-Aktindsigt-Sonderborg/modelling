@@ -613,18 +613,18 @@ class Modelling:
         '/epoch-{epoch}_step-{step}'
         """
         output_dir = output_dir + step
+        if dp:
+            model = model._module
+            model.config.save_pretrained(output_dir)
+        
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
             data_collator=data_collator,
             tokenizer=tokenizer
         )
+        
         trainer_test.save_model(output_dir=output_dir)
-        if dp:
-            model._module.config.save_pretrained(output_dir)
-        # else:
-        #     model.config.save_pretrained(output_dir)
-
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
 
