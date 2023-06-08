@@ -71,7 +71,7 @@ def plot_confusion_matrix(
     concat_bilu: bool = False):
     """Function is self-explanatory"""
 
-    if concat_bilu:
+    if concat_bilu and "ner" in plots_dir:
         y_true = [y[2:] if y != 'O' else y for y in y_true]
         y_pred = [y[2:] if y != 'O' else y for y in y_pred]
         labels = list(OrderedDict.fromkeys([label[2:] if label != 'O' else label for label in labels]))
@@ -86,7 +86,9 @@ def plot_confusion_matrix(
 
     plt.tight_layout()
     if save_fig:
-        plt.savefig(os.path.join(plots_dir,
-                                 f'conf_plot_{model_name.replace("/", "_")}'))
+        filepath = os.path.join(plots_dir, f'conf_plot_{model_name.replace("/", "_")}')
+        if concat_bilu:
+            filepath += "-concat_bilu"
+        plt.savefig()
     else:
         plt.show()
