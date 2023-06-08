@@ -89,6 +89,6 @@ def plot_confusion_matrix(
         filepath = os.path.join(plots_dir, f'conf_plot_{model_name.replace("/", "_")}')
         if concat_bilu:
             filepath += "-concat_bilu"
-        plt.savefig()
+        plt.savefig(filepath)
     else:
         plt.show()
