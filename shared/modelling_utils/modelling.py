@@ -498,6 +498,7 @@ class Modelling:
                             tokenizer=self.tokenizer,
                             step=f'/epoch-{epoch}_step-{step}',
                             dp=self.args.differential_privacy)
+
             write_json_lines(out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
@@ -508,6 +509,7 @@ class Modelling:
                             tokenizer=self.tokenizer,
                             step='/best_model',
                             dp=self.args.differential_privacy)
+
             write_json_lines(out_dir=self.output_dir + '/best_model',
                               filename='eval_scores',
                               data=[dataclasses.asdict(eval_score)])
@@ -549,8 +551,12 @@ class Modelling:
         validate_model(model, strict_validation=True)
         # opacus version >= 1.0 requires to generate optimizer from
         # model.parameters()
+
+        init_learning_rate = self.args.lr_freezed if self.args.freeze_layers \
+            else self.args.learning_rate
+
         optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=self.args.learning_rate,
+                                      lr=init_learning_rate,
                                       weight_decay=self.args.weight_decay)
 
         dp_model, dp_optimizer, dp_train_loader = \
@@ -615,7 +621,7 @@ class Modelling:
         output_dir = output_dir + step
         if dp:
             model = model._module
-            model.config.save_pretrained(output_dir)
+            # model.config.save_pretrained(output_dir)
         
         trainer_test = Trainer(
             model=model,

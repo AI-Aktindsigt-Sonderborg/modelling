@@ -8,12 +8,14 @@ sc_parser = NERArgParser()
 
 args = sc_parser.parser.parse_args()
 
-# args.model_name = 'last_model-2022-12-21_10-53-25'
+args.model_name = 'babba'
+args.custom_model_dir = "ner/models"
 args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
 args.differential_privacy = False
 args.test = True
 args.test_data = "bilou_val.jsonl"
+# args.concat_bilu = True
 
 modelling = NERModelling(args)
 
@@ -34,5 +36,9 @@ eval_scores = modelling.evaluate(
     val_loader=test_loader,
     conf_plot=True)
 
+
+
 print(eval_scores)
+
+
 print(model.config.label2id)

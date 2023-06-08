@@ -6,6 +6,7 @@ import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
+from collections import OrderedDict
 
 from shared.data_utils.custom_dataclasses import EvalScore
 
@@ -66,8 +67,14 @@ def plot_confusion_matrix(
     model_name: str,
     plots_dir: str = None,
     normalize: str = 'true',
-    save_fig: bool = True):
+    save_fig: bool = True,
+    concat_bilu: bool = False):
     """Function is self-explanatory"""
+
+    if concat_bilu:
+        y_true = [y[2:] if y != 'O' else y for y in y_true]
+        y_pred = [y[2:] if y != 'O' else y for y in y_pred]
+        labels = list(OrderedDict.fromkeys([label[2:] if label != 'O' else label for label in labels]))
 
     conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
                                    normalize=normalize)

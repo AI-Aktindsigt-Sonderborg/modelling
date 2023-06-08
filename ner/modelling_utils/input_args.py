@@ -76,3 +76,9 @@ class NERArgParser(ModellingArgParser):
             default=["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"],
             metavar='<str>',
             help="define eval metrics to evaluate best model")
+        ner_params.add_argument(
+            "--concat_bilu",
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=False,
+            help="Whether to compute one single f1_score per entity")

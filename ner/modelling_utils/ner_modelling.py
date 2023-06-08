@@ -154,7 +154,8 @@ class NERModelling(Modelling):
                 y_pred=y_pred,
                 labels=self.args.labels,
                 model_name=self.args.model_name,
-                plots_dir=PLOTS_DIR)
+                plots_dir=PLOTS_DIR,
+                concat_bilu=self.args.concat_bilu)
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
                          f_1_none=f_1_none)
@@ -211,20 +212,6 @@ class NERModelling(Modelling):
                 split='train')
 
             # self.data.test = get_dane_test(subset=self.args.data_subset)
-
-    def load_model_and_replace_bert_head(self):
-        """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings
-        layer
-        """
-        model = AutoModelForTokenClassification.from_pretrained(
-            self.args.model_name)
-        config = BertConfig.from_pretrained(self.args.model_name)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        model.cls = lm_head
-
-        return model
 
     def tokenize_and_wrap_data(self, data: Dataset):
 
