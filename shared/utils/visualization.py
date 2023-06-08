@@ -7,7 +7,7 @@ import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 from collections import OrderedDict
-
+from sklearn.metrics import f1_score
 from shared.data_utils.custom_dataclasses import EvalScore
 
 
@@ -74,19 +74,22 @@ def plot_confusion_matrix(
     if concat_bilu and "ner" in plots_dir:
         y_true = [y[2:] if y != 'O' else y for y in y_true]
         y_pred = [y[2:] if y != 'O' else y for y in y_pred]
-        labels = list(OrderedDict.fromkeys([label[2:] if label != 'O' else label for label in labels]))
+        labels = list(OrderedDict.fromkeys(
+            [label[2:] if label != 'O' else label for label in labels]))
+        print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
 
     conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
                                    normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
     plt.figure(figsize=(20, 14))
-    sn.heatmap(df_cm, annot=True, cmap="YlGnBu",fmt=".2f", xticklabels=labels,
+    sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt=".2f", xticklabels=labels,
                yticklabels=labels)
 
     plt.tight_layout()
     if save_fig:
-        filepath = os.path.join(plots_dir, f'conf_plot_{model_name.replace("/", "_")}')
+        filepath = os.path.join(plots_dir,
+                                f'conf_plot_{model_name.replace("/", "_")}')
         if concat_bilu:
             filepath += "-concat_bilu"
         plt.savefig(filepath)
