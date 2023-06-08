@@ -8,7 +8,7 @@ sc_parser = NERArgParser()
 
 args = sc_parser.parser.parse_args()
 
-args.model_name = 'babba'
+# args.model_name = 'babba'
 args.custom_model_dir = "ner/models"
 args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
