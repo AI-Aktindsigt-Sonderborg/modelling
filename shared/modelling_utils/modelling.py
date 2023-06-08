@@ -12,6 +12,7 @@ import torch
 from datasets import load_dataset
 from opacus import PrivacyEngine
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.utils import compute_class_weight
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import Trainer, TrainingArguments, AutoModel, AutoTokenizer, \
@@ -130,6 +131,21 @@ class Modelling:
 
         if self.args.auto_lr_scheduling:
             self.compute_lr_automatically()
+
+        from sklearn.datasets import load_iris
+        iris = load_iris()
+        X = iris.data
+        y = iris.target
+
+
+        if self.args.class_weights:
+            label_ids = [self.label2id[label] for label in self.args.labels]
+            y = np.concatenate(self.data.train['ner_tags'])
+            # OBS: below line only when some class labels are missing from data
+            label_ids = [label_id for label_id in label_ids if label_id in y]
+            class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y))
+            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=class_weights)
+
 
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir,
@@ -438,7 +454,15 @@ class Modelling:
                            self.args.device),
                        labels=batch["labels"].to(self.args.device))
 
-        loss = output.loss
+        if not self.args.class_weights:
+            loss = output.loss
+        else:
+            padding_mask = (batch['labels'] != -100).float()
+            logits = output.logits.detach().cpu()
+            masked_logits = logits * padding_mask.unsqueeze(dim=-1)
+            masked_labels = batch['labels'] * padding_mask.long()
+            loss = self.weighted_loss_function(masked_logits,  masked_labels)
+
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()

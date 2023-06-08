@@ -228,6 +228,12 @@ class ModellingArgParser:
             default='cuda',
             metavar='<str>',
             help="device to train on, can be either 'cuda' or 'cpu'")
+        training_params.add_argument(
+            "-cw", "--class_weights",
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=False,
+            help="Whether to add class weights for loss.")
 
         lr_params = self.parser.add_argument_group('learning rate')
         lr_params.add_argument(
