@@ -457,19 +457,6 @@ class Modelling:
         if not self.args.class_weights:
             loss = output.loss
         else:
-            # import torch.nn.functional as F
-            # padding_mask = (batch['labels'] != -100).float()
-            # masked_logits = logits * padding_mask.unsqueeze(dim=-1)
-            # masked_labels = batch['labels'] * padding_mask.long()
-            # best_probs, _ = torch.max(masked_logits, dim=2)
-            # # loss = self.weighted_loss_function(masked_logits,  masked_labels)
-            # loss = -torch.log(best_probs) * batch['labels'].float()
-            # loss = -torch.log(best_probs) * (batch['labels'] * padding_mask.long())
-            # loss = loss * batch['attention_mask'].unsqueeze(1)
-            # loss = loss * batch['attention_mask'] * self.class_weights
-            # loss = self.weighted_loss_function(logits.view(-1, 64),batch['labels'].view(-1))
-
-            # new
             logits = output.logits.detach().cpu()
             active_loss = batch['attention_mask'].view(-1) == 1
             active_logits = logits.view(-1, len(self.args.labels)).float()
