@@ -478,7 +478,7 @@ class Modelling:
                 torch.tensor(self.weighted_loss_function.ignore_index).type_as(
                     batch['labels'])
             )
-            loss = self.weighted_loss_function(active_logits, active_labels.float())
+            loss = self.weighted_loss_function(active_logits.float(), active_labels.float())
 
         loss.backward()
         optimizer.step()
