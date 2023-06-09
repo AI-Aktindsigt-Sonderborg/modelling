@@ -226,11 +226,14 @@ class NERModelling(Modelling):
 
             all_labels = examples["ner_tags"]
             new_labels = []
+            attention_mask = []
             for i, labels in enumerate(all_labels):
                 word_ids = tokenized_inputs.word_ids(i)
                 new_labels.append(align_labels_with_tokens(labels, word_ids))
-
+                attention_mask.append(list(map(lambda x: 1 if x != -100 else 0, align_labels_with_tokens(labels, word_ids))))
             tokenized_inputs["labels"] = new_labels
+            tokenized_inputs["attention_mask"] = attention_mask
+
             return tokenized_inputs
 
         tokenized = data.map(

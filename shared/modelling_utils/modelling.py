@@ -143,8 +143,8 @@ class Modelling:
             y = np.concatenate(self.data.train['ner_tags'])
             # OBS: below line only when some class labels are missing from data
             label_ids = [label_id for label_id in label_ids if label_id in y]
-            class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y))
-            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=class_weights, reduction='none')
+            self.class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y))
+            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
 
         if self.args.save_config:
@@ -457,12 +457,28 @@ class Modelling:
         if not self.args.class_weights:
             loss = output.loss
         else:
-            padding_mask = (batch['labels'] != -100).float()
-            logits = output.logits.detach().cpu()
-            masked_logits = logits * padding_mask.unsqueeze(dim=-1)
-            masked_labels = batch['labels'] * padding_mask.long()
+            # import torch.nn.functional as F
+            # padding_mask = (batch['labels'] != -100).float()
+            # masked_logits = logits * padding_mask.unsqueeze(dim=-1)
+            # masked_labels = batch['labels'] * padding_mask.long()
+            # best_probs, _ = torch.max(masked_logits, dim=2)
+            # # loss = self.weighted_loss_function(masked_logits,  masked_labels)
+            # loss = -torch.log(best_probs) * batch['labels'].float()
+            # loss = -torch.log(best_probs) * (batch['labels'] * padding_mask.long())
+            # loss = loss * batch['attention_mask'].unsqueeze(1)
+            # loss = loss * batch['attention_mask'] * self.class_weights
+            # loss = self.weighted_loss_function(logits.view(-1, 64),batch['labels'].view(-1))
 
-            loss = self.weighted_loss_function(masked_logits,  masked_labels)
+            # new
+            logits = output.logits.detach().cpu()
+            active_loss = batch['attention_mask'].view(-1) == 1
+            active_logits = logits.view(-1, len(self.args.labels))
+            active_labels = torch.where(
+                active_loss, batch['labels'].view(-1),
+                torch.tensor(self.weighted_loss_function.ignore_index).type_as(
+                    batch['labels'])
+            )
+            loss = self.weighted_loss_function(active_logits, active_labels)
 
         loss.backward()
         optimizer.step()
