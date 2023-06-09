@@ -474,11 +474,9 @@ class Modelling:
             active_loss = batch['attention_mask'].view(-1) == 1
             active_logits = logits.view(-1, len(self.args.labels)).float()
             active_labels = torch.where(
-                active_loss, batch['labels'].view(-1),
-                torch.tensor(self.weighted_loss_function.ignore_index).type_as(
-                    batch['labels'])
+                active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels'])
             )
-            loss = self.weighted_loss_function(active_logits.float(), active_labels.float())
+            loss = self.weighted_loss_function(active_logits, active_labels.long())
 
         loss.backward()
         optimizer.step()
