@@ -144,8 +144,8 @@ class Modelling:
             # OBS: below line only when some class labels are missing from data
             label_ids = [label_id for label_id in label_ids if label_id in y]
             self.class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y))
-            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
-
+            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+            # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir,
@@ -476,7 +476,7 @@ class Modelling:
             active_labels = torch.where(
                 active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels'])
             )
-            loss = self.weighted_loss_function(active_logits, active_labels.long())
+            loss = self.weighted_loss_function(active_logits.transpose(0,1).float(), active_labels.long())
 
         loss.backward()
         optimizer.step()
