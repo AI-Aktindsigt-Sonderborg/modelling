@@ -100,6 +100,14 @@ class NERModelling(Modelling):
                     batch_loss = torch.tensor(torch.mean(
                         self.weighted_loss_function(logits_flat.float(),
                                                     labels_flat.long()))).item()
+                    labels_flat = batch['labels'].view(-1)
+                    logits_flat = logits.view(-1, len(self.args.labels)).float()
+                    standard_loss = output.loss
+                    loss_function = torch.nn.CrossEntropyLoss()
+                    weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+                    loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
+                    loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
+
 
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
