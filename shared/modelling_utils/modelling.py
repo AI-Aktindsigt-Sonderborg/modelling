@@ -462,7 +462,14 @@ class Modelling:
             # loss = torch.tensor(np.mean(self.weighted_loss_function(active_logits.float(), active_labels.long())), requires_grad = True)
             labels_flat = batch['labels'].view(-1)
             logits_flat = logits.view(-1, len(self.args.labels)).float()
-            loss = torch.tensor(torch.mean(self.weighted_loss_function(logits_flat.float(), labels_flat.long())), requires_grad=True).to(self.args.device)
+            standard_loss = output.loss
+            loss_function = torch.nn.CrossEntropyLoss()
+            weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+            loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+
+
+
 
         loss.backward()
         optimizer.step()
