@@ -132,20 +132,14 @@ class Modelling:
         if self.args.auto_lr_scheduling:
             self.compute_lr_automatically()
 
-        from sklearn.datasets import load_iris
-        iris = load_iris()
-        X = iris.data
-        y = iris.target
-
-
-        if self.args.class_weights:
+        if self.args.weight_classes:
             label_ids = [self.label2id[label] for label in self.args.labels]
             y = np.concatenate(self.data.train['ner_tags'])
             # OBS: below line only when some class labels are missing from data
             label_ids = [label_id for label_id in label_ids if label_id in y]
             self.class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y)).float()
+            self.args.class_weights = self.class_weights.tolist()
             self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
@@ -455,7 +449,7 @@ class Modelling:
                            self.args.device),
                        labels=batch["labels"].to(self.args.device))
 
-        if not self.args.class_weights:
+        if not self.args.weight_classes:
             loss = output.loss
         else:
             logits = output.logits.detach().cpu()

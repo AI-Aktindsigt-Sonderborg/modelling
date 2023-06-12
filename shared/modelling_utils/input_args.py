@@ -229,7 +229,7 @@ class ModellingArgParser:
             metavar='<str>',
             help="device to train on, can be either 'cuda' or 'cpu'")
         training_params.add_argument(
-            "-cw", "--class_weights",
+            "-cw", "--weight_classes",
             type=lambda x: bool(strtobool(x)),
             metavar='<bool>',
             default=False,

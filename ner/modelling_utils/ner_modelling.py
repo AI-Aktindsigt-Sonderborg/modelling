@@ -91,7 +91,7 @@ class NERModelling(Modelling):
 
                 # batch_loss = output.loss.item()
 
-                if not self.args.class_weights:
+                if not self.args.weight_classes:
                     batch_loss = output.loss.item()
                 else:
                     logits = output.logits.detach().cpu()
