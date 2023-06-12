@@ -46,23 +46,18 @@ class NERModelling(Modelling):
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        # self.args.labels_, self.id2label_, self.label2id_ = get_label_list_old()
-        #
-        # self.class_labels_ = ClassLabel(
-        #     num_classes=len(self.args.labels_),
-        #     names=self.args.labels_)
-        # if args.train_data == 'dane':
-        #     self.args.labels, self.id2label, self.label2id = get_label_list_old()
-        #
-        #     self.class_labels_ = ClassLabel(
-        #         num_classes=len(self.args.labels),
-        #         names=self.args.labels)
-        # else:
-        self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
 
+        self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
+
+        if args.train_data == 'dane':
+            self.args.labels, self.id2label, self.label2id = get_label_list_old()
+            self.class_labels = ClassLabel(
+                num_classes=len(self.args.labels),
+                names=self.args.labels)
+
 
         self.data_dir = PREP_DATA_DIR
 
@@ -94,7 +89,17 @@ class NERModelling(Modelling):
                     attention_mask=batch["attention_mask"].to(self.args.device),
                     labels=batch["labels"].to(self.args.device))
 
-                batch_loss = output.loss.item()
+                # batch_loss = output.loss.item()
+
+                if not self.args.class_weights:
+                    batch_loss = output.loss.item()
+                else:
+                    logits = output.logits.detach().cpu()
+                    labels_flat = batch['labels'].view(-1)
+                    logits_flat = logits.view(-1, len(self.args.labels)).float()
+                    batch_loss = torch.tensor(torch.mean(
+                        self.weighted_loss_function(logits_flat.float(),
+                                                    labels_flat.long()))).item()
 
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()

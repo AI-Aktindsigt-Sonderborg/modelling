@@ -145,6 +145,7 @@ class Modelling:
             label_ids = [label_id for label_id in label_ids if label_id in y]
             self.class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y)).float()
             self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
@@ -458,12 +459,14 @@ class Modelling:
             loss = output.loss
         else:
             logits = output.logits.detach().cpu()
-            active_loss = batch['attention_mask'].view(-1) == 1
-            active_logits = logits.view(-1, len(self.args.labels)).float()
-            active_labels = torch.where(
-                active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels'])
-            )
-            loss = torch.tensor(self.weighted_loss_function(active_logits.float(),active_labels.long()), requires_grad = True)
+            # active_loss = batch['attention_mask'].view(-1) == 1
+            # active_logits = logits.view(-1, len(self.args.labels)).float()
+            # active_labels = torch.where(active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels']))
+            # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
+            # loss = torch.tensor(np.mean(self.weighted_loss_function(active_logits.float(), active_labels.long())), requires_grad = True)
+            labels_flat = batch['labels'].view(-1)
+            logits_flat = logits.view(-1, len(self.args.labels)).float()
+            loss = torch.tensor(torch.mean(self.weighted_loss_function(logits_flat.float(), labels_flat.long())), requires_grad=True).to(self.args.device)
 
         loss.backward()
         optimizer.step()
@@ -683,9 +686,7 @@ class Modelling:
                     labels=batch["labels"].to(self.args.device)
                 )
 
-                batch_preds = np.argmax(
-                    output.logits.detach().cpu().numpy(), axis=-1
-                )
+                batch_preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 batch_labels = batch["labels"].cpu().numpy()
                 batch_loss = output.loss.item()
 
