@@ -41,9 +41,16 @@ def get_label_list(ner_entities: List[str]):
     for i, label in enumerate(label_list):
         label2id[label] = i
 
+    # label2weight = OrderedDict()
+    # for i, label in enumerate(label_list):
+    #     if label == "O":
+    #         label2weight[label] = 1
+    #     else:
+    #         label2weight[label] = 2
+
     label2weight = OrderedDict()
-    for i, label in enumerate(label_list):
-        if label == 'O':
+    for i, label in enumerate([label2id[x] for x in label_list]):
+        if label == 0:
             label2weight[label] = 1
         else:
             label2weight[label] = 2

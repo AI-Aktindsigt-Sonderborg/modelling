@@ -1,4 +1,4 @@
-from typing import List
+from typing import OrderedDict
 
 from datasets import load_dataset
 
@@ -93,6 +93,14 @@ def get_label_list_old():
                 8: 'I-MISC'}
 
     label2id = {v: k for k, v in id2label.items()}
-    return label_list, id2label, label2id
+
+    label2weight = OrderedDict()
+    for i, label in enumerate([label2id[x] for x in label_list]):
+        if label == 0:
+            label2weight[label] = 1
+        else:
+            label2weight[label] = 2
+
+    return label_list, id2label, label2id, label2weight
 
 
