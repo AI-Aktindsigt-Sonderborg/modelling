@@ -137,7 +137,9 @@ class Modelling:
             y = np.concatenate(self.data.train['ner_tags'])
             # OBS: below line only when some class labels are missing from data
             label_ids = [label_id for label_id in label_ids if label_id in y]
-            self.class_weights = torch.tensor(compute_class_weight('balanced', classes=np.unique(label_ids), y=y)).float()
+
+            self.class_weights = torch.tensor(compute_class_weight(class_weight=self.label2weight, classes=np.unique(label_ids), y=y)).float()
+            # self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
             self.args.class_weights = self.class_weights.tolist()
             self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')

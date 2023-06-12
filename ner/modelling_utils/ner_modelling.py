@@ -47,7 +47,7 @@ class NERModelling(Modelling):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
 
-        self.args.labels, self.id2label, self.label2id = get_label_list(self.args.entities)
+        self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list(self.args.entities)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
@@ -265,11 +265,6 @@ class NERModelling(Modelling):
         :return: DataCollator
         """
         return DataCollatorForTokenClassification(tokenizer=self.tokenizer)
-
-    def compute_class_weights(self):
-        class_weights = torch.tensor([])
-
-        return class_weights
 
     def get_model(self):
         return AutoModelForTokenClassification.from_pretrained(
