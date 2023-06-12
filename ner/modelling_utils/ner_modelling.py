@@ -105,7 +105,7 @@ class NERModelling(Modelling):
                     standard_loss = output.loss
                     loss_function = torch.nn.CrossEntropyLoss()
                     weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-                    loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device).item()
+                    batch_loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device).item()
                     loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
 
 
