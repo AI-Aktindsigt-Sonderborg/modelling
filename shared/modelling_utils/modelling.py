@@ -27,7 +27,7 @@ from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
-
+import torch.nn.functional as F
 
 class Modelling:
     """
@@ -471,15 +471,16 @@ class Modelling:
             loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
             # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
             loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            loss = -torch.tensor(F.nll_loss(logits_flat, labels_flat, reduction="sum"), requires_grad=True)
 
-        if step <= 100:
-            optimizer.zero_grad()
-            output.loss.backward()
-            optimizer.step()
-        else:
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        # if step <= 100:
+        #     optimizer.zero_grad()
+        #     output.loss.backward()
+        #     optimizer.step()
+        # else:
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         self.scheduler.step()
 
