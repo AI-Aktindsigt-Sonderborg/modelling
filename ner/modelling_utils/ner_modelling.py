@@ -79,7 +79,7 @@ class NERModelling(Modelling):
 
         model.eval()
 
-        y_true, y_pred, loss, standard_loss = [], [], [], []
+        y_true, y_pred, loss, standard_losses = [], [], [], []
 
         with torch.no_grad():
             # get model predictions and labels
@@ -124,7 +124,7 @@ class NERModelling(Modelling):
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
-                standard_loss.append(output.loss.item())
+                standard_losses.append(standard_loss)
 
         # To Søren: this block is only used for comparing different f1 scores
         # Dont worry about it - seqeval not working for sonderborg NER classes
@@ -151,7 +151,7 @@ class NERModelling(Modelling):
         f_1_none_ = f1_score(y_true, y_pred, average=None, labels=self.args.labels)
         f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in range(len(self.args.labels))]
         loss = float(np.mean(loss))
-        standard_loss = float(np.mean(standard_loss))
+        standard_loss = float(np.mean(standard_losses))
 
         print(f"\n"
               f"eval loss: {loss}\t"
