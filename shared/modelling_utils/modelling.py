@@ -472,11 +472,14 @@ class Modelling:
             # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
             loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
 
-
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        if step <= 100:
+            optimizer.zero_grad()
+            output.loss.backward()
+            optimizer.step()
+        else:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         self.scheduler.step()
 
