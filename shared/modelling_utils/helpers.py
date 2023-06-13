@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 
 from shared.data_utils.custom_dataclasses import EvalScore
+from shared.utils.helpers import read_json_lines
 
 
 def validate_model(model, strict_validation: bool = False):
@@ -80,7 +81,7 @@ def get_lr(optimizer):
 
 
 def get_metrics(eval_scores: List[EvalScore],
-                eval_metrics: List[str]) -> Tuple[dict, bool]:
+                eval_metrics: List[str], best_model_path: str = None) -> Tuple[dict, bool]:
     """
     Compute min loss and max accuracy based on all values from evaluation
     :param f1s: List[dict] of all f1 scores computed by evaluate()
@@ -90,10 +91,20 @@ def get_metrics(eval_scores: List[EvalScore],
     un-freezed
     :return: The best metric for loss, accuracy and f1
     """
+
+    if os.path.exists(best_model_path + "/eval_scores.jsonl"):
+        previous_best_metrics = read_json_lines(
+            input_dir=best_model_path,
+            filename='eval_scores')
+
     save_best_model = True
+
+    # ToDo: Continue from here - extract metrics from previous best model
 
     # For max and min we reverse the list, such that we get the last element if
     # equal
+
+
     min_loss = min(reversed(eval_scores), key=lambda x: x.loss)
     max_acc = max(reversed(eval_scores), key=lambda x: x.accuracy)
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)

@@ -23,7 +23,8 @@ from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
     save_key_metrics, validate_model, predefined_hf_models
-from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines
+from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines, \
+    read_json_lines
 from shared.utils.visualization import plot_running_results
 from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
@@ -137,12 +138,12 @@ class Modelling:
             y = np.concatenate(self.data.train['ner_tags'])
             # OBS: below line only when some class labels are missing from data
             label_ids = [label_id for label_id in label_ids if label_id in y]
+            if self.args.manual_class_weighting:
+                self.class_weights = torch.tensor(compute_class_weight(class_weight=self.label2weight, classes=np.unique(label_ids), y=y)).float()
+            else:
+                self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
 
-            self.class_weights = torch.tensor(compute_class_weight(class_weight=self.label2weight, classes=np.unique(label_ids), y=y)).float()
-            # self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
             self.args.class_weights = self.class_weights.tolist()
-            self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-            self.loss_function = torch.nn.CrossEntropyLoss()
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
@@ -502,9 +503,14 @@ class Modelling:
             if self.args.save_steps is not None and (
                 step > self.args.freeze_layers_n_steps and
                 step % self.args.save_steps == 0):
+
+                best_metrics_input_dir = self.output_dir + f'/epoch-{epoch}_step-{step}' if not self.args.save_only_best_model else self.output_dir + '/best_model'
+
                 _, save_best_model = get_metrics(
                     eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
+                    eval_metrics=self.args.eval_metrics,
+                    best_model_path=best_metrics_input_dir
+                    )
 
                 self.save_model_at_step(
                     model=model,
