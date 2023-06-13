@@ -85,6 +85,7 @@ class NERModelling(Modelling):
         with torch.no_grad():
             # get model predictions and labels
             for batch in tqdm(val_loader, unit="batch", desc="Eval"):
+
                 output = model(
                     input_ids=batch["input_ids"].to(self.args.device),
                     attention_mask=batch["attention_mask"].to(self.args.device),
@@ -93,19 +94,21 @@ class NERModelling(Modelling):
                 # batch_loss = output.loss.item()
 
                 if not self.args.weight_classes:
+                    output = model(
+                        input_ids=batch["input_ids"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
+                        labels=batch["labels"].to(self.args.device))
                     batch_loss = output.loss.item()
-                    standard_loss = batch_loss
                 else:
-                    logits = output.logits.detach().cpu()
-                    labels_flat = batch['labels'].view(-1)
-                    logits_flat = logits.view(-1, len(self.args.labels)).float()
-                    batch_loss = torch.tensor(torch.mean(
-                        self.weighted_loss_function(logits_flat.float(), labels_flat.long()))).item()
-                    standard_loss = output.loss.item()
-                    loss_function = torch.nn.CrossEntropyLoss()
-                    weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-                    batch_loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device).item()
-                    loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
+                    output = model(
+                        input_ids=batch["input_ids"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
+                        labels=batch["labels"].to(self.args.device),
+                        class_weights=self.class_weights.to(self.args.device))
+
+                    batch_loss = output.loss.item()
 
 
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
