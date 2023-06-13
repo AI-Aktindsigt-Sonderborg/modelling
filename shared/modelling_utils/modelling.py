@@ -451,27 +451,40 @@ class Modelling:
         output = model(input_ids=batch["input_ids"].to(self.args.device),
                        attention_mask=batch["attention_mask"].to(
                            self.args.device),
-                       labels=batch["labels"].to(self.args.device))
+                       labels=batch["labels"].to(self.args.device),
+                       class_weights=self.class_weights.to(self.args.device))
+
 
         if not self.args.weight_classes:
+            output = model(input_ids=batch["input_ids"].to(self.args.device),
+                           attention_mask=batch["attention_mask"].to(
+                               self.args.device),
+                           labels=batch["labels"].to(self.args.device))
             loss = output.loss
         else:
-            logits = output.logits.detach().cpu()
+            output = model(input_ids=batch["input_ids"].to(self.args.device),
+                           attention_mask=batch["attention_mask"].to(
+                               self.args.device),
+                           labels=batch["labels"].to(self.args.device),
+                           class_weights=self.class_weights.to(
+                               self.args.device))
+            loss = output.loss
+
+            # logits = output.logits.detach().cpu()
             # active_loss = batch['attention_mask'].view(-1) == 1
             # active_logits = logits.view(-1, len(self.args.labels)).float()
             # active_labels = torch.where(active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels']))
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
             # loss = torch.tensor(np.mean(self.weighted_loss_function(active_logits.float(), active_labels.long())), requires_grad = True)
-
-            labels_flat = batch['labels'].view(-1)
-            logits_flat = logits.view(-1, len(self.args.labels)).float()
-            standard_loss = output.loss
-
-            weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-            loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
-            # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
-            loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
-            loss = -torch.tensor(F.nll_loss(logits_flat, labels_flat, reduction="sum"), requires_grad=True)
+            # labels_flat = batch['labels'].view(-1)
+            # logits_flat = logits.view(-1, len(self.args.labels)).float()
+            # standard_loss = output.loss
+            #
+            # weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+            # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            # # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
+            # loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            # loss = -torch.tensor(F.nll_loss(logits_flat, labels_flat, reduction="sum"), requires_grad=True)
 
         # if step <= 100:
         #     optimizer.zero_grad()
@@ -512,19 +525,17 @@ class Modelling:
 
         train_losses.append(loss.item())
 
-        # self.train_losses.append({'model loss': output.loss.item(), 'manual loss': loss.item()})
-
-        append_json_lines(output_dir=self.metrics_dir,
-                          filename='train_loss_original',
-                          data={'epoch': epoch,
-                                'step': step,
-                                'score': float(output.loss.item())})
-
-        append_json_lines(output_dir=self.metrics_dir,
-                          filename='train_loss_manual',
-                          data={'epoch': epoch,
-                                'step': step,
-                                'score': float(loss.item())})
+        # append_json_lines(output_dir=self.metrics_dir,
+        #                   filename='train_loss_original',
+        #                   data={'epoch': epoch,
+        #                         'step': step,
+        #                         'score': float(output.loss.item())})
+        #
+        # append_json_lines(output_dir=self.metrics_dir,
+        #                   filename='train_loss_manual',
+        #                   data={'epoch': epoch,
+        #                         'step': step,
+        #                         'score': float(loss.item())})
 
         append_json_lines(output_dir=self.metrics_dir,
                           filename='train_loss',

@@ -16,6 +16,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
     AutoModelForTokenClassification, BertConfig
+from shared.modelling_utils.custom_modeling_bert import BertForTokenClassification
 
 from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
     get_dane_val, get_dane_test
@@ -276,7 +277,7 @@ class NERModelling(Modelling):
         return DataCollatorForTokenClassification(tokenizer=self.tokenizer)
 
     def get_model(self):
-        return AutoModelForTokenClassification.from_pretrained(
+        return BertForTokenClassification.from_pretrained(
             self.model_path,
             num_labels=len(self.args.labels),
             label2id=self.label2id,
