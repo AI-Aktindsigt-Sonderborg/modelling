@@ -469,11 +469,10 @@ class Modelling:
             loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
 
 
-
-
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+
         self.scheduler.step()
 
         if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
@@ -503,6 +502,7 @@ class Modelling:
                     save_best_model=save_best_model, eval_score=eval_score)
 
         train_losses.append(loss.item())
+
         append_json_lines(output_dir=self.metrics_dir,
                           filename='train_loss',
                           data={'epoch': epoch,
