@@ -93,6 +93,7 @@ class NERModelling(Modelling):
 
                 if not self.args.weight_classes:
                     batch_loss = output.loss.item()
+                    standard_loss = batch_loss
                 else:
                     logits = output.logits.detach().cpu()
                     labels_flat = batch['labels'].view(-1)
