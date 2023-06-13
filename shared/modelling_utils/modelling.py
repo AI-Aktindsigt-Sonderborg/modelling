@@ -142,6 +142,7 @@ class Modelling:
             # self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
             self.args.class_weights = self.class_weights.tolist()
             self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
+            self.loss_function = torch.nn.CrossEntropyLoss()
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
@@ -394,6 +395,7 @@ class Modelling:
         model = model.to(self.args.device)
         train_losses = []
         lrs = []
+        self.train_losses = []
 
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
@@ -460,13 +462,16 @@ class Modelling:
             # active_labels = torch.where(active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels']))
             # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
             # loss = torch.tensor(np.mean(self.weighted_loss_function(active_logits.float(), active_labels.long())), requires_grad = True)
+
             labels_flat = batch['labels'].view(-1)
             logits_flat = logits.view(-1, len(self.args.labels)).float()
             standard_loss = output.loss
-            loss_function = torch.nn.CrossEntropyLoss()
+
             weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-            loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+            # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
             loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
+
 
 
         optimizer.zero_grad()
@@ -503,11 +508,26 @@ class Modelling:
 
         train_losses.append(loss.item())
 
+        # self.train_losses.append({'model loss': output.loss.item(), 'manual loss': loss.item()})
+
+        append_json_lines(output_dir=self.metrics_dir,
+                          filename='train_loss_original',
+                          data={'epoch': epoch,
+                                'step': step,
+                                'score': float(output.loss.item())})
+
+        append_json_lines(output_dir=self.metrics_dir,
+                          filename='train_loss_manual',
+                          data={'epoch': epoch,
+                                'step': step,
+                                'score': float(loss.item())})
+
         append_json_lines(output_dir=self.metrics_dir,
                           filename='train_loss',
                           data={'epoch': epoch,
                                 'step': step,
                                 'score': float(np.mean(train_losses))})
+
         learning_rates.append(
             {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
