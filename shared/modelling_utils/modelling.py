@@ -395,7 +395,7 @@ class Modelling:
         model = model.to(self.args.device)
         train_losses = []
         lrs = []
-        self.train_losses = []
+
 
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
@@ -448,13 +448,6 @@ class Modelling:
             data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
         # compute model output
-        output = model(input_ids=batch["input_ids"].to(self.args.device),
-                       attention_mask=batch["attention_mask"].to(
-                           self.args.device),
-                       labels=batch["labels"].to(self.args.device),
-                       class_weights=self.class_weights.to(self.args.device))
-
-
         if not self.args.weight_classes:
             output = model(input_ids=batch["input_ids"].to(self.args.device),
                            attention_mask=batch["attention_mask"].to(
@@ -486,11 +479,6 @@ class Modelling:
             # loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
             # loss = -torch.tensor(F.nll_loss(logits_flat, labels_flat, reduction="sum"), requires_grad=True)
 
-        # if step <= 100:
-        #     optimizer.zero_grad()
-        #     output.loss.backward()
-        #     optimizer.step()
-        # else:
 
         optimizer.zero_grad()
         loss.backward()
