@@ -99,7 +99,7 @@ class NERModelling(Modelling):
                     logits_flat = logits.view(-1, len(self.args.labels)).float()
                     batch_loss = torch.tensor(torch.mean(
                         self.weighted_loss_function(logits_flat.float(), labels_flat.long()))).item()
-                    standard_loss = output.loss
+                    standard_loss = output.loss.item()
                     loss_function = torch.nn.CrossEntropyLoss()
                     weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
                     batch_loss = torch.tensor(loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device).item()
