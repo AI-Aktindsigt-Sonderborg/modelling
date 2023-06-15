@@ -95,7 +95,7 @@ def get_metrics(eval_scores: List[EvalScore],
 
     current_eval_scores = dataclasses.asdict(max(eval_scores, key=lambda x: x.step))
     previous_best_metrics = None
-    if os.path.exists(best_model_path + "/eval_scores.jsonl"):
+    if best_model_path and os.path.exists(best_model_path + "/eval_scores.jsonl"):
         previous_best_metrics = read_json_lines(
             input_dir=best_model_path,
             filename='eval_scores')[0]

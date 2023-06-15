@@ -339,6 +339,9 @@ class Modelling:
 
             if step > self.args.freeze_layers_n_steps and \
                 self.args.evaluate_steps <= self.args.total_steps:
+
+                # best_metrics_input_dir = self.output_dir + f'/epoch-{epoch}_step-{step}' if not self.args.save_only_best_model else self.output_dir + '/best_model'
+
                 best_metrics, _ = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)
