@@ -1,4 +1,5 @@
 # pylint: disable=invalid-name
+import dataclasses
 import json
 import os
 import sys
@@ -92,30 +93,32 @@ def get_metrics(eval_scores: List[EvalScore],
     :return: The best metric for loss, accuracy and f1
     """
 
+    current_eval_scores = dataclasses.asdict(max(eval_scores, key=lambda x: x.step))
+    previous_best_metrics = None
     if os.path.exists(best_model_path + "/eval_scores.jsonl"):
         previous_best_metrics = read_json_lines(
             input_dir=best_model_path,
-            filename='eval_scores')
+            filename='eval_scores')[0]
 
     save_best_model = True
+    if previous_best_metrics:
+        for metric in eval_metrics:
+            if metric == 'loss':
+                if current_eval_scores[metric] > previous_best_metrics[metric]:
+                    save_best_model = False
+                    break
+
+            else:
+                if current_eval_scores[metric] < previous_best_metrics[metric]:
+                    save_best_model = False
+                    break
 
     # ToDo: Continue from here - extract metrics from previous best model
-
     # For max and min we reverse the list, such that we get the last element if
     # equal
-
-
     min_loss = min(reversed(eval_scores), key=lambda x: x.loss)
     max_acc = max(reversed(eval_scores), key=lambda x: x.accuracy)
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
-    current_step = max(eval_scores, key=lambda x: x.step)
-
-    best_steps = {'loss': min_loss.step, 'accuracy': max_acc.step,
-                  'f_1': max_f1.step}
-    for metric in eval_metrics:
-        if best_steps[metric] != current_step.step:
-            save_best_model = False
-            break
 
     best_metric_dict = {'loss': {'epoch': min_loss.epoch,
                                  'step': min_loss.step,
