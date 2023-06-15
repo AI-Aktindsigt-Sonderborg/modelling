@@ -54,7 +54,7 @@ class NERModelling(Modelling):
             names=self.args.labels)
 
         if args.train_data == 'dane':
-            self.args.labels, self.id2label, self.label2id, self.label2weight  = get_label_list_old()
+            self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list_old()
             self.class_labels = ClassLabel(
                 num_classes=len(self.args.labels),
                 names=self.args.labels)
