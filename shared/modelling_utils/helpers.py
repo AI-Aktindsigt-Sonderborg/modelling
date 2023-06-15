@@ -108,10 +108,9 @@ def get_metrics(eval_scores: List[EvalScore],
                     save_best_model = False
                     break
 
-            else:
-                if current_eval_scores[metric] < previous_best_metrics[metric]:
-                    save_best_model = False
-                    break
+            elif current_eval_scores[metric] < previous_best_metrics[metric]:
+                save_best_model = False
+                break
 
     # ToDo: Continue from here - extract metrics from previous best model
     # For max and min we reverse the list, such that we get the last element if
