@@ -44,10 +44,12 @@ def get_label_list(ner_entities: List[str]):
     label2weight = OrderedDict()
     for i, label_id in enumerate([label2id[x] for x in label_list]):
         if label_id == 0:
-            label2weight[label_id] = 0.25
+            label2weight[label_id] = 0.2
         elif "HELBRED" in id2label[label_id]:
-            label2weight[label_id] = 2
-        else:
             label2weight[label_id] = 1
+        elif "PERSON" in id2label[label_id]:
+            label2weight[label_id] = 0.1
+        else:
+            label2weight[label_id] = 0.2
 
     return label_list, id2label, label2id, label2weight
