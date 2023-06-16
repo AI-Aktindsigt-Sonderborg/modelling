@@ -50,6 +50,6 @@ def get_label_list(ner_entities: List[str]):
         elif "PERSON" in id2label[label_id]:
             label2weight[label_id] = 0.1
         else:
-            label2weight[label_id] = 0.2
+            label2weight[label_id] = 0.25
 
     return label_list, id2label, label2id, label2weight
