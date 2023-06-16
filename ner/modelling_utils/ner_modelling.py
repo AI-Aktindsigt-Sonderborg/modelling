@@ -12,24 +12,21 @@ from opacus.optimizers import DPOptimizer
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
-import torch.nn as nn
 from tqdm import tqdm
-from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
-    AutoModelForTokenClassification, BertConfig
-from shared.modelling_utils.custom_modeling_bert import BertForTokenClassification
+from transformers import AutoTokenizer, DataCollatorForTokenClassification, BertTokenizer
 
 from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
-    get_dane_val, get_dane_test
-from ner.local_constants import MODEL_DIR, DATA_DIR, PREP_DATA_DIR
+    get_dane_val
+from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
 from shared.data_utils.custom_dataclasses import EvalScore
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
+from shared.modelling_utils.custom_modeling_bert import \
+    BertForTokenClassification
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import append_json_lines
 from shared.utils.visualization import plot_confusion_matrix
 
 seqeval = evaluate.load('seqeval')
@@ -47,8 +44,8 @@ class NERModelling(Modelling):
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-
-        self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list(self.args.entities)
+        self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list(
+            self.args.entities)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
@@ -58,7 +55,6 @@ class NERModelling(Modelling):
             self.class_labels = ClassLabel(
                 num_classes=len(self.args.labels),
                 names=self.args.labels)
-
 
         self.data_dir = PREP_DATA_DIR
 
@@ -80,7 +76,7 @@ class NERModelling(Modelling):
 
         model.eval()
 
-        y_true, y_pred, loss, standard_losses = [], [], [], []
+        y_true, y_pred, loss = [], [], []
 
         with torch.no_grad():
             # get model predictions and labels
@@ -108,7 +104,6 @@ class NERModelling(Modelling):
 
                     batch_loss = output.loss.item()
 
-
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
 
@@ -127,7 +122,6 @@ class NERModelling(Modelling):
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
-
 
         # To Søren: this block is only used for comparing different f1 scores
         # Dont worry about it - seqeval not working for sonderborg NER classes
@@ -151,8 +145,10 @@ class NERModelling(Modelling):
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
-        f_1_none_ = f1_score(y_true, y_pred, average=None, labels=self.args.labels)
-        f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in range(len(self.args.labels))]
+        f_1_none_ = f1_score(y_true, y_pred, average=None,
+                             labels=self.args.labels)
+        f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in
+                    range(len(self.args.labels))]
         loss = float(np.mean(loss))
 
         print(f"\n"
@@ -189,9 +185,9 @@ class NERModelling(Modelling):
             else:
                 self.data.train = load_dataset(
                     'json',
-                    data_files=os.path.join(self.data_dir, self.args.train_data),
+                    data_files=os.path.join(self.data_dir,
+                                            self.args.train_data),
                     split='train')
-
 
             print(f'len train: {len(self.data.train)}')
             self.args.total_steps = int(
@@ -240,13 +236,13 @@ class NERModelling(Modelling):
 
             all_labels = examples["ner_tags"]
             new_labels = []
-            attention_mask = []
+            # attention_mask = []
             for i, labels in enumerate(all_labels):
                 word_ids = tokenized_inputs.word_ids(i)
                 new_labels.append(align_labels_with_tokens(labels, word_ids))
-                attention_mask.append(list(map(lambda x: 1 if x != -100 else 0, align_labels_with_tokens(labels, word_ids))))
+                # attention_mask.append(list(map(lambda x: 1 if x != -100 else 0, align_labels_with_tokens(labels, word_ids))))
             tokenized_inputs["labels"] = new_labels
-            tokenized_inputs["attention_mask"] = attention_mask
+            # tokenized_inputs["attention_mask"] = attention_mask
 
             return tokenized_inputs
 

@@ -523,18 +523,6 @@ class Modelling:
 
         train_losses.append(loss.item())
 
-        # append_json_lines(output_dir=self.metrics_dir,
-        #                   filename='train_loss_original',
-        #                   data={'epoch': epoch,
-        #                         'step': step,
-        #                         'score': float(output.loss.item())})
-        #
-        # append_json_lines(output_dir=self.metrics_dir,
-        #                   filename='train_loss_manual',
-        #                   data={'epoch': epoch,
-        #                         'step': step,
-        #                         'score': float(loss.item())})
-
         append_json_lines(output_dir=self.metrics_dir,
                           filename='train_loss',
                           data={'epoch': epoch,
