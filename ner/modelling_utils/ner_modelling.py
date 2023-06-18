@@ -20,7 +20,8 @@ from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
-from shared.data_utils.custom_dataclasses import EvalScore
+from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput, \
+    NEROutput
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import \
     BertForTokenClassification
@@ -258,6 +259,41 @@ class NERModelling(Modelling):
 
         return wrapped
 
+    def predict(self, model, sentence: str,
+                labels: List[str] = None) -> NEROutput:
+        """
+        Predict class from input sentence
+        :param model: model
+        :param sentence: input sentence
+        :param label: label if known
+        :return: Output including sentence embedding and prediction
+        """
+        tokenized = self.tokenizer([sentence],
+                                   padding='max_length',
+                                   max_length=self.args.max_length,
+                                   truncation=True,
+                                   return_tensors='pt')
+
+        decoded_text = self.tokenizer.decode(
+            token_ids=tokenized['input_ids'][0])
+        model.to(self.args.device)
+        output = model(**tokenized.to(self.args.device),
+                       output_hidden_states=True,
+                       return_dict=True
+                       )
+        preds = output.logits.argmax(-1).detach().cpu().numpy()
+
+        preds_actual = [self.id2label[pred] for pred in preds]
+
+        embedding = torch.mean(
+            output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+        return NEROutput(sentence=sentence,
+                               labels=labels,
+                               predictions=preds_actual,
+                               decoded_text=decoded_text,
+                               embedding=embedding)
+
+
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data
         return AutoTokenizer.from_pretrained(
@@ -306,6 +342,7 @@ class NERModelling(Modelling):
         print("bert layers unfreezed")
         model.train()
         return model
+
 
 
 class NERModellingDP(NERModelling):

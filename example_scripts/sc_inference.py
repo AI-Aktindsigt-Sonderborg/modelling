@@ -6,7 +6,6 @@ Example script to predict a "KL category" from an input sentence.
 Script should be run as module from project root folder "modelling" e.g.
 - python -m example_scripts.sc_inference
 """
-from torch.utils.data import DataLoader
 from sc.local_constants import MODEL_DIR
 from sc.modelling_utils.input_args import SequenceModellingArgParser
 from sc.modelling_utils.sequence_classification import SequenceClassification
