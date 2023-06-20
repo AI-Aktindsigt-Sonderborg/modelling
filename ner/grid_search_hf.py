@@ -4,6 +4,7 @@ from datasets import load_metric
 from transformers import TrainingArguments, Trainer
 
 from ner.data_utils.get_dataset import get_label_list_old
+from ner.modelling_utils.helpers import get_label_list
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
