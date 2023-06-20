@@ -90,23 +90,18 @@ ner_modelling.save_config(output_dir=ner_modelling.output_dir,
 
 training_args = TrainingArguments(
     output_dir=ner_modelling.output_dir,
-    # overwrite_output_dir=True,
-    num_train_epochs=args.epochs,
+    overwrite_output_dir=True,
     evaluation_strategy='steps',
-    learning_rate=args.learning_rate,
     # weight_decay=0.01,
     # initial_learning_rate=0.0002,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
     per_device_train_batch_size=args.train_batch_size,
     per_device_eval_batch_size=args.eval_batch_size,
-    save_steps=25,
-    warmup_steps=args.lr_warmup_steps,
-    do_eval=True,
-    do_predict=True,
+    save_steps=10000,
     metric_for_best_model="eval_f1",
     save_strategy="steps",
-    logging_steps=25,
-    eval_steps=25,
+    logging_steps=250,
+    eval_steps=250,
     load_best_model_at_end=True,
     push_to_hub=False,
     report_to='none'
@@ -139,7 +134,7 @@ best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
     hp_space=optuna_hp_space,
-    n_trials=20,
+    n_trials=5,
     # compute_objective=compute_metrics,
 )
 
