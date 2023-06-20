@@ -1,5 +1,6 @@
 import evaluate
 import numpy as np
+from datasets import load_metric
 from transformers import TrainingArguments, Trainer
 
 from ner.data_utils.get_dataset import get_label_list_old
@@ -13,6 +14,9 @@ ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
 args.test = False
 args.differential_privacy = False
+# args.train_data = "dane"
+# args.load_alvenir_pretrained = False
+# args.model_name = "base"
 
 label_list, id2label, label2id, label2weight = get_label_list_old()
 
@@ -22,6 +26,27 @@ ner_modelling.load_data()
 ner_feature = ner_modelling.data.train.features["ner_tags"]
 label_names = ner_feature.feature.names
 
+from sklearn.metrics import precision_recall_fscore_support, accuracy_score
+
+
+def compute_metrics(eval_pred):
+    metric = load_metric("accuracy")
+    predictions = np.argmax(eval_pred.predictions, axis=1)
+    return metric.compute(predictions=predictions,
+                          references=eval_pred.label_ids)
+
+
+# def compute_metrics(pred):
+#     labels = pred.label_ids
+#     preds = pred.predictions.argmax(-1)
+#     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='macro')
+#     acc = accuracy_score(labels, preds)
+#     return f1
+#     #     # 'accuracy': acc,
+#     #     'f1': f1,
+#     #     # 'precision': precision,
+#     #     # 'recall': recall
+#     # }
 
 def compute_metrics(eval_preds):
     logits, labels = eval_preds
@@ -36,7 +61,7 @@ def compute_metrics(eval_preds):
     ]
     all_metrics = metric.compute(predictions=true_predictions,
                                  references=true_labels)
-    return all_metrics
+    return {'f1': all_metrics['overall_f1']}
 
 
 def tokenize_and_align_labels(examples):
@@ -84,33 +109,55 @@ training_args = TrainingArguments(
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
     per_device_train_batch_size=args.train_batch_size,
     per_device_eval_batch_size=args.eval_batch_size,
-    save_steps=50,
+    save_steps=25,
     warmup_steps=args.lr_warmup_steps,
     do_eval=True,
     do_predict=True,
-    metric_for_best_model="eval_overall_f1",
+    metric_for_best_model="eval_f1",
     save_strategy="steps",
     logging_steps=25,
-    eval_steps=50,
+    eval_steps=25,
     load_best_model_at_end=True,
     push_to_hub=False,
     report_to='none'
 )
 
+# model = ner_modelling.get_model()
+
 trainer = Trainer(
-    model=ner_modelling.get_model(),
+    model=None,
     args=training_args,
     train_dataset=tokenized_train.shuffle(seed=1),
     eval_dataset=tokenized_eval,
     tokenizer=ner_modelling.tokenizer,
     data_collator=ner_modelling.data_collator,
     compute_metrics=compute_metrics,
+    model_init=ner_modelling.get_model,
     # callbacks=[nuna_text_modelling.callbacks],
 )
 
-trainer.train()
 
-trainer.save_model(ner_modelling.output_dir)
-trainer.save_state()
+def optuna_hp_space(trial):
+    return {
+        "learning_rate": trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True),
+        "per_device_train_batch_size": trial.suggest_categorical(
+            "per_device_train_batch_size", [8, 16, 32, 64]),
+    }
 
-model_eval = trainer.evaluate()
+
+best_trial = trainer.hyperparameter_search(
+    direction="maximize",
+    backend="optuna",
+    hp_space=optuna_hp_space,
+    n_trials=20,
+    # compute_objective=compute_metrics,
+)
+
+print(best_trial)
+
+# trainer.train()
+#
+# trainer.save_model(ner_modelling.output_dir)
+# trainer.save_state()
+#
+# model_eval = trainer.evaluate()
