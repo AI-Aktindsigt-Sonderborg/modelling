@@ -95,6 +95,7 @@ def get_label_list_old():
     label2id = {v: k for k, v in id2label.items()}
 
     label2weight = OrderedDict()
+
     for i, label in enumerate([label2id[x] for x in label_list]):
         if label == 0:
             label2weight[label] = 1
