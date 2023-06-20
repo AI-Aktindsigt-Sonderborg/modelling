@@ -49,8 +49,8 @@ def all_metrics_to_csv():
 
     df = pd.DataFrame.from_records(all_data)
 
-    df.to_csv('metadata/model_metrics_ner.csv', sep='\t')
-    df.to_excel('metadata/model_metrics_ner.xlsx', index=False)
+    df.to_csv('ner/metadata/model_metrics_ner.csv', sep='\t')
+    df.to_excel('ner/metadata/model_metrics_ner.xlsx', index=False)
 
 if __name__ == '__main__':
     all_metrics_to_csv()

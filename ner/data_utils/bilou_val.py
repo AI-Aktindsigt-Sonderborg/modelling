@@ -1,11 +1,8 @@
-import sys
-from itertools import groupby
-from shared.utils.helpers import read_json_lines
-from ner.local_constants import PREP_DATA_DIR
-import traceback
 from itertools import groupby
 
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
+from ner.local_constants import PREP_DATA_DIR
+from shared.utils.helpers import read_json_lines
 
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
