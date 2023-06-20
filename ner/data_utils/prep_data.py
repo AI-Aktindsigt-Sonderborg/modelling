@@ -108,8 +108,7 @@ class NERDataPreprocessing:
         Read grouped data, split to train, val and test and save json
         :param class_grouped_data: grouped data as list og lists of dicts
         :param train_size: float between 0 and 1 specifying the size of the
-        train set where
-        1 is all data
+        train set where 1 is all data
         :param test_size: int >= 1 specifying the number of sentences in each
         class
         :param train_outfile: if train_outfile specified generate train set

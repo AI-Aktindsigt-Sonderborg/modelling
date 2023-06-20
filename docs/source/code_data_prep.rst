@@ -24,6 +24,10 @@ Klasser
 .. autoclass:: sc.data_utils.prep_scrape::ClassifiedScrapePreprocessing
 	:members: read_xls_save_json
 
+.. autoclass:: ner.data_utils.prep_data::NERDataPreprocessing
+	:members: create_bilou
+
+
 Hjælpefunktioner
 ----------------
 .. automethod:: mlm.data_utils.helpers::split_sentences

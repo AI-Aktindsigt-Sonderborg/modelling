@@ -87,8 +87,9 @@ class Modelling:
     def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
-        :param train: Whether to train model
-        :param test: Whether to load test data
+
+        :param bool train: Whether to train model
+        :param bool test: Whether to load test data
         """
         if train:
             self.data.train = load_dataset(
@@ -144,7 +145,6 @@ class Modelling:
                 self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
 
             self.args.class_weights = self.class_weights.tolist()
-            # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction='none')
 
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir,
