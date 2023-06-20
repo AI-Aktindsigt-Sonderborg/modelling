@@ -29,24 +29,13 @@ label_names = ner_feature.feature.names
 from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 
 
-def compute_metrics(eval_pred):
-    metric = load_metric("accuracy")
-    predictions = np.argmax(eval_pred.predictions, axis=1)
-    return metric.compute(predictions=predictions,
-                          references=eval_pred.label_ids)
+# def compute_metrics(eval_pred):
+#     metric = load_metric("accuracy")
+#     predictions = np.argmax(eval_pred.predictions, axis=1)
+#     return metric.compute(predictions=predictions,
+#                           references=eval_pred.label_ids)
 
 
-# def compute_metrics(pred):
-#     labels = pred.label_ids
-#     preds = pred.predictions.argmax(-1)
-#     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='macro')
-#     acc = accuracy_score(labels, preds)
-#     return f1
-#     #     # 'accuracy': acc,
-#     #     'f1': f1,
-#     #     # 'precision': precision,
-#     #     # 'recall': recall
-#     # }
 
 def compute_metrics(eval_preds):
     logits, labels = eval_preds
