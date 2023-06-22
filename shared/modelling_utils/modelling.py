@@ -710,6 +710,7 @@ class Modelling:
                     labels=batch["labels"].to(self.args.device)
                 )
 
+
                 batch_preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 batch_labels = batch["labels"].cpu().numpy()
                 batch_loss = output.loss.item()

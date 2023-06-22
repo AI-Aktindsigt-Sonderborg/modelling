@@ -105,6 +105,8 @@ class NERModelling(Modelling):
 
                     batch_loss = output.loss.item()
 
+                model.posterior(self.data.eval)
+
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
 
