@@ -125,13 +125,13 @@ trainer = Trainer(
 
 def optuna_hp_space(trial):
     return {
-        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True, random=True),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
         "per_device_train_batch_size": trial.suggest_categorical(
             "per_device_train_batch_size", [8, 16, 32, 64]),
         "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "AdamW"]),
         # "num_layers": trial.suggest_int("num_layers", 1, 15),
-        "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0, log=True, random=True),
-        "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000, log=True, random=True),
+        "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0, log=True),
+        "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000, log=True),
     }
 
 
