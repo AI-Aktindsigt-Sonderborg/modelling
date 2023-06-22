@@ -8,7 +8,7 @@ from ner.modelling_utils.helpers import get_label_list
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
-
+from sklearn.gaussian_process import GaussianProcessRegressor
 metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
@@ -92,7 +92,7 @@ training_args = TrainingArguments(
     output_dir=ner_modelling.output_dir,
     overwrite_output_dir=True,
     evaluation_strategy='steps',
-    num_train_epochs=5,
+    # num_train_epochs=5,
     # weight_decay=0.01,
     # initial_learning_rate=0.0002,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
@@ -132,6 +132,7 @@ def optuna_hp_space(trial):
         # "num_layers": trial.suggest_int("num_layers", 1, 15),
         "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
         "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000),
+        "num_epochs": trial.suggest_int("num_epochs", 1, 10),
     }
 
 
