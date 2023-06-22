@@ -92,6 +92,7 @@ training_args = TrainingArguments(
     output_dir=ner_modelling.output_dir,
     overwrite_output_dir=True,
     evaluation_strategy='steps',
+    num_train_epochs=5,
     # weight_decay=0.01,
     # initial_learning_rate=0.0002,
     # gradient_accumulation_steps=4,  # 2 * 4 = 8
@@ -129,7 +130,7 @@ def optuna_hp_space(trial):
             "per_device_train_batch_size", [8, 16, 32, 64]),
         "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", 
         "Adam", "AdamW"]),
-        "num_layers": trial.suggest_int("num_layers", 1, 10),       
+        "num_layers": trial.suggest_int("num_layers", 1, 15),       
         "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
     }
 
@@ -138,7 +139,7 @@ best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
     hp_space=optuna_hp_space,
-    n_trials=20,
+    n_trials=40,
     # compute_objective=compute_metrics,
 )
 
