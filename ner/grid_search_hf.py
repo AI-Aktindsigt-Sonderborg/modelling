@@ -130,8 +130,8 @@ def optuna_hp_space(trial):
             "per_device_train_batch_size", [8, 16, 32, 64]),
         "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "AdamW"]),
         # "num_layers": trial.suggest_int("num_layers", 1, 15),
-        "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0, log=True),
-        "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000, log=True),
+        "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
+        "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000),
     }
 
 
