@@ -141,8 +141,8 @@ def optuna_hp_space(trial):
 best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
-    sampler=RandomSampler(), # TPESampler(),
-    pruner=ThresholdPruner(upper=1.0), # SuccessiveHalvingPruner(),
+    sampler=NSGAIISampler(), # TPESampler(),
+    pruner=PercentilePruner(percentile=25.0), # SuccessiveHalvingPruner(),
     hp_space=optuna_hp_space,
     n_trials=80,
     # compute_objective=compute_metrics,
