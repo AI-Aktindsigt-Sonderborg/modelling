@@ -116,7 +116,7 @@ trainer = Trainer(
     model=None,
     args=training_args,
     train_dataset=tokenized_train.shuffle(seed=1),
-    # eval_dataset=tokenized_eval,
+    eval_dataset=tokenized_eval,
     tokenizer=ner_modelling.tokenizer,
     data_collator=ner_modelling.data_collator,
     compute_metrics=compute_metrics,
