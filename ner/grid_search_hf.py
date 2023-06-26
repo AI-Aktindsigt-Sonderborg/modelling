@@ -1,8 +1,8 @@
 import evaluate
 import numpy as np
 from datasets import load_metric
-from optuna.pruners import SuccessiveHalvingPruner
-from optuna.samplers import TPESampler
+from optuna.pruners import SuccessiveHalvingPruner, ThresholdPruner, PercentilePruner
+from optuna.samplers import TPESampler, RandomSampler, NSGAIISampler
 from transformers import TrainingArguments, Trainer
 
 from ner.data_utils.get_dataset import get_label_list_old
@@ -141,8 +141,8 @@ def optuna_hp_space(trial):
 best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
-    sampler=TPESampler(),
-    pruner=SuccessiveHalvingPruner(),
+    sampler=RandomSampler(), # TPESampler(),
+    pruner=PercentilePruner(), # SuccessiveHalvingPruner(),
     hp_space=optuna_hp_space,
     n_trials=40,
     # compute_objective=compute_metrics,
