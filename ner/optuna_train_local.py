@@ -103,7 +103,7 @@ def objective(trial):
         "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
         "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000),
         "num_epochs": trial.suggest_int("num_epochs", 1, 5),
-        "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "AdamW"]),
+        "optimizer": trial.suggest_categorical("optimizer", ["Adam", "AdamW"]),
         "per_device_train_batch_size": trial.suggest_categorical(
             "per_device_train_batch_size", [8, 16, 32, 64]),
     }
