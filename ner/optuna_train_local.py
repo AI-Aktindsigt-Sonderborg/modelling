@@ -50,7 +50,7 @@ def train_model_hp_search(param, model, trial, modelling: NERModelling):
         all_lrs.extend(lrs)
 
         # Add prune mechanism
-        trial.report(eval_scores[-1].f_1, epoch)
+        trial.report(eval_scores[-1].f_1, epoch+1)
 
         if trial.should_prune():
             raise optuna.exceptions.TrialPruned()
