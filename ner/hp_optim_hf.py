@@ -89,7 +89,7 @@ def compute_metrics(eval_preds):
 ner_modelling.save_config(output_dir=ner_modelling.output_dir,
                           metrics_dir=ner_modelling.metrics_dir,
                           args=args)
-a
+
 training_args = TrainingArguments(
     output_dir=ner_modelling.output_dir,
     overwrite_output_dir=True,
@@ -127,11 +127,11 @@ trainer = Trainer(
 
 def optuna_hp_space(trial):
     return {
-        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 5e-3, log=True),
         "per_device_train_batch_size": trial.suggest_categorical(
             "per_device_train_batch_size", [8, 16, 32, 64]),
         "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "AdamW"]),
-        # "num_layers": trial.suggest_int("num_layers", 1, 15),
+        "num_layers": trial.suggest_int("num_layers", 1, 15),
         "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
         "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000),
         "num_epochs": trial.suggest_int("num_epochs", 1, 10),
@@ -141,10 +141,10 @@ def optuna_hp_space(trial):
 best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
-    sampler=TPESampler(), # TPESampler(),
-    pruner=PercentilePruner(percentile=25.0), # SuccessiveHalvingPruner(),
+    sampler=NSGAIISampler(), # TPESampler(),
+    pruner=SuccessiveHalvingPruner(), #PercentilePruner(percentile=25.0),
     hp_space=optuna_hp_space,
-    n_trials=40,
+    n_trials=50,
     # compute_objective=compute_metrics,
 )
 
