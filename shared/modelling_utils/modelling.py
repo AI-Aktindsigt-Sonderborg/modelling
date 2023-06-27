@@ -467,28 +467,12 @@ class Modelling:
                                self.args.device))
             loss = output.loss
 
-            # logits = output.logits.detach().cpu()
-            # active_loss = batch['attention_mask'].view(-1) == 1
-            # active_logits = logits.view(-1, len(self.args.labels)).float()
-            # active_labels = torch.where(active_loss, batch['labels'].view(-1), torch.tensor(self.weighted_loss_function.ignore_index).type_as(batch['labels']))
-            # self.weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights, reduction="none")
-            # loss = torch.tensor(np.mean(self.weighted_loss_function(active_logits.float(), active_labels.long())), requires_grad = True)
-            # labels_flat = batch['labels'].view(-1)
-            # logits_flat = logits.view(-1, len(self.args.labels)).float()
-            # standard_loss = output.loss
-            #
-            # weighted_loss_function = torch.nn.CrossEntropyLoss(weight=self.class_weights)
-            # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
-            # # loss = torch.tensor(self.loss_function(logits_flat.float(), labels_flat.long())).to(self.args.device)
-            # loss_weighted = torch.tensor(weighted_loss_function(logits_flat.float(), labels_flat.long()), requires_grad=True).to(self.args.device)
-            # loss = -torch.tensor(F.nll_loss(logits_flat, labels_flat, reduction="sum"), requires_grad=True)
-
-
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        self.scheduler.step()
+        # ToDo: Uncomment scheduler step
+        # self.scheduler.step()
 
         if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 

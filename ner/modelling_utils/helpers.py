@@ -53,3 +53,4 @@ def get_label_list(ner_entities: List[str]):
             label2weight[label_id] = 0.2
 
     return label_list, id2label, label2id, label2weight
+
