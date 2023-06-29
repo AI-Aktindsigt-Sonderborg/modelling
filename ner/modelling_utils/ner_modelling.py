@@ -167,7 +167,7 @@ class NERModelling(Modelling):
                 labels=self.args.labels,
                 model_name=self.args.model_name,
                 plots_dir=PLOTS_DIR,
-                concat_bilu=self.args.concat_bilu)
+                concat_bilou=self.args.concat_bilou)
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
                          f_1_none=f_1_none)

@@ -68,10 +68,10 @@ def plot_confusion_matrix(
     plots_dir: str = None,
     normalize: str = 'true',
     save_fig: bool = True,
-    concat_bilu: bool = False):
+    concat_bilou: bool = False):
     """Function is self-explanatory"""
 
-    if concat_bilu and "ner" in plots_dir:
+    if concat_bilou and "ner" in plots_dir:
         y_true = [y[2:] if y != 'O' else y for y in y_true]
         y_pred = [y[2:] if y != 'O' else y for y in y_pred]
         labels = list(OrderedDict.fromkeys(
@@ -92,8 +92,8 @@ def plot_confusion_matrix(
     if save_fig:
         filepath = os.path.join(plots_dir,
                                 f'conf_plot_{model_name.replace("/", "_")}')
-        if concat_bilu:
-            filepath += "-concat_bilu"
+        if concat_bilou:
+            filepath += "-concat_bilou"
         plt.savefig(filepath)
     else:
         plt.show()

@@ -77,7 +77,7 @@ class NERArgParser(ModellingArgParser):
             metavar='<str>',
             help="define eval metrics to evaluate best model")
         ner_params.add_argument(
-            "--concat_bilu",
+            "--concat_bilou",
             type=lambda x: bool(strtobool(x)),
             metavar='<bool>',
             default=False,
