@@ -296,7 +296,7 @@ class NERModelling(Modelling):
 
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data
-        return BertTokenizer.from_pretrained(
+        return AutoTokenizer.from_pretrained(
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
