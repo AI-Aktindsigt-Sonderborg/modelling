@@ -323,7 +323,7 @@ class NERModelling(Modelling):
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("cls."):
+            if not (name.startswith('bert.encoder.layer.11') or name.startswith('classifier')):
                 param.requires_grad = False
         model.train()
         return model
@@ -337,9 +337,8 @@ class NERModelling(Modelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
-                param.requires_grad = True
-        print("bert layers unfreezed")
+            param.requires_grad = True
+        print("all layers unfreezed")
         model.train()
         return model
 
@@ -423,8 +422,7 @@ class NERModellingDP(NERModelling):
         :return: freezed model
         """
         for name, param in model._module.named_parameters():
-            if not (name.startswith('bert.encoder.layer.11') or name.startswith(
-                'classifier')):
+            if not (name.startswith('bert.encoder.layer.11') or name.startswith('classifier')):
                 param.requires_grad = False
         model.train()
         return model
