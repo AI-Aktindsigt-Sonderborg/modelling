@@ -471,8 +471,7 @@ class Modelling:
         loss.backward()
         optimizer.step()
 
-        # ToDo: Uncomment scheduler step
-        # self.scheduler.step()
+        self.scheduler.step()
 
         if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
 
