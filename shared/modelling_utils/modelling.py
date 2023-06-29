@@ -626,7 +626,7 @@ class Modelling:
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = False):
         """
         Un-freeze all layers exept for embeddings in model, such that we can
         train full model
@@ -634,8 +634,12 @@ class Modelling:
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         print("bert layers unfreezed")
         model.train()
         return model

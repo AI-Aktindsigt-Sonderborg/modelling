@@ -354,20 +354,6 @@ class SequenceClassification(Modelling):
         model.train()
         return model
 
-    @staticmethod
-    def unfreeze_layers(model):
-        """
-        Un-freeze all layers exept for embeddings in model, such that we can
-        train full model
-        :param model: Model of type BertForSequenceClassification
-        :return: un-freezed model
-        """
-        for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
-                param.requires_grad = True
-        print("bert layers unfreezed")
-        model.train()
-        return model
 
 class SequenceClassificationDP(SequenceClassification):
     """
@@ -453,21 +439,25 @@ class SequenceClassificationDP(SequenceClassification):
         :param model: Model of type GradSampleModule
         :return: freezed model
         """
-        for name, param in model.named_parameters():
-            if not name.startswith("_module.cls"):
+        for name, param in model._module.named_parameters():
+            if not name.startswith("cls"):
                 param.requires_grad = False
         model.train()
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = True):
         """
         Un-freeze all bert layers in model, such that we can train full model
         :param model: of type GradSampleModule
         :return: un-freezed model
         """
-        for name, param in model.named_parameters():
-            if not name.startswith("_module.bert.embeddings"):
+        for name, param in model._module.named_parameters():
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         model.train()
         return model

@@ -296,7 +296,7 @@ class NERModelling(Modelling):
 
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data
-        return AutoTokenizer.from_pretrained(
+        return BertTokenizer.from_pretrained(
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
@@ -329,7 +329,7 @@ class NERModelling(Modelling):
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool=False):
         """
         Un-freeze all layers exept for embeddings in model, such that we can
         train full model
@@ -337,7 +337,12 @@ class NERModelling(Modelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            param.requires_grad = True
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
+                param.requires_grad = True
+
         print("all layers unfreezed")
         model.train()
         return model
@@ -428,14 +433,18 @@ class NERModellingDP(NERModelling):
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = True):
         """
         Un-freeze all bert layers in model, such that we can train full model
         :param model: Model of type GradSampleModule
         :return: un-freezed model
         """
         for name, param in model._module.named_parameters():
-            if not name.startswith("bert.embeddings"):
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         model.train()
         return model
