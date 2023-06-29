@@ -7,7 +7,7 @@ import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 from collections import OrderedDict
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 from shared.data_utils.custom_dataclasses import EvalScore
 
 
@@ -76,10 +76,12 @@ def plot_confusion_matrix(
         y_pred = [y[2:] if y != 'O' else y for y in y_pred]
         labels = list(OrderedDict.fromkeys(
             [label[2:] if label != 'O' else label for label in labels]))
+
+        print(f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}")
+        print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
         print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
 
-    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
-                                   normalize=normalize)
+    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels, normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
     plt.figure(figsize=(20, 14))
