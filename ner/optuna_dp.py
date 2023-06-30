@@ -65,7 +65,7 @@ def train_model(learning_rate, epsilon, delta, lot_size):
         )
 
     step = 0
-
+    eval_scores = []
     for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch",
                       unit="epoch"):
         model = model.to(ner_modelling.args.device)
@@ -92,15 +92,21 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                 loss.backward()
                 optimizer.step()
 
+                # Perform pruning check at each iteration
+                if trial.should_prune():
+                    raise optuna.exceptions.TrialPruned()
+
                 if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
                     eval_score = ner_modelling.evaluate(
                         model=model,
                         val_loader=eval_loader)
                     eval_score.step = step
                     eval_score.epoch = epoch
+                    eval_scores.append(eval_score)
 
                 step += 1
-    return eval_score.f_1
+    max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
+    return max_f1
 
 
 def objective(trial):
@@ -112,6 +118,12 @@ def objective(trial):
                       epsilon=epsilon,
                       delta=delta,
                       lot_size=lot_size)
+    trial.report(f_1, step=10)
+
+    # Perform pruning check
+    if trial.should_prune():
+        raise optuna.exceptions.TrialPruned()
+
     return f_1
 
 
