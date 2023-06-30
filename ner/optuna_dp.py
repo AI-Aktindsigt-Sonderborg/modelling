@@ -92,10 +92,6 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                 loss.backward()
                 optimizer.step()
 
-                # Perform pruning check at each iteration
-                if trial.should_prune():
-                    raise optuna.exceptions.TrialPruned()
-
                 if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
                     eval_score = ner_modelling.evaluate(
                         model=model,
