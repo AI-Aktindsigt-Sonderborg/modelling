@@ -65,7 +65,7 @@ def train_model(learning_rate, epsilon, delta, lot_size):
         )
 
     step = 0
-    model.train()
+
     for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch",
                       unit="epoch"):
         model = model.to(ner_modelling.args.device)
@@ -79,6 +79,8 @@ def train_model(learning_rate, epsilon, delta, lot_size):
             for batch in tqdm(memory_safe_data_loader,
                               desc=f'Epoch {epoch} of {ner_modelling.args.epochs}',
                               unit="batch"):
+                model.train()
+
                 output = model(
                     input_ids=batch["input_ids"].to(ner_modelling.args.device),
                     attention_mask=batch["attention_mask"].to(
@@ -102,10 +104,10 @@ def train_model(learning_rate, epsilon, delta, lot_size):
 
 
 def objective(trial):
-    epsilon = trial.suggest_uniform('epsilon', 1.0, 10.0)
+    epsilon = trial.suggest_float('epsilon', 1.0, 10.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
-    delta = trial.suggest_uniform('delta', 1e-6, 1e-2)
-    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-1)
+    delta = trial.suggest_float('delta', 1e-6, 1e-2)
+    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
     f_1 = train_model(learning_rate=learning_rate,
                       epsilon=epsilon,
                       delta=delta,
