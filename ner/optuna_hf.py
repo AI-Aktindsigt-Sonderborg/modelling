@@ -1,20 +1,16 @@
+# pylint: skip-file
 import evaluate
 import numpy as np
-from datasets import load_metric
-from optuna.pruners import SuccessiveHalvingPruner, ThresholdPruner, PercentilePruner
-from optuna.samplers import TPESampler, RandomSampler, NSGAIISampler
+from optuna.pruners import SuccessiveHalvingPruner
+from optuna.samplers import NSGAIISampler
+from sklearn.metrics import f1_score
+from torch.utils.data import Dataset
 from transformers import TrainingArguments, Trainer
 
-from ner.data_utils.get_dataset import get_label_list_old
-from ner.modelling_utils.helpers import get_label_list
 from ner.modelling_utils.helpers import align_labels_with_tokens
+from ner.modelling_utils.helpers import get_label_list
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
-from sklearn.gaussian_process import GaussianProcessRegressor
-import sys
-from torch.utils.data import Dataset, DataLoader
-from sklearn.metrics import accuracy_score, f1_score
-
 
 metric = evaluate.load("seqeval")
 
@@ -62,8 +58,6 @@ def tokenize_and_wrap_data(data: Dataset):
     tokenized.set_format('torch')
     return tokenized
 
-
-from sklearn.metrics import precision_recall_fscore_support, accuracy_score
 
 tokenized_train = tokenize_and_wrap_data(data=ner_modelling.data.train)
 tokenized_eval = tokenize_and_wrap_data(data=ner_modelling.data.eval)
