@@ -1,3 +1,5 @@
+import dataclasses
+
 import optuna
 import torch
 from opacus import PrivacyEngine
@@ -7,6 +9,7 @@ from tqdm import tqdm
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModellingDP
 from shared.modelling_utils.helpers import create_data_loader
+from shared.utils.helpers import write_json_lines, append_json_lines
 
 ner_parser = NERArgParser()
 
@@ -33,6 +36,10 @@ def train_model(learning_rate, epsilon, delta, lot_size):
         weight_decay=ner_modelling.args.weight_decay)
 
     ner_modelling.load_data()
+
+    ner_modelling.save_config(output_dir=ner_modelling.output_dir,
+                     metrics_dir=ner_modelling.metrics_dir,
+                     args=ner_modelling.args)
 
     train_wrapped, train_loader = create_data_loader(
         data_wrapped=ner_modelling.tokenize_and_wrap_data(
@@ -102,7 +109,11 @@ def train_model(learning_rate, epsilon, delta, lot_size):
 
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
-    return max_f1
+    append_json_lines(output_dir=ner_modelling.metrics_dir,
+                      data=dataclasses.asdict(max_f1),
+                      filename="best_f1")
+
+    return max_f1.f_1
 
 
 def objective(trial):
