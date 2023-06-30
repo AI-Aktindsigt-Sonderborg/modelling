@@ -240,6 +240,12 @@ class ModellingArgParser:
             metavar='<bool>',
             default=False,
             help="Whether to weight classes manually.")
+        training_params.add_argument(
+            "--n_trials",
+            type=int,
+            default=10,
+            metavar='<int>',
+            help="Number of trials to run when hp optimizing")
 
         lr_params = self.parser.add_argument_group('learning rate')
         lr_params.add_argument(
