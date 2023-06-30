@@ -1,16 +1,14 @@
 import evaluate
 import numpy as np
-from datasets import load_metric
-from optuna.pruners import SuccessiveHalvingPruner, ThresholdPruner, PercentilePruner
-from optuna.samplers import TPESampler, RandomSampler, NSGAIISampler
+from optuna.pruners import PercentilePruner
+from optuna.samplers import NSGAIISampler
 from transformers import TrainingArguments, Trainer
 
 from ner.data_utils.get_dataset import get_label_list_old
-from ner.modelling_utils.helpers import get_label_list
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
-from sklearn.gaussian_process import GaussianProcessRegressor
+
 metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
@@ -29,15 +27,12 @@ ner_modelling.load_data()
 ner_feature = ner_modelling.data.train.features["ner_tags"]
 label_names = ner_feature.feature.names
 
-from sklearn.metrics import precision_recall_fscore_support, accuracy_score
-
 
 # def compute_metrics(eval_pred):
 #     metric = load_metric("accuracy")
 #     predictions = np.argmax(eval_pred.predictions, axis=1)
 #     return metric.compute(predictions=predictions,
 #                           references=eval_pred.label_ids)
-
 
 
 def compute_metrics(eval_preds):
@@ -127,10 +122,13 @@ trainer = Trainer(
 
 def optuna_hp_space(trial):
     return {
-        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True),
+        "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-3,
+                                             log=True),
         "per_device_train_batch_size": trial.suggest_categorical(
             "per_device_train_batch_size", [8, 16, 32, 64]),
-        "optimizer": trial.suggest_categorical("optimizer", ["MomentumSGD", "Adam", "AdamW"]),
+        "optimizer": trial.suggest_categorical("optimizer",
+                                               ["MomentumSGD", "Adam",
+                                                "AdamW"]),
         # "num_layers": trial.suggest_int("num_layers", 1, 15),
         "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 1.0),
         "warmup_steps": trial.suggest_int("warmup_steps", 0, 10000),
@@ -141,8 +139,8 @@ def optuna_hp_space(trial):
 best_trial = trainer.hyperparameter_search(
     direction="maximize",
     backend="optuna",
-    sampler=NSGAIISampler(), # TPESampler(),
-    pruner=PercentilePruner(percentile=25.0), # SuccessiveHalvingPruner(),
+    sampler=NSGAIISampler(),  # TPESampler(),
+    pruner=PercentilePruner(percentile=25.0),  # SuccessiveHalvingPruner(),
     hp_space=optuna_hp_space,
     n_trials=50,
     # compute_objective=compute_metrics,
