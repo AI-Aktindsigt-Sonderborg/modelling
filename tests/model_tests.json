@@ -24,7 +24,7 @@
     "python -m ner.train -cmn model_test_lap --epochs 3 -dp false -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 --train_data t100.jsonl",
     "python -m ner.train -cmn model_dp_test_lap --epochs 3 -dp true -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 --train_data t100.jsonl",
     "python -m ner.train -cmn model_test_lap --epochs 3 -dp false -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 --train_data t100.jsonl",
-    "python -m ner.train -cmn model_test_lap_cw -wc true --epochs 3 -dp false -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 --train_data t100.jsonl",
-    "python -m ner.train -cmn model_dp_test_lap_cw -wc true --epochs 3 -dp true -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -ls 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25 --train_data t100.jsonl"
+    "python -m ner.train -cmn model_test_lap_cw -wc true --epochs 3 -dp false -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -tbs 4 -ebs 4 -lsteps 25 -esteps 25 -ssteps 25",
+    "python -m ner.train -cmn model_dp_test_lap_cw -wc true --epochs 3 -dp true -lap true -mn last_model -fl false -rh false -fe true --max_length 8 -ls 32 -tbs 8 -ebs 8 -lsteps 25 -esteps 25 -ssteps 25"
   ]
 }
