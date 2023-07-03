@@ -30,6 +30,7 @@ Content:
 
    aisig
    data
+   models
    modelling
 
 .. toctree::
