@@ -237,10 +237,11 @@ class MLMModelling(Modelling):
         return model
 
     @staticmethod
-    def save_model(model: BertForMaskedLM, output_dir: str,
+    def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
-                   step: str = ""):
+                   step: str = "",
+                   dp: bool = False):
         """
         Wrap model in trainer class and save to pytorch object
         :param model: BertForMaskedLM to save
@@ -251,6 +252,10 @@ class MLMModelling(Modelling):
         '/epoch-{epoch}_step-{step}'
         """
         output_dir = output_dir + step
+        if dp:
+            model = model._module
+
+
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
