@@ -30,6 +30,7 @@ from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
 from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 import torch.nn.functional as F
 
+
 class Modelling:
     """
     General class for model training. For input arguments see :class:`.ModellingArgParser`.
@@ -123,7 +124,6 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.test_data),
                 split='train')
 
-
     def set_up_training(self) -> tuple:
         """
         Load data and set up for training
@@ -137,12 +137,18 @@ class Modelling:
         if self.args.weight_classes:
             label_ids = [self.label2id[label] for label in self.args.labels]
             y = np.concatenate(self.data.train['ner_tags'])
-            # OBS: below line only when some class labels are missing from data
-            label_ids = [label_id for label_id in label_ids if label_id in y]
+            # OBS: Very important that all classes are represented in training
+            # data - OBSOBS: This is only implemented correctly for NER
+            # label_ids = [label_id for label_id in label_ids if label_id in y]
             if self.args.manual_class_weighting:
-                self.class_weights = torch.tensor(compute_class_weight(class_weight=self.label2weight, classes=np.unique(label_ids), y=y)).float()
+                self.class_weights = torch.tensor(compute_class_weight(
+                    class_weight=self.label2weight,
+                    classes=np.unique(label_ids), y=y)).float()
             else:
-                self.class_weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.unique(label_ids), y=y)).float()
+                self.class_weights = torch.tensor(
+                    compute_class_weight(class_weight='balanced',
+                                         classes=np.unique(label_ids),
+                                         y=y)).float()
 
             self.args.class_weights = self.class_weights.tolist()
 
@@ -339,9 +345,6 @@ class Modelling:
 
             if step > self.args.freeze_layers_n_steps and \
                 self.args.evaluate_steps <= self.args.total_steps:
-
-                # best_metrics_input_dir = self.output_dir + f'/epoch-{epoch}_step-{step}' if not self.args.save_only_best_model else self.output_dir + '/best_model'
-
                 best_metrics, _ = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics)
@@ -399,7 +402,6 @@ class Modelling:
         model = model.to(self.args.device)
         train_losses = []
         lrs = []
-
 
         for batch in tqdm(train_loader,
                           desc=f'Train epoch {epoch} of {self.args.epochs}',
@@ -489,14 +491,13 @@ class Modelling:
             if self.args.save_steps is not None and (
                 step > self.args.freeze_layers_n_steps and
                 step % self.args.save_steps == 0):
-
                 best_metrics_input_dir = self.output_dir + f'/epoch-{epoch}_step-{step}' if not self.args.save_only_best_model else self.output_dir + '/best_model'
 
                 _, save_best_model = get_metrics(
                     eval_scores=eval_scores,
                     eval_metrics=self.args.eval_metrics,
                     best_model_path=best_metrics_input_dir
-                    )
+                )
 
                 self.save_model_at_step(
                     model=model,
@@ -535,9 +536,10 @@ class Modelling:
                             step=f'/epoch-{epoch}_step-{step}',
                             dp=self.args.differential_privacy)
 
-            write_json_lines(out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
-                              filename='eval_scores',
-                              data=[dataclasses.asdict(eval_score)])
+            write_json_lines(
+                out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
+                filename='eval_scores',
+                data=[dataclasses.asdict(eval_score)])
 
         if save_best_model:
             self.save_model(model, output_dir=self.output_dir,
@@ -547,10 +549,8 @@ class Modelling:
                             dp=self.args.differential_privacy)
 
             write_json_lines(out_dir=self.output_dir + '/best_model',
-                              filename='eval_scores',
-                              data=[dataclasses.asdict(eval_score)])
-
-
+                             filename='eval_scores',
+                             data=[dataclasses.asdict(eval_score)])
 
     def get_data_collator(self):
         """
@@ -662,14 +662,14 @@ class Modelling:
         if dp:
             model = model._module
             # model.config.save_pretrained(output_dir)
-        
+
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
             data_collator=data_collator,
             tokenizer=tokenizer
         )
-        
+
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
@@ -697,8 +697,8 @@ class Modelling:
                     labels=batch["labels"].to(self.args.device)
                 )
 
-
-                batch_preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
+                batch_preds = np.argmax(output.logits.detach().cpu().numpy(),
+                                        axis=-1)
                 batch_labels = batch["labels"].cpu().numpy()
                 batch_loss = output.loss.item()
 

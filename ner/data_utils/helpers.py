@@ -3,6 +3,8 @@ from typing import Tuple, List
 
 from langdetect import detect_langs
 from nltk.tokenize import sent_tokenize
+
+
 def split_sentences_bilou(
     data: str,
     sentence_splitter: object) -> Tuple[List[str], List[str]]:
@@ -24,9 +26,10 @@ def split_sentences_bilou(
     prep_text = repr(data)
 
     # Define list of special chars to replace
-    special_chars = {'specials': ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
-                     'citations': ['”', '"', "'"],
-                     'spellings': ['NemID', 'MitID', 'minSU', 'LinkedIn']}
+    special_chars = {
+        'specials': ['\\r', '\\t', '\\n', '\\xa0', ' | ', '|', '*'],
+        'citations': ['”', '"', "'"],
+        'spellings': ['NemID', 'MitID', 'minSU', 'LinkedIn']}
 
     for case in special_chars['specials']:
         prep_text = prep_text.replace(case, ' ')
@@ -50,7 +53,7 @@ def split_sentences_bilou(
     if len(find_wrong_break_ids) > 0:
         increment = 1
         for idx in find_wrong_break_ids:
-            prep_text = prep_text[:idx[0] + increment] + '\n'\
+            prep_text = prep_text[:idx[0] + increment] + '\n' \
                         + prep_text[idx[0] + increment:]
             increment += 1
 
@@ -72,15 +75,15 @@ def split_sentences_bilou(
     for j, sentence in enumerate(sentences):
         # Discard sentences where lower case letters are followed by capital
         # letters
-#        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
-                                           #             sentence)]) > 0:
- #           disapproved_sentences.append(
-  #              f'{j} - {sentence}')
-   #     else:
+        #        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
+        #             sentence)]) > 0:
+        #           disapproved_sentences.append(
+        #              f'{j} - {sentence}')
+        #     else:
         new_sentences.append(sentence + "\n")
 
-
     return new_sentences, text_splitted2
+
 
 def filter_language(string: str, approved_languages: List[str]):
     try:
@@ -89,11 +92,11 @@ def filter_language(string: str, approved_languages: List[str]):
         languages = [lang.lang for lang in language_codes]
         result = any(item for item in languages if item in approved_languages)
         if result:
-            probs = [lang.prob for lang in language_codes if lang.lang in approved_languages]
+            probs = [lang.prob for lang in language_codes if
+                     lang.lang in approved_languages]
             return True, language_codes
 
         return False, language_codes
     except:
         print('No language detected')
         return False, None
-
