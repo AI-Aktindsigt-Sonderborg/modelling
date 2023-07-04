@@ -148,6 +148,9 @@ def read_json(filepath: str):
         data = json.load(file)
     return data
 
+def get_sublist_length(sublist):
+    return len(sublist)
+
 
 class BColors:
     HEADER = '\033[95m'

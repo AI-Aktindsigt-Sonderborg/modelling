@@ -20,8 +20,10 @@ for i, obs in enumerate(bilou_2):
     bilou_2_tokens.append(obs['tokens'])
     bilou_2_tags.append(obs['tags'])
 
-bilou_2_only = list(set(tuple(sublist) for sublist in bilou_2_tokens) - set(tuple(sublist) for sublist in bilou_1_tokens))
-bilou_1_only = list(set(tuple(sublist) for sublist in bilou_1_tokens) - set(tuple(sublist) for sublist in bilou_2_tokens))
+bilou_2_only = list(set(tuple(sublist) for sublist in bilou_2_tokens) -
+                    set(tuple(sublist) for sublist in bilou_1_tokens))
+bilou_1_only = list(set(tuple(sublist) for sublist in bilou_1_tokens) -
+                    set(tuple(sublist) for sublist in bilou_2_tokens))
 
 
 if args[2] == "2":
