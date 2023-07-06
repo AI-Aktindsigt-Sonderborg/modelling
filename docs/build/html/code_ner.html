@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="da" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Named Entity Recognition (NER) &mdash; modelling 0.1 dokumentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
+      <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/translations.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Indeks" href="genindex.html" />
+    <link rel="search" title="Søg" href="search.html" />
+    <link rel="next" title="Input parametre til modellering" href="code_modelling_input_args.html" />
+    <link rel="prev" title="Semantisk Søgning (SS)" href="code_sc.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            modelling
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Søg i dokumentation" aria-label="Søg i dokumentation" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation">
+              <p class="caption" role="heading"><span class="caption-text">Introduktion</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="aisig.html">Introduktion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Modeller</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modelling.html">Modellering</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Quickstart</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Kom i gang</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Kodedokumentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="github.html">Modellering GitHub repository</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Kode-eksempler</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="code_overview.html">Kodeoversigt</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="code_data_prep.html">Data præprocessering</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="code_modelling.html">Modellering</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="code_examples_overview.html">Eksempel-oversigt</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="code_modelling_super.html">Kodebeskrivelse</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="code_mlm.html">Masked Language Modelling (MLM)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="code_sc.html">Semantisk Søgning (SS)</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Named Entity Recognition (NER)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="code_modelling_super.html#klasser-og-metoder">Klasser og metoder</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="code_modelling_input_args.html">Input parametre til modellering</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobil navigation" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">modelling</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="code_overview.html">Kodeoversigt</a></li>
+          <li class="breadcrumb-item"><a href="code_modelling.html">Modellering</a></li>
+          <li class="breadcrumb-item"><a href="code_modelling_super.html">Kodebeskrivelse</a></li>
+      <li class="breadcrumb-item active">Named Entity Recognition (NER)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/code_ner.rst.txt" rel="nofollow"> Vis sidekilde</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="named-entity-recognition-ner">
+<h1>Named Entity Recognition (NER)<a class="headerlink" href="#named-entity-recognition-ner" title="Permalink to this heading"></a></h1>
+<section id="eksempler">
+<h2>Eksempler<a class="headerlink" href="#eksempler" title="Permalink to this heading"></a></h2>
+<p>Træning</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">eksempel</span> <span class="n">på</span> <span class="n">træning</span>
+</pre></div>
+</div>
+<p>Inferens</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">eksempel</span> <span class="n">på</span> <span class="n">inferens</span>
+</pre></div>
+</div>
+</section>
+<section id="klasser-og-metoder">
+<h2>Klasser og metoder<a class="headerlink" href="#klasser-og-metoder" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="ner.modelling_utils.ner_modelling.NERModelling">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ner.modelling_utils.ner_modelling.</span></span><span class="sig-name descname"><span class="pre">NERModelling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Namespace</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ner.modelling_utils.ner_modelling.NERModelling" title="Permalink til denne definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="ner.modelling_utils.ner_modelling.NERModelling.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_loader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conf_plot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">EvalScore</span></span></span><a class="headerlink" href="#ner.modelling_utils.ner_modelling.NERModelling.evaluate" title="Permalink til denne definition"></a></dt>
+<dd><p>Evaluate model at given step
+:param device:
+:param model:
+:param val_loader:
+:return: mean eval loss and mean accuracy</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Sidefod">
+        <a href="code_sc.html" class="btn btn-neutral float-left" title="Semantisk Søgning (SS)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Forrige</a>
+        <a href="code_modelling_input_args.html" class="btn btn-neutral float-right" title="Input parametre til modellering" accesskey="n" rel="next">Næste <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Ophavsret 2023, Alvenir.</p>
+  </div>
+
+  Baseret på <a href="https://www.sphinx-doc.org/">Sphinx</a> med et
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">tema</a>
+    udviklet af<a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>
