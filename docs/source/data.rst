@@ -3,5 +3,6 @@
 Data
 ====
 **Mangler databeskrivelse her fra Aktio**
-- Skrab data beskrivelse
-- Aktindsigt data beskrivelse 123
+
+* Skrab data beskrivelse
+* Aktindsigt data beskrivelse
