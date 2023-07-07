@@ -18,17 +18,15 @@ from tqdm import tqdm
 from transformers import Trainer, TrainingArguments, AutoModel, AutoTokenizer, \
     DataCollator
 
+from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
+from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 from shared.data_utils.custom_dataclasses import EvalScore, ModellingData
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
     save_key_metrics, validate_model, predefined_hf_models
-from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines, \
-    read_json_lines
+from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines
 from shared.utils.visualization import plot_running_results
-from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
-from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
-import torch.nn.functional as F
 
 
 class Modelling:
@@ -138,7 +136,7 @@ class Modelling:
             label_ids = [self.label2id[label] for label in self.args.labels]
             y = np.concatenate(self.data.train['ner_tags'])
             # OBS: Very important that all classes are represented in training
-            # data - OBSOBS: This is only implemented correctly for NER
+            # data - OBSOBS: This is only implemented correctly for NERModelling
             # label_ids = [label_id for label_id in label_ids if label_id in y]
             if self.args.manual_class_weighting:
                 self.class_weights = torch.tensor(compute_class_weight(

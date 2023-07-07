@@ -233,7 +233,7 @@ class ModellingArgParser:
             type=lambda x: bool(strtobool(x)),
             metavar='<bool>',
             default=False,
-            help="Whether to add class weights for loss.")
+            help="Whether to add class weights for loss - only implemented for NER for now")
         training_params.add_argument(
             "-mcw", "--manual_class_weighting",
             type=lambda x: bool(strtobool(x)),

@@ -23,6 +23,11 @@ if leftovers:
 
 args.cmd_line_args = sys.argv
 
+if args.weight_classes is True:
+    print(mlm_parser.parser._option_string_actions['--weight_classes'].help)
+    print('exiting - try again')
+    mlm_parser.parser.exit()
+
 if args.replace_head is True and args.freeze_layers is False:
     print(mlm_parser.parser._option_string_actions['--replace_head'].help)
     print('exiting - try again')

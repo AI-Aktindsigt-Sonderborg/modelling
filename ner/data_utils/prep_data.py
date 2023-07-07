@@ -169,5 +169,3 @@ if __name__ == "__main__":
                                            train_outfile='bilou_train',
                                            val_outfile='bilou_val',
                                            test_outfile='bilou_test')
-
-

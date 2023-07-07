@@ -38,6 +38,12 @@ label_dict = {'Beskæftigelse og integration': 0, 'Børn og unge': 1,
 LABELS = list(label_dict)
 args.labels = LABELS
 
+if args.weight_classes is True:
+    print(sc_parser.parser._option_string_actions['--weight_classes'].help)
+    print('exiting - try again')
+    sc_parser.parser.exit()
+
+
 if args.differential_privacy:
     sc_modelling = SequenceClassificationDP(args=args)
     if not ((args.lot_size > args.train_batch_size)

@@ -38,4 +38,3 @@ prediction = modelling.predict(model=model,
 print(f"Sætning: {prediction.sentence}")
 print(f"Sand KL kategori: {prediction.label}")
 print(f"Modellens forudsagte KL kategori: {prediction.prediction}")
-

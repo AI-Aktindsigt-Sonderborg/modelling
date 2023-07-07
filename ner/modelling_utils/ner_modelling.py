@@ -13,15 +13,14 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, DataCollatorForTokenClassification, BertTokenizer
+from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
 from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
     get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
-from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput, \
-    NEROutput
+from shared.data_utils.custom_dataclasses import EvalScore, NEROutput
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.custom_modeling_bert import \
     BertForTokenClassification
@@ -233,7 +232,6 @@ class NERModelling(Modelling):
                 padding='max_length',
                 max_length=self.args.max_length
             )
-            # examples["ner_tags"] = [self.label2id(x) for x in examples['tags']]
 
             all_labels = examples["ner_tags"]
             new_labels = []
@@ -241,9 +239,8 @@ class NERModelling(Modelling):
             for i, labels in enumerate(all_labels):
                 word_ids = tokenized_inputs.word_ids(i)
                 new_labels.append(align_labels_with_tokens(labels, word_ids))
-                # attention_mask.append(list(map(lambda x: 1 if x != -100 else 0, align_labels_with_tokens(labels, word_ids))))
+
             tokenized_inputs["labels"] = new_labels
-            # tokenized_inputs["attention_mask"] = attention_mask
 
             return tokenized_inputs
 

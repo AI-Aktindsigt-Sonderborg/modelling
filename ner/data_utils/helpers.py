@@ -20,7 +20,6 @@ def split_sentences_bilou(
     :return: List of sentences, list of disapproved sentences
     :rtype: Tuple[List[str], List[str]]
     """
-    disapproved_sentences = []
     # Read canonical string representation of the object as we need special
     # regex characters
     prep_text = repr(data)
@@ -73,13 +72,6 @@ def split_sentences_bilou(
         new_sentences2.append(sentence + "\n")
 
     for j, sentence in enumerate(sentences):
-        # Discard sentences where lower case letters are followed by capital
-        # letters
-        #        if len([(m.start(0), m.end(0)) for m in re.finditer("[a-z][A-Z]",
-        #             sentence)]) > 0:
-        #           disapproved_sentences.append(
-        #              f'{j} - {sentence}')
-        #     else:
         new_sentences.append(sentence + "\n")
 
     return new_sentences, text_splitted2
