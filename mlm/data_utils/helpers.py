@@ -75,4 +75,3 @@ def split_sentences(
             new_sentences.append(sentence)
 
     return new_sentences, disapproved_sentences
-

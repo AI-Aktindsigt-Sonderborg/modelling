@@ -103,5 +103,3 @@ def get_label_list_old():
             label2weight[label] = 2
 
     return label_list, id2label, label2id, label2weight
-
-
