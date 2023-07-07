@@ -3,6 +3,7 @@ import dataclasses
 
 import optuna
 import torch
+import wandb
 from opacus import PrivacyEngine
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
@@ -24,6 +25,14 @@ model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
 
 ner_modelling = NERModellingDP(args=args)
+# args.train_data = "dane"
+# args.n_trials = 2
+# args.epochs = 2
+# args.train_batch_size = 4
+# args.lot_size = 16
+# args.eval_batch_size = 4
+# args.evaluate_steps = 25
+# args.save_steps = 25
 
 
 def train_model(learning_rate, epsilon, delta, lot_size):
@@ -107,6 +116,7 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                     eval_score.step = step
                     eval_score.epoch = epoch
                     eval_scores.append(eval_score)
+                    wandb.log({"f1": eval_score.f_1})
 
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
@@ -116,13 +126,15 @@ def train_model(learning_rate, epsilon, delta, lot_size):
 
     return max_f1.f_1
 
-
+# e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
     epsilon = trial.suggest_float('epsilon', 1.0, 10.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     delta = trial.suggest_float('delta', 1e-6, 1e-2)
     learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
-    wandb.init(re)
+    wandb.login(key='e99e480bf10627b2fa2ed6f2a9fe58472e3cb992')
+    wandb.init(reinit=True)
+
 
     f_1 = train_model(learning_rate=learning_rate,
                           epsilon=epsilon,
