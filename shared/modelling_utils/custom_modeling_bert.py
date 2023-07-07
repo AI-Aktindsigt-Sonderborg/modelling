@@ -1779,9 +1779,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         loss = None
         if labels is not None:
             loss_fct = CrossEntropyLoss(weight=class_weights) if not class_weights is None else CrossEntropyLoss()
-            loss_fct2 = CrossEntropyLoss()
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            loss2 = loss_fct2(logits.view(-1, self.num_labels), labels.view(-1))
 
         if not return_dict:
             output = (logits,) + outputs[2:]
