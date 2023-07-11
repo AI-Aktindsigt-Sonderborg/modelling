@@ -135,7 +135,7 @@ class Modelling:
         if self.args.weight_classes:
             label_ids = [self.label2id[label] for label in self.args.labels]
             y = np.concatenate(self.data.train['ner_tags'])
-            # OBS: Very important that all classes are represented in training
+            # ToDo: Very important that all classes are represented in training - consider making a validity check to see if all classes are represented
             # data - OBSOBS: This is only implemented correctly for NERModelling
             # label_ids = [label_id for label_id in label_ids if label_id in y]
             if self.args.manual_class_weighting:
@@ -160,6 +160,7 @@ class Modelling:
             batch_size=self.args.lot_size,
             data_collator=self.data_collator)
 
+        # ToDo: Consider assigning model to class such that it is injected directly for training and inference
         model = self.get_model()
 
         if self.args.freeze_embeddings:

@@ -88,6 +88,9 @@ def plot_confusion_matrix(
     sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt=".2f", xticklabels=labels,
                yticklabels=labels)
 
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+
     plt.tight_layout()
     if save_fig:
         filepath = os.path.join(plots_dir,
