@@ -16,3 +16,5 @@ sphinx-rtd-theme
 sphinx_gallery
 seqeval
 evaluate
+langdetect
+wandb

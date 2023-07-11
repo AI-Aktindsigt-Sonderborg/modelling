@@ -1,3 +1,7 @@
+from typing import List
+from collections import OrderedDict
+
+
 def align_labels_with_tokens(labels, word_ids):
     new_labels = []
     current_word = None
@@ -19,3 +23,35 @@ def align_labels_with_tokens(labels, word_ids):
             new_labels.append(label)
 
     return new_labels
+
+
+def get_label_list(ner_entities: List[str]):
+    # ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
+    id2label = {}
+    label_list = ["O"]
+    for entity in ner_entities:
+        begin = "B-" + entity
+        inside = "I-" + entity
+        last = "L-" + entity
+        unique = "U-" + entity
+        label_list.extend([begin, inside, last, unique])
+
+    for i, label in enumerate(label_list):
+        id2label[i] = label
+
+    label2id = OrderedDict()
+    for i, label in enumerate(label_list):
+        label2id[label] = i
+
+    label2weight = OrderedDict()
+    for i, label_id in enumerate([label2id[x] for x in label_list]):
+        if label_id == 0:
+            label2weight[label_id] = 0.2
+        elif "HELBRED" in id2label[label_id]:
+            label2weight[label_id] = 4
+        elif "PERSON" in id2label[label_id]:
+            label2weight[label_id] = 0.1
+        else:
+            label2weight[label_id] = 0.2
+
+    return label_list, id2label, label2id, label2weight

@@ -1,3 +1,4 @@
+# pylint: disable=invalid-name
 import json
 import logging
 import os
@@ -99,6 +100,7 @@ def append_json_lines(output_dir: str, data: dict, filename: str,
 def write_text_lines(out_dir: str, filename: str, data: List[str]):
     """
     Write text file based on list of strings
+
     :param out_dir: directory
     :param filename: filename to write
     :param data: input data
@@ -146,6 +148,9 @@ def read_json(filepath: str):
     with open(filepath, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
+
+def get_sublist_length(sublist):
+    return len(sublist)
 
 
 class BColors:

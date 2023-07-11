@@ -3,7 +3,7 @@ import os
 
 import pandas as pd
 
-from ner.local_constants import MODEL_DIR
+from ner.local_constants import MODEL_DIR, METADATA_DIR
 from shared.utils.helpers import read_json
 
 
@@ -49,8 +49,8 @@ def all_metrics_to_csv():
 
     df = pd.DataFrame.from_records(all_data)
 
-    df.to_csv('metadata/model_metrics_ner.csv', sep='\t')
-    df.to_excel('metadata/model_metrics_ner.xlsx', index=False)
+    df.to_csv(os.path.join(METADATA_DIR, 'model_metrics_ner.csv'), sep='\t')
+    df.to_excel(os.path.join(METADATA_DIR, 'model_metrics_ner.xlsx'), index=False)
 
 if __name__ == '__main__':
     all_metrics_to_csv()

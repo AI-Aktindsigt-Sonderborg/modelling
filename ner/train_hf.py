@@ -2,7 +2,7 @@ import evaluate
 import numpy as np
 from transformers import TrainingArguments, Trainer
 
-from ner.data_utils.get_dataset import get_label_list
+from ner.data_utils.get_dataset import get_label_list_old
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
@@ -11,8 +11,10 @@ metric = evaluate.load("seqeval")
 
 ner_parser = NERArgParser()
 args = ner_parser.parser.parse_args()
+args.test = False
+args.differential_privacy = False
 
-label_list, id2label, label2id = get_label_list()
+label_list, id2label, label2id, label2weight = get_label_list_old()
 
 ner_modelling = NERModelling(args=args)
 
@@ -88,10 +90,11 @@ training_args = TrainingArguments(
     do_predict=True,
     metric_for_best_model="eval_overall_f1",
     save_strategy="steps",
-    logging_steps=50,
+    logging_steps=25,
     eval_steps=50,
     load_best_model_at_end=True,
-    push_to_hub=False
+    push_to_hub=False,
+    report_to='none'
 )
 
 trainer = Trainer(
@@ -102,7 +105,6 @@ trainer = Trainer(
     tokenizer=ner_modelling.tokenizer,
     data_collator=ner_modelling.data_collator,
     compute_metrics=compute_metrics,
-    report_to='none'
     # callbacks=[nuna_text_modelling.callbacks],
 )
 

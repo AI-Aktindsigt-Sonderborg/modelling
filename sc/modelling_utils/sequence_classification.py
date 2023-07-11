@@ -21,7 +21,7 @@ from sc.local_constants import MODEL_DIR, DATA_DIR
 from shared.data_utils.custom_dataclasses import EvalScore, EmbeddingOutput
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import get_lr, \
-    log_train_metrics_dp
+    log_train_metrics_dp, label2id2label
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
 
@@ -29,6 +29,9 @@ from shared.utils.visualization import plot_confusion_matrix
 class SequenceClassification(Modelling):
     """
     Class to train a SequenceClassification model
+
+    Methods
+    -------
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -38,7 +41,7 @@ class SequenceClassification(Modelling):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.data_dir = DATA_DIR
 
-        self.label2id, self.id2label = self.label2id2label()
+        self.label2id, self.id2label = label2id2label(self.args.labels)
 
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
@@ -351,25 +354,14 @@ class SequenceClassification(Modelling):
         model.train()
         return model
 
-    @staticmethod
-    def unfreeze_layers(model):
-        """
-        Un-freeze all layers exept for embeddings in model, such that we can
-        train full model
-        :param model: Model of type BertForSequenceClassification
-        :return: un-freezed model
-        """
-        for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
-                param.requires_grad = True
-        print("bert layers unfreezed")
-        model.train()
-        return model
 
 class SequenceClassificationDP(SequenceClassification):
     """
         Class inherited from SequenceClassification to train a
         SequenceClassification model with differential privacy
+
+        Methods
+        -------
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -387,15 +379,16 @@ class SequenceClassificationDP(SequenceClassification):
         :param eval_scores: eval_scores
         :param model: Differentially private model wrapped in GradSampleModule
         :param train_loader: Differentially private data loader of type
-        DPDataLoader
+            DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
         :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
+            validation data
         :param step: Given step
-        :return: if self.eval_data: return model, eval_losses, eval_accuracies,
-        step, lrs
-        else: return model, step, lrs
+        :return:
+            if self.eval_data: return model, eval_losses, eval_accuracies,
+            step, lrs
+            else: return model, step, lrs
         """
         model.train()
         model = model.to(self.args.device)
@@ -446,21 +439,25 @@ class SequenceClassificationDP(SequenceClassification):
         :param model: Model of type GradSampleModule
         :return: freezed model
         """
-        for name, param in model.named_parameters():
-            if not name.startswith("_module.cls"):
+        for name, param in model._module.named_parameters():
+            if not name.startswith("cls"):
                 param.requires_grad = False
         model.train()
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = True):
         """
         Un-freeze all bert layers in model, such that we can train full model
         :param model: of type GradSampleModule
         :return: un-freezed model
         """
-        for name, param in model.named_parameters():
-            if not name.startswith("_module.bert.embeddings"):
+        for name, param in model._module.named_parameters():
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         model.train()
         return model

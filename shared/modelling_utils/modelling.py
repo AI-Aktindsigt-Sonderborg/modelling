@@ -12,25 +12,32 @@ import torch
 from datasets import load_dataset
 from opacus import PrivacyEngine
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.utils import compute_class_weight
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import Trainer, TrainingArguments, AutoModel, AutoTokenizer, \
     DataCollator
 
+from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
+from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
 from shared.data_utils.custom_dataclasses import EvalScore, ModellingData
 from shared.data_utils.helpers import DatasetWrapper
 from shared.modelling_utils.helpers import create_scheduler, \
     create_data_loader, get_lr, get_metrics, log_train_metrics, \
     save_key_metrics, validate_model, predefined_hf_models
-from shared.utils.helpers import append_json_lines, TimeCode
+from shared.utils.helpers import append_json_lines, TimeCode, write_json_lines
 from shared.utils.visualization import plot_running_results
-from mlm.local_constants import MODEL_DIR as MLM_MODEL_DIR
-from sc.local_constants import MODEL_DIR as SC_MODEL_DIR
+
 
 class Modelling:
     """
-    General class for model training
+    General class for model training. For input arguments see :class:`.ModellingArgParser`.
+
+
+    Methods
+    -------
     """
+
     def __init__(self, args: argparse.Namespace):
 
         self.args = args
@@ -65,7 +72,8 @@ class Modelling:
             self.args.lot_size = self.args.train_batch_size
 
         if self.args.load_alvenir_pretrained:
-            model_dir = MLM_MODEL_DIR
+            model_dir = args.custom_model_dir if args.custom_model_dir \
+                else MLM_MODEL_DIR
             if self.args.sc_demo:
                 model_dir = SC_MODEL_DIR
             self.model_path = os.path.join(model_dir,
@@ -78,8 +86,9 @@ class Modelling:
     def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
-        :param train: Whether to train model
-        :param test: Whether to load test data
+
+        :param bool train: Whether to train model
+        :param bool test: Whether to load test data
         """
         if train:
             self.data.train = load_dataset(
@@ -113,20 +122,6 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.test_data),
                 split='train')
 
-    def label2id2label(self):
-        """
-        Generates a label-to-id and id-to-label mapping for the labels given in
-        `self.args.labels`.
-        :return: tuple: A tuple containing two dictionaries, the first being a
-        mapping of label to id and the second being a mapping of id to label.
-        """
-        label2id, id2label = {}, {}
-
-        for i, label in enumerate(self.args.labels):
-            label2id[label] = str(i)
-            id2label[i] = label
-        return label2id, id2label
-
     def set_up_training(self) -> tuple:
         """
         Load data and set up for training
@@ -136,6 +131,24 @@ class Modelling:
 
         if self.args.auto_lr_scheduling:
             self.compute_lr_automatically()
+
+        if self.args.weight_classes:
+            label_ids = [self.label2id[label] for label in self.args.labels]
+            y = np.concatenate(self.data.train['ner_tags'])
+            # ToDo: Very important that all classes are represented in training - consider making a validity check to see if all classes are represented
+            # data - OBSOBS: This is only implemented correctly for NERModelling
+            # label_ids = [label_id for label_id in label_ids if label_id in y]
+            if self.args.manual_class_weighting:
+                self.class_weights = torch.tensor(compute_class_weight(
+                    class_weight=self.label2weight,
+                    classes=np.unique(label_ids), y=y)).float()
+            else:
+                self.class_weights = torch.tensor(
+                    compute_class_weight(class_weight='balanced',
+                                         classes=np.unique(label_ids),
+                                         y=y)).float()
+
+            self.args.class_weights = self.class_weights.tolist()
 
         if self.args.save_config:
             self.save_config(output_dir=self.output_dir,
@@ -147,6 +160,7 @@ class Modelling:
             batch_size=self.args.lot_size,
             data_collator=self.data_collator)
 
+        # ToDo: Consider assigning model to class such that it is injected directly for training and inference
         model = self.get_model()
 
         if self.args.freeze_embeddings:
@@ -225,7 +239,7 @@ class Modelling:
           after the frozen layers have been trained.
           """
 
-        if self.args.freeze_layers:
+        if self.args.freeze_layers and not self.args.lr_freezed_warmup_steps:
             self.args.lr_freezed_warmup_steps = \
                 int(np.ceil(0.1 * self.args.freeze_layers_n_steps))
 
@@ -362,8 +376,8 @@ class Modelling:
                 model=model,
                 output_dir=self.output_dir,
                 data_collator=self.data_collator,
-                tokenizer=self.tokenizer
-            )
+                tokenizer=self.tokenizer,
+                dp=self.args.differential_privacy)
         self.model = model
 
     def train_epoch(self, model, train_loader: DataLoader,
@@ -439,15 +453,25 @@ class Modelling:
             data={'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
         # compute model output
-        output = model(input_ids=batch["input_ids"].to(self.args.device),
-                       attention_mask=batch["attention_mask"].to(
-                           self.args.device),
-                       labels=batch["labels"].to(self.args.device))
+        if not self.args.weight_classes:
+            output = model(input_ids=batch["input_ids"].to(self.args.device),
+                           attention_mask=batch["attention_mask"].to(
+                               self.args.device),
+                           labels=batch["labels"].to(self.args.device))
+            loss = output.loss
+        else:
+            output = model(input_ids=batch["input_ids"].to(self.args.device),
+                           attention_mask=batch["attention_mask"].to(
+                               self.args.device),
+                           labels=batch["labels"].to(self.args.device),
+                           class_weights=self.class_weights.to(
+                               self.args.device))
+            loss = output.loss
 
-        loss = output.loss
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+
         self.scheduler.step()
 
         if val_loader and (step > 0 and (step % self.args.evaluate_steps == 0)):
@@ -459,36 +483,42 @@ class Modelling:
             eval_score.epoch = epoch
 
             append_json_lines(output_dir=self.metrics_dir,
-                        filename='eval_scores',
-                        data=dataclasses.asdict(eval_score))
+                              filename='eval_scores',
+                              data=dataclasses.asdict(eval_score))
             eval_scores.append(eval_score)
 
             if self.args.save_steps is not None and (
                 step > self.args.freeze_layers_n_steps and
-                (step % self.args.save_steps == 0)):
+                step % self.args.save_steps == 0):
+                best_metrics_input_dir = self.output_dir + f'/epoch-{epoch}_step-{step}' if not self.args.save_only_best_model else self.output_dir + '/best_model'
+
                 _, save_best_model = get_metrics(
                     eval_scores=eval_scores,
-                    eval_metrics=self.args.eval_metrics)
+                    eval_metrics=self.args.eval_metrics,
+                    best_model_path=best_metrics_input_dir
+                )
 
                 self.save_model_at_step(
                     model=model,
                     epoch=epoch,
                     step=step,
-                    save_best_model=save_best_model)
+                    save_best_model=save_best_model, eval_score=eval_score)
 
         train_losses.append(loss.item())
+
         append_json_lines(output_dir=self.metrics_dir,
-                    filename='train_loss',
-                    data={'epoch': epoch,
-                          'step': step,
-                          'score': float(np.mean(train_losses))})
+                          filename='train_loss',
+                          data={'epoch': epoch,
+                                'step': step,
+                                'score': float(np.mean(train_losses))})
+
         learning_rates.append(
             {'epoch': epoch, 'step': step, 'lr': get_lr(optimizer)[0]})
 
         return model, optimizer, eval_scores, train_losses, learning_rates
 
     def save_model_at_step(self, model, epoch, step,
-                           save_best_model: bool):
+                           save_best_model: bool, eval_score):
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
@@ -502,13 +532,24 @@ class Modelling:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
-                            step=f'/epoch-{epoch}_step-{step}')
+                            step=f'/epoch-{epoch}_step-{step}',
+                            dp=self.args.differential_privacy)
+
+            write_json_lines(
+                out_dir=self.output_dir + f'/epoch-{epoch}_step-{step}',
+                filename='eval_scores',
+                data=[dataclasses.asdict(eval_score)])
 
         if save_best_model:
             self.save_model(model, output_dir=self.output_dir,
                             data_collator=self.data_collator,
                             tokenizer=self.tokenizer,
-                            step='/best_model')
+                            step='/best_model',
+                            dp=self.args.differential_privacy)
+
+            write_json_lines(out_dir=self.output_dir + '/best_model',
+                             filename='eval_scores',
+                             data=[dataclasses.asdict(eval_score)])
 
     def get_data_collator(self):
         """
@@ -545,8 +586,12 @@ class Modelling:
         validate_model(model, strict_validation=True)
         # opacus version >= 1.0 requires to generate optimizer from
         # model.parameters()
+
+        init_learning_rate = self.args.lr_freezed if self.args.freeze_layers \
+            else self.args.learning_rate
+
         optimizer = torch.optim.AdamW(model.parameters(),
-                                      lr=self.args.learning_rate,
+                                      lr=init_learning_rate,
                                       weight_decay=self.args.weight_decay)
 
         dp_model, dp_optimizer, dp_train_loader = \
@@ -580,7 +625,7 @@ class Modelling:
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = False):
         """
         Un-freeze all layers exept for embeddings in model, such that we can
         train full model
@@ -588,8 +633,12 @@ class Modelling:
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         print("bert layers unfreezed")
         model.train()
         return model
@@ -598,7 +647,7 @@ class Modelling:
     def save_model(model, output_dir: str,
                    data_collator,
                    tokenizer,
-                   step: str = ""):
+                   step: str = "", dp: bool = False):
         """
         Wrap model in trainer class and save to pytorch object
         :param model: BertForMaskedLM to save
@@ -609,12 +658,17 @@ class Modelling:
         '/epoch-{epoch}_step-{step}'
         """
         output_dir = output_dir + step
+        if dp:
+            model = model._module
+            # model.config.save_pretrained(output_dir)
+
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
             data_collator=data_collator,
             tokenizer=tokenizer
         )
+
         trainer_test.save_model(output_dir=output_dir)
         torch.save(model.state_dict(),
                    os.path.join(output_dir, 'model_weights.json'))
@@ -642,9 +696,8 @@ class Modelling:
                     labels=batch["labels"].to(self.args.device)
                 )
 
-                batch_preds = np.argmax(
-                    output.logits.detach().cpu().numpy(), axis=-1
-                )
+                batch_preds = np.argmax(output.logits.detach().cpu().numpy(),
+                                        axis=-1)
                 batch_labels = batch["labels"].cpu().numpy()
                 batch_loss = output.loss.item()
 

@@ -7,46 +7,56 @@ Velkommen til dokumentation for AI-signatur projektet!
 ======================================================
 Content:
 
-1. Modelcard - se huggingface modelcard (Kasper)
-2. Introduktion - hvad er AI-signatur projekt - motivation bag modellerne (Kasper)
-3. Model usage - Swagger dokumentation - henvendt til software udvikler (??)
- - Inference kode snippet (Kasper)
- - API suggestion (Deployment suggestion) (??)
- - Træningseksempler - CLI argumenter for hver modeltype (Kasper)
-4. Kode dokumentation - autogenereret fra doc strings (Training API) (Kasper)
- - **But what is Training API??**
-5. Data clarification - hvad skal modellerne tage af input? (??)
+#. Modelcard - se huggingface modelcard (Kasper)
+
+#. Introduktion - hvad er AI-signatur projekt - motivation bag modellerne (Martin)
+
+#. Model usage - Swagger dokumentation - henvendt til software udvikler (Bør være lavet - Martin)
+
+	* Inference kode snippet (Kasper)
+	
+	* API suggestion (Deployment suggestion) (Martin)
+
+	* Træningseksempler - CLI argumenter for hver modeltype (Kasper)
+
+#. Kode dokumentation - autogenereret fra doc strings (Kasper)
+
+#. Data clarification - hvad skal modellerne tage af input? (Kasper)
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Introduktion
 
    aisig
+   data
+   models
+   modelling
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Hurtigstart
+	:caption: Quickstart
 
 	installation
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Dokumentation
+	:caption: Eksempler
 
-	modellering
-	data
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Kode
+	:caption: Kodedokumentation
 
 	github
-	code_doc
+	/auto_examples/index
+	code_overview
+
 
 
 
 Title that maybe is not needed
-==================
+==============================
 
 * :ref:`genindex`
 * :ref:`modindex`

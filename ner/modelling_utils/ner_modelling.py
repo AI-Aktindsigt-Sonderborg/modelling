@@ -5,7 +5,7 @@ from typing import List
 import evaluate
 import numpy as np
 import torch
-from datasets import ClassLabel
+from datasets import ClassLabel, load_dataset
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -13,21 +13,20 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, DataCollatorForTokenClassification, \
-    AutoModelForTokenClassification, BertConfig
+from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
-from ner.data_utils.get_dataset import get_label_list, get_dane_train, \
-    get_dane_val, get_dane_test
-from ner.local_constants import MODEL_DIR
+from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, \
+    get_dane_val
+from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
-from ner.modelling_utils.helpers import align_labels_with_tokens
-from shared.data_utils.custom_dataclasses import EvalScore
+from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
+from shared.data_utils.custom_dataclasses import EvalScore, NEROutput
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.custom_modeling_bert import BertOnlyMLMHeadCustom
+from shared.modelling_utils.custom_modeling_bert import \
+    BertForTokenClassification
 from shared.modelling_utils.helpers import get_lr, \
     log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
-from shared.utils.helpers import append_json_lines
 from shared.utils.visualization import plot_confusion_matrix
 
 seqeval = evaluate.load('seqeval')
@@ -38,15 +37,26 @@ class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
-        self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+        if not args.test:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
+        else:
+            self.output_dir = os.path.join(MODEL_DIR, self.args.model_name)
 
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
-        self.args.labels, self.id2label, self.label2id = get_label_list()
-
+        self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list(
+            self.args.entities)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels),
             names=self.args.labels)
+
+        if args.train_data == 'dane':
+            self.args.labels, self.id2label, self.label2id, self.label2weight = get_label_list_old()
+            self.class_labels = ClassLabel(
+                num_classes=len(self.args.labels),
+                names=self.args.labels)
+
+        self.data_dir = PREP_DATA_DIR
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
@@ -71,12 +81,28 @@ class NERModelling(Modelling):
         with torch.no_grad():
             # get model predictions and labels
             for batch in tqdm(val_loader, unit="batch", desc="Eval"):
-                output = model(
-                    input_ids=batch["input_ids"].to(self.args.device),
-                    attention_mask=batch["attention_mask"].to(self.args.device),
-                    labels=batch["labels"].to(self.args.device))
 
-                batch_loss = output.loss.item()
+                # output = model(
+                #     input_ids=batch["input_ids"].to(self.args.device),
+                #     attention_mask=batch["attention_mask"].to(self.args.device),
+                #     labels=batch["labels"].to(self.args.device))
+
+                if not self.args.weight_classes:
+                    output = model(
+                        input_ids=batch["input_ids"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
+                        labels=batch["labels"].to(self.args.device))
+                    batch_loss = output.loss.item()
+                else:
+                    output = model(
+                        input_ids=batch["input_ids"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
+                        labels=batch["labels"].to(self.args.device),
+                        class_weights=self.class_weights.to(self.args.device))
+
+                    batch_loss = output.loss.item()
 
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
@@ -98,48 +124,52 @@ class NERModelling(Modelling):
                 loss.append(batch_loss)
 
         # To Søren: this block is only used for comparing different f1 scores
-        # Dont worry about it
-        all_metrics = seqeval.compute(
-            predictions=y_pred,
-            references=y_true,
-            scheme='IOB2')
-
-        for k, v in all_metrics.items():
-            if isinstance(v, dict):
-                for j, u in v.items():
-                    all_metrics[k][j] = float(u)
-            else:
-                all_metrics[k] = float(v)
+        # Dont worry about it - seqeval not working for sonderborg NER classes
+        # all_metrics = seqeval.compute(
+        #     predictions=y_pred,
+        #     references=y_true,
+        #     scheme='IOB2')
+        #
+        # for k, v in all_metrics.items():
+        #     if isinstance(v, dict):
+        #         for j, u in v.items():
+        #             all_metrics[k][j] = float(u)
+        #     else:
+        #         all_metrics[k] = float(v)
+        # append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
+        #             filename='seqeval_metrics')
         # --------------------------------------------------------------------
 
-        append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
-                    filename='seqeval_metrics')
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average='macro')
-        f_1_none = f1_score(y_true, y_pred, average=None)
+        f_1_none_ = f1_score(y_true, y_pred, average=None,
+                             labels=self.args.labels)
+        f_1_none = [{self.args.labels[i]: f_1_none_[i]} for i in
+                    range(len(self.args.labels))]
         loss = float(np.mean(loss))
 
         print(f"\n"
-              f"eval loss: {loss} \t"
-              f"eval acc: {acc}"
-              f"eval f1: {f_1}")
+              f"eval loss: {loss}\t"
+              f"eval acc: {acc}\t"
+              f"eval f1: {f_1}\t")
 
         if conf_plot:
-            y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
-            y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
+            # y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
+            # y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
 
             plot_confusion_matrix(
-                y_true=y_true_plot,
-                y_pred=y_pred_plot,
+                y_true=y_true,
+                y_pred=y_pred,
                 labels=self.args.labels,
                 model_name=self.args.model_name,
-                plots_dir=PLOTS_DIR)
+                plots_dir=PLOTS_DIR,
+                concat_bilou=self.args.concat_bilou)
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss,
-                         f_1_none=list(f_1_none))
+                         f_1_none=f_1_none)
 
     def load_data(self, train: bool = True, test: bool = False):
         """
@@ -148,8 +178,17 @@ class NERModelling(Modelling):
         :param train: Whether to train model
         :param test: Whether to load test data
         """
+
         if train:
-            self.data.train = get_dane_train(subset=self.args.data_subset)
+            if self.args.train_data == 'dane':
+                self.data.train = get_dane_train(subset=self.args.data_subset)
+            else:
+                self.data.train = load_dataset(
+                    'json',
+                    data_files=os.path.join(self.data_dir,
+                                            self.args.train_data),
+                    split='train')
+
             print(f'len train: {len(self.data.train)}')
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size
@@ -167,25 +206,21 @@ class NERModelling(Modelling):
                 self.args.max_grad_norm = None
 
         if self.args.evaluate_during_training:
-            self.data.eval = get_dane_val(subset=self.args.data_subset)
+            if self.args.train_data == 'dane':
+                self.data.eval = get_dane_val(subset=self.args.data_subset)
+            else:
+                self.data.eval = load_dataset(
+                    'json',
+                    data_files=os.path.join(self.data_dir, self.args.eval_data),
+                    split='train')
+
             print(f'len eval: {len(self.data.eval)}')
 
         if test:
-            self.data.test = get_dane_test(subset=self.args.data_subset)
-
-    def load_model_and_replace_bert_head(self):
-        """
-        Load BertForMaskedLM, replace head and freeze all params in embeddings
-        layer
-        """
-        model = AutoModelForTokenClassification.from_pretrained(
-            self.args.model_name)
-        config = BertConfig.from_pretrained(self.args.model_name)
-        lm_head = BertOnlyMLMHeadCustom(config)
-        lm_head = lm_head.to(self.args.device)
-        model.cls = lm_head
-
-        return model
+            self.data.test = load_dataset(
+                'json',
+                data_files=os.path.join(self.data_dir, self.args.test_data),
+                split='train')
 
     def tokenize_and_wrap_data(self, data: Dataset):
 
@@ -197,13 +232,16 @@ class NERModelling(Modelling):
                 padding='max_length',
                 max_length=self.args.max_length
             )
+
             all_labels = examples["ner_tags"]
             new_labels = []
+            # attention_mask = []
             for i, labels in enumerate(all_labels):
                 word_ids = tokenized_inputs.word_ids(i)
                 new_labels.append(align_labels_with_tokens(labels, word_ids))
 
             tokenized_inputs["labels"] = new_labels
+
             return tokenized_inputs
 
         tokenized = data.map(
@@ -218,68 +256,40 @@ class NERModelling(Modelling):
 
         return wrapped
 
-    # def tokenize_and_wrap_data_old(self, data: Dataset):
-    #     """
-    #     Tokenize dataset with tokenize_function and wrap with DatasetWrapper
-    #     :param data: Dataset
-    #     :return: DatasetWrapper(Dataset)
-    #     """
-    #
-    #     def tokenize_and_align_labels_old(examples):
-    #         # print(examples['tokens'])
-    #         tokenized_inputs = self.tokenizer(examples["tokens"],
-    #                                           truncation=True,
-    #                                           is_split_into_words=True,
-    #                                           padding='max_length',
-    #                                           max_length=self.args.max_length)
-    #
-    #         labels = []
-    #         labels_tokenized = []
-    #         for i, label in enumerate(examples["ner_tags"]):
-    #
-    #             label_tokenized = self.tokenizer.tokenize(
-    #                 ' '.join(examples['tokens'][i]))
-    #             label_tokenized.insert(0, "-100")
-    #             label_tokenized.append("-100")
-    #
-    #             word_ids = tokenized_inputs.word_ids(
-    #                 batch_index=i)  # Map tokens to their respective word.
-    #
-    #             previous_word_idx = None
-    #             label_ids = []
-    #             for word_idx in word_ids:  # Set the special tokens to -100.
-    #                 if word_idx is None:
-    #                     label_ids.append(-100)
-    #                 elif word_idx != previous_word_idx:
-    #                     # Only label the first token of a given word.
-    #                     label_ids.append(label[word_idx])
-    #                 else:
-    #                     label_ids.append(-100)
-    #                 previous_word_idx = word_idx
-    #             labels.append(label_ids)
-    #             labels_tokenized.append(label_tokenized)
-    #
-    #         tokenized_inputs["labels"] = labels
-    #         tokenized_inputs["labels_tokenized"] = labels_tokenized
-    #
-    #         return tokenized_inputs
-    #
-    #     tokenized_dataset = data.map(tokenize_and_align_labels_old,
-    #                                  batched=True)
-    #     # tokenized_dataset_new = tokenized_dataset.remove_columns(
-    #     #     )
-    #     if self.args.train_data == 'wikiann':
-    #         tokenized_dataset_new = tokenized_dataset.remove_columns(
-    #             ["spans", "langs", "ner_tags", "labels_tokenized", "tokens"])
-    #     else:
-    #         tokenized_dataset_new = tokenized_dataset.remove_columns(
-    #             ['sent_id', 'text', 'tok_ids', 'tokens', 'lemmas', 'pos_tags',
-    #              'morph_tags',
-    #              'dep_ids', 'dep_labels', 'ner_tags', 'labels_tokenized'])
-    #
-    #     # wrapped = DatasetWrapper(tokenized_dataset_new)
-    #
-    #     return tokenized_dataset_new
+    def predict(self, model, sentence: str,
+                labels: List[str] = None) -> NEROutput:
+        """
+        Predict class from input sentence
+        :param model: model
+        :param sentence: input sentence
+        :param label: label if known
+        :return: Output including sentence embedding and prediction
+        """
+        tokenized = self.tokenizer([sentence],
+                                   padding='max_length',
+                                   max_length=self.args.max_length,
+                                   truncation=True,
+                                   return_tensors='pt')
+
+        decoded_text = self.tokenizer.decode(
+            token_ids=tokenized['input_ids'][0])
+        model.to(self.args.device)
+        output = model(**tokenized.to(self.args.device),
+                       output_hidden_states=True,
+                       return_dict=True
+                       )
+        preds = output.logits.argmax(-1).detach().cpu().numpy()
+
+        preds_actual = [self.id2label[pred] for pred in preds]
+
+        embedding = torch.mean(
+            output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+        return NEROutput(sentence=sentence,
+                               labels=labels,
+                               predictions=preds_actual,
+                               decoded_text=decoded_text,
+                               embedding=embedding)
+
 
     def get_tokenizer(self):
         # ToDo: Consider do_lower_case=True, otherwise lowercase training data
@@ -295,7 +305,7 @@ class NERModelling(Modelling):
         return DataCollatorForTokenClassification(tokenizer=self.tokenizer)
 
     def get_model(self):
-        return AutoModelForTokenClassification.from_pretrained(
+        return BertForTokenClassification.from_pretrained(
             self.model_path,
             num_labels=len(self.args.labels),
             label2id=self.label2id,
@@ -310,13 +320,13 @@ class NERModelling(Modelling):
         :return: freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("cls."):
+            if not (name.startswith('bert.encoder.layer.11') or name.startswith('classifier')):
                 param.requires_grad = False
         model.train()
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool=False):
         """
         Un-freeze all layers exept for embeddings in model, such that we can
         train full model
@@ -324,11 +334,16 @@ class NERModelling(Modelling):
         :return: un-freezed model
         """
         for name, param in model.named_parameters():
-            if not name.startswith("bert.embeddings"):
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
-        print("bert layers unfreezed")
+
+        print("all layers unfreezed")
         model.train()
         return model
+
 
 
 class NERModellingDP(NERModelling):
@@ -408,22 +423,25 @@ class NERModellingDP(NERModelling):
         :param model: Model of type GradSampleModule
         :return: freezed model
         """
-        for name, param in model.named_parameters():
-            if not name.startswith("_module.cls"):
+        for name, param in model._module.named_parameters():
+            if not (name.startswith('bert.encoder.layer.11') or name.startswith('classifier')):
                 param.requires_grad = False
         model.train()
         return model
 
     @staticmethod
-    def unfreeze_layers(model):
+    def unfreeze_layers(model, freeze_embeddings: bool = True):
         """
         Un-freeze all bert layers in model, such that we can train full model
         :param model: Model of type GradSampleModule
         :return: un-freezed model
         """
-        for name, param in model.named_parameters():
-            # ToDo: Find out if relevant for NER
-            if not name.startswith("_module.bert.embeddings"):
+        for name, param in model._module.named_parameters():
+            if freeze_embeddings:
+                if not name.startswith("bert.embeddings"):
+                    param.requires_grad = True
+            else:
                 param.requires_grad = True
+
         model.train()
         return model

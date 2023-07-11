@@ -9,12 +9,15 @@ def split_sentences(
     disapproved_sentences: List[str]) -> Tuple[List[str], List[str]]:
     """
     Takes raw html input text and splits to sentences
-    :param data_dict: Dictionary containing raw input text from filtered scrape
-    file
-    :param sentence_splitter: nltk.tokenize.punkt.PunktSentenceTokenizer
-    :param disapproved_sentences: list of disapproved sentences
-    :param filename: filename
-    :return: list of sentences, list of disapproved sentences
+
+    :param dict data_dict: Dictionary containing raw input text from filtered
+        scrape file
+    :param str filename: filename
+    :param PunktSentenceTokenizer sentence_splitter: Tokenizer to split
+        sentences
+    :param List[str] disapproved_sentences: list of disapproved sentences
+    :return: List of sentences, list of disapproved sentences
+    :rtype: Tuple[List[str], List[str]]
     """
 
     # Read canonical string representation of the object as we need special

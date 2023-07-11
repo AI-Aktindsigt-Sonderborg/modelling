@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import List
 
 import numpy as np
 import torch
@@ -11,6 +12,14 @@ class EmbeddingOutput:
     sentence: str = None
     label: str = None
     prediction: str = None
+    decoded_text: str = None
+    embedding: np.array = None
+
+@dataclass
+class NEROutput:
+    sentence: str = None
+    labels: List[str] = None
+    predictions: List[str] = None
     decoded_text: str = None
     embedding: np.array = None
 

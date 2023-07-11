@@ -13,19 +13,22 @@ logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
+args.test = False
+
+args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
 
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
+
 if leftovers:
     logger.warning(f'The following args is not relevant for model '
                    f'{model_name_to_print}: '
                    f'{leftovers}. Ignoring...')
 
-if args.freeze_layers:
-    logger.warning(
-        f'Freezing layers for model {model_name_to_print} has not been '
-        f'implemented')
-    args.freeze_layers = False
+if args.freeze_layers and args.lr_freezed < args.learning_rate:
+    logger.warning(f'lr_freezed must be higher than lr')
+    print('exiting - try again')
+    ner_parser.parser.exit()
 
 args.cmd_line_args = sys.argv
 

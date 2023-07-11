@@ -1,3 +1,4 @@
+from typing import OrderedDict
 
 from datasets import load_dataset
 
@@ -84,11 +85,21 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
     return tokenized_dataset_new
 
 
-def get_label_list():
+def get_label_list_old():
     label_list = ['O', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC',
                   'B-MISC', 'I-MISC']
     id2label = {0: 'O', 1: 'B-PER', 2: 'I-PER', 3: 'B-ORG', 4: 'I-ORG',
                 5: 'B-LOC', 6: 'I-LOC', 7: 'B-MISC',
                 8: 'I-MISC'}
+
     label2id = {v: k for k, v in id2label.items()}
-    return label_list, id2label, label2id
+
+    label2weight = OrderedDict()
+
+    for i, label in enumerate([label2id[x] for x in label_list]):
+        if label == 0:
+            label2weight[label] = 1
+        else:
+            label2weight[label] = 2
+
+    return label_list, id2label, label2id, label2weight

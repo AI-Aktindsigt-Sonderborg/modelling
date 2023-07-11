@@ -4,7 +4,22 @@ from distutils.util import strtobool
 
 class DataPrepArgParser:
     """
-    Class to handle arguments of data prep for scraped data
+    Class to handle input arguments for data preprocessing of scraped data --
+    see :class:`.RawScrapePreprocessing`.
+
+    :param  float --danish_threshold: Threshold to filter danish sentence predictions from raw scrape (default: 0.6)
+    :param int --min_len: Keep sentences with at least n words (default: 8)
+    :param float --split: training set size between 0 and 1 (default: 0.98)
+    :param bool --add_ppl: Whether to add ppl_score to unique sentences (default: False)
+    :param int --ppl_threshold: Perplexity threshold for approving sentences (default: 10000)
+    :param str --train_outfile: Name of final training data file fx 'train' (default: train)
+    :param str --val_outfile: Name of final validation data file fx 'validation' (default: validation)
+    :param int --split_train_n_times: Split train set n times into n+1 training sets (default: 0)
+    :param str --excel_classification_file: Name of annotated excel file (default: skrab_01.xlsx)
+    :param str --classified_scrape_file: Name of classified scrape file (default: classified_scrape)
+    :param str --data_type: 'unlabelled' or 'labelled' (default: unlabelled)
+    :param bool --lower_case: Whether to lower case all sentences. If doing mlm,
+    very important to check whether classified data is lowercased (default: False)
     """
 
     def __init__(self):

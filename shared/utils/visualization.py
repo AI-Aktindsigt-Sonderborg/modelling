@@ -6,7 +6,8 @@ import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
-
+from collections import OrderedDict
+from sklearn.metrics import f1_score, precision_score, recall_score
 from shared.data_utils.custom_dataclasses import EvalScore
 
 
@@ -66,20 +67,36 @@ def plot_confusion_matrix(
     model_name: str,
     plots_dir: str = None,
     normalize: str = 'true',
-    save_fig: bool = True):
+    save_fig: bool = True,
+    concat_bilou: bool = False):
     """Function is self-explanatory"""
 
-    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
-                                   normalize=normalize)
+    if concat_bilou and "ner" in plots_dir:
+        y_true = [y[2:] if y != 'O' else y for y in y_true]
+        y_pred = [y[2:] if y != 'O' else y for y in y_pred]
+        labels = list(OrderedDict.fromkeys(
+            [label[2:] if label != 'O' else label for label in labels]))
+
+        print(f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}")
+        print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
+        print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
+
+    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels, normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
-    plt.figure(figsize=(10, 7))
-    sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt='g', xticklabels=labels,
+    plt.figure(figsize=(20, 14))
+    sn.heatmap(df_cm, annot=True, cmap="YlGnBu", fmt=".2f", xticklabels=labels,
                yticklabels=labels)
+
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
 
     plt.tight_layout()
     if save_fig:
-        plt.savefig(os.path.join(plots_dir,
-                                 f'conf_plot_{model_name.replace("/", "_")}'))
+        filepath = os.path.join(plots_dir,
+                                f'conf_plot_{model_name.replace("/", "_")}')
+        if concat_bilou:
+            filepath += "-concat_bilou"
+        plt.savefig(filepath)
     else:
         plt.show()

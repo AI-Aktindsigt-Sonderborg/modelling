@@ -13,8 +13,41 @@ from shared.utils.helpers import read_json_lines, write_json_lines
 
 class ClassifiedScrapePreprocessing:
     """
-    Class to read raw excel file with classified KL categories and split to
-    train and validation data
+    Class for reading raw excel file with classified KL categories and split to
+    train and validation data.
+
+    :param argparse.Namespace args:
+        input arguments from :class:`.DataPrepArgParser`.
+
+    :Eksempel:
+        ::
+
+            from mlm.data_utils.data_prep_input_args import DataPrepArgParser
+            from sc.data_utils.prep_scrape import ClassifiedScrapePreprocessing
+            prep_parser = DataPrepArgParser()
+            prep_args = prep_parser.parser.parse_args()
+            prep_args.data_type = 'labelled'
+            data_preprocessor = ClassifiedScrapePreprocessing(args=prep_args)
+            concat_data = data_preprocessor.concat_all_classified_data()
+            grouped_data = data_preprocessor.group_data_by_class(
+                list_data=concat_data)
+            data_preprocessor.train_val_test_to_json_split(
+                class_grouped_data=grouped_data,
+                train_outfile='train_classified',
+                val_outfile='eval_classified',
+                test_outfile='test_classified',
+                train_size=0.9,
+                test_size=30)
+
+    :CLI eksempel:
+        ::
+
+            python -m sc.data_utils.prep_scrape --data_type labelled
+
+    Metoder
+    -------
+
+
     """
 
     def __init__(self, args: argparse.Namespace):
@@ -24,7 +57,8 @@ class ClassifiedScrapePreprocessing:
                            ppl_filters: List[int] = None, drop_na: bool = True):
         """
         Read excel file with labelled data and save to json lines file
-        :param file_dir: directory to read file from
+
+        :param str file_dir: directory to read file from
         :param ppl_filters: filter data on perplexity scores
         :param drop_na: drop not classified sentences
         """
@@ -68,7 +102,7 @@ class ClassifiedScrapePreprocessing:
                                      val_outfile: str = None,
                                      test_outfile: str = None):
         """
-         Read grouped data, split to train, val and test and save json
+        Read grouped data, split to train, val and test and save json
         :param class_grouped_data: grouped data as list og lists of dicts
         :param train_size: float between 0 and 1 specifying the size of the
         train set where
@@ -142,7 +176,7 @@ class ClassifiedScrapePreprocessing:
             filepath = os.path.join(data_dir, filename)
             if os.path.isfile(filepath):
                 tmp_data = read_json_lines(input_dir=data_dir,
-                                          filename=filename.split('.')[0])
+                                           filename=filename.split('.')[0])
                 for line in tmp_data:
                     if isinstance(line['text'], str):
                         if lower_case:
@@ -167,17 +201,17 @@ if __name__ == '__main__':
     # prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
     # prep_args.classified_scrape_file = 'mixed_classified_scrape'
 
-    class_prep = ClassifiedScrapePreprocessing(prep_args)
-    # class_prep.read_xls_save_json()
+    data_preprocessor = ClassifiedScrapePreprocessing(prep_args)
+    # data_preprocessor.read_xls_save_json()
 
+    concat_data = data_preprocessor.concat_all_classified_data()
+    grouped_data = data_preprocessor.group_data_by_class(
+        list_data=concat_data)
 
-    concat_data = class_prep.concat_all_classified_data(
-        lower_case=prep_args.lower_case)
-    grouped_data = class_prep.group_data_by_class(list_data=concat_data)
-
-    class_prep.train_val_test_to_json_split(class_grouped_data=grouped_data,
-                                            train_outfile='train_classified',
-                                            val_outfile='eval_classified',
-                                            test_outfile='test_classified',
-                                            train_size=0.9,
-                                            test_size=30)
+    data_preprocessor.train_val_test_to_json_split(
+        class_grouped_data=grouped_data,
+        train_outfile='train_classified',
+        val_outfile='eval_classified',
+        test_outfile='test_classified',
+        train_size=0.9,
+        test_size=30)

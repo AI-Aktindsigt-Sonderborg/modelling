@@ -1,4 +1,5 @@
 # pylint: disable=invalid-name
+import dataclasses
 import json
 import os
 import sys
@@ -9,6 +10,7 @@ from torch.optim.lr_scheduler import LinearLR
 from torch.utils.data import DataLoader
 
 from shared.data_utils.custom_dataclasses import EvalScore
+from shared.utils.helpers import read_json_lines
 
 
 def validate_model(model, strict_validation: bool = False):
@@ -19,6 +21,20 @@ def validate_model(model, strict_validation: bool = False):
         sys.exit(1)
     else:
         print("Model is compatible for DP with opacus.")
+
+def label2id2label(labels: list):
+    """
+    Generates a label-to-id and id-to-label mapping for the labels given in
+    `self.args.labels`.
+    :return: tuple: A tuple containing two dictionaries, the first being a
+    mapping of label to id and the second being a mapping of id to label.
+    """
+    label2id, id2label = {}, {}
+
+    for i, label in enumerate(labels):
+        label2id[label] = str(i)
+        id2label[i] = label
+    return label2id, id2label
 
 
 def create_scheduler(optimizer, start_factor: float, end_factor: float,
@@ -66,7 +82,7 @@ def get_lr(optimizer):
 
 
 def get_metrics(eval_scores: List[EvalScore],
-                eval_metrics: List[str]) -> Tuple[dict, bool]:
+                eval_metrics: List[str], best_model_path: str = None) -> Tuple[dict, bool]:
     """
     Compute min loss and max accuracy based on all values from evaluation
     :param f1s: List[dict] of all f1 scores computed by evaluate()
@@ -76,21 +92,32 @@ def get_metrics(eval_scores: List[EvalScore],
     un-freezed
     :return: The best metric for loss, accuracy and f1
     """
-    save_best_model = True
 
+    current_eval_scores = dataclasses.asdict(max(eval_scores, key=lambda x: x.step))
+    previous_best_metrics = None
+    if best_model_path and os.path.exists(best_model_path + "/eval_scores.jsonl"):
+        previous_best_metrics = read_json_lines(
+            input_dir=best_model_path,
+            filename='eval_scores')[0]
+
+    save_best_model = True
+    if previous_best_metrics:
+        for metric in eval_metrics:
+            if metric == 'loss':
+                if current_eval_scores[metric] > previous_best_metrics[metric]:
+                    save_best_model = False
+                    break
+
+            elif current_eval_scores[metric] < previous_best_metrics[metric]:
+                save_best_model = False
+                break
+
+    # ToDo: Continue from here - extract metrics from previous best model
     # For max and min we reverse the list, such that we get the last element if
     # equal
     min_loss = min(reversed(eval_scores), key=lambda x: x.loss)
     max_acc = max(reversed(eval_scores), key=lambda x: x.accuracy)
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
-    current_step = max(eval_scores, key=lambda x: x.step)
-
-    best_steps = {'loss': min_loss.step, 'accuracy': max_acc.step,
-                  'f_1': max_f1.step}
-    for metric in eval_metrics:
-        if best_steps[metric] != current_step.step:
-            save_best_model = False
-            break
 
     best_metric_dict = {'loss': {'epoch': min_loss.epoch,
                                  'step': min_loss.step,
