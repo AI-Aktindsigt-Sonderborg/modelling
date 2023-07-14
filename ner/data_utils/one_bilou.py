@@ -7,7 +7,7 @@ args: list = sys.argv[1:]
 
 bilou = read_json_lines(input_dir=DATA_DIR, filename=args[0])
 
-bilou_filtered = [x for x in bilou if x['doc_id'] == args[1]]
+bilou_filtered = [x for x in bilou if x['document_id'] == args[1]]
 
 if len(args) > 2:
     bilou_filtered = [x for x in bilou_filtered if
