@@ -34,7 +34,11 @@ def get_label_list(ner_entities: List[str]):
         inside = "I-" + entity
         last = "L-" + entity
         unique = "U-" + entity
-        label_list.extend([begin, inside, last, unique])
+        label_list.append(begin)
+        label_list.append(inside)
+        label_list.append(last)
+        if not unique == "U-ADRESSE":
+            label_list.append(unique)
 
     for i, label in enumerate(label_list):
         id2label[i] = label

@@ -704,7 +704,7 @@ def create_bilou_from_one_document(
                     for count in range(len(words_final)):
                         print(f"{words_final[count]} - {tags_no_whitespace[count]}")
 
-                    sys.exit(0)
+                    # sys.exit(0)
 
                 sentence_index_diff += len(sentence)
 
