@@ -16,12 +16,6 @@ sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
     indices_reindexed = 0
-    wrong_annotation_adresse = [
-        "Bækgade 13 6400 Sønderborg",
-        "Bustrupvej 48 6400 Sænderborg",
-    ]
-    wrong_annotation_person = ["Torben Jakobsen"]
-    wrong_annotation_org = ["Sønderborg misbrugscenter"]
 
     BLACKLIST_HELBRED = read_json(
         filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
@@ -31,17 +25,12 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
     )
 
-    #    current_page_annotations = [
-    #   t for t in {frozenset(d.items()) for d in current_page_annotations}
-    # ]
-
-    #    1f51090c-9454-49c0-ade8-d4adb24fcf0a
-
     for annotation_num, annotation in enumerate(current_page_annotations):
+        # ToDo: Fix this guid thing as they may not be unique
         if (
             annotation["annotation"]["category"]["guid"]
             == "1f51090c-9454-49c0-ade8-d4adb24fcf0a"
-        ):
+        ) and (annotation["annotation"]["content"] == "Børn og Familie"):
             del current_page_annotations[annotation_num]
             continue
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
@@ -56,22 +45,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
         annotated_content_init = annotation["annotation"]["content"]
         annotated_class = annotation["annotation"]["annotation"]
-
-        if (
-            annotated_class == "HELBRED"
-            and annotated_content_init in wrong_annotation_adresse
-        ):
-            annotation["annotation"]["annotation"] = "ADRESSE"
-        if (
-            annotated_class == "HELBRED"
-            and annotated_content_init in wrong_annotation_person
-        ):
-            annotation["annotation"]["annotation"] = "PERSON"
-        if (
-            annotated_class == "HELBRED"
-            and annotated_content_init in wrong_annotation_org
-        ):
-            annotation["annotation"]["annotation"] = "ORGANISATION"
 
         start_index_init = annotation["annotation"]["start"]
         end_index_init = annotation["annotation"]["end"]
