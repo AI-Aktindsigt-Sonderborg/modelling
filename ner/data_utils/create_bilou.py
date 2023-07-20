@@ -31,7 +31,19 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
     )
 
+    #    current_page_annotations = [
+    #   t for t in {frozenset(d.items()) for d in current_page_annotations}
+    # ]
+
+    #    1f51090c-9454-49c0-ade8-d4adb24fcf0a
+
     for annotation_num, annotation in enumerate(current_page_annotations):
+        if (
+            annotation["annotation"]["category"]["guid"]
+            == "1f51090c-9454-49c0-ade8-d4adb24fcf0a"
+        ):
+            del current_page_annotations[annotation_num]
+            continue
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
             del current_page_annotations[annotation_num]
             print(f"deleted helbred annot: {annotation['annotation']['content']}")
@@ -254,6 +266,19 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                         current_page_annotations[annotation_num]["annotation"]["end"]
                         + 1
                     )
+                if pdf_text[end_index : end_index + 1] == "s":
+                    current_page_annotations[annotation_num]["annotation"][
+                        "content"
+                    ] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "content"
+                        ]
+                        + "s"
+                    )
+                    current_page_annotations[annotation_num]["annotation"]["end"] = (
+                        current_page_annotations[annotation_num]["annotation"]["end"]
+                        + 1
+                    )
 
     return current_page_annotations, indices_reindexed
 
@@ -282,11 +307,15 @@ def create_bilou_from_one_document(
         if page_num not in keys_list:
             current_page_annotations = None
             sorted_page_annotations = None
+            current_page_annotations_original = None
         else:
             current_page_annotations = input_data["text_annotation"][page_num]
+            current_page_annotations_original = current_page_annotations
+
             current_page_annotations, indices_reindexed = fix_faulty_indices(
                 current_page_annotations, pdf_text, data_number
             )
+
             sorted_page_annotations = sorted(
                 current_page_annotations, key=lambda x: x["annotation"]["start"]
             )
@@ -401,7 +430,10 @@ def create_bilou_from_one_document(
                         annotation["annotation"]["start"] : end_index_init
                     ]
 
-                    if print_stats:
+                    if (
+                        annotation["annotation"]["content"] == "Ankestyrelsen"
+                        or annotation["annotation"]["content"] == "Ankestyrelsens"
+                    ):
                         print(
                             f"----------annotation_stats: {data_number + 1} - page_number: {k + 1} - {i} - anno_nr: {j} -------------"
                         )
@@ -609,9 +641,7 @@ def create_bilou_from_one_document(
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
                         )
-                    print(
-                        f"data_number: {data_number} - doc_id: {input_data['document_id']}"
-                    )
+
                     if print_each_sentence == 1:
                         print("----sentence-----")
                         print(f"|{sentence}|")
@@ -638,9 +668,19 @@ def create_bilou_from_one_document(
                         f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}."
                     )
                     print(
-                        f"--------------Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------"
+                        f"--------------Full dicts - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------"
                     )
                     for annot in sorted_page_annotations:
+                        print(annot)
+                    print("--------------Sorted annotations - start------------------")
+                    for annot in sorted_page_annotations:
+                        print(
+                            f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
+                        )
+                    print(
+                        f"----------Original Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------"
+                    )
+                    for annot in current_page_annotations_original:
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
                         )
