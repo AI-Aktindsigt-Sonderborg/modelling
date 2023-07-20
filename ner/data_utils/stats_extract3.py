@@ -2,7 +2,7 @@ import json
 import re
 from collections import Counter
 
-input_file_name = "user_annotated_output7.jsonl"
+input_file_name = "ner/data/origin-7.jsonl"
 output_file_name = "./bilou_user_annotated_output12.jsonl"
 
 common_scandi_misses =  ["/S", "'S", "'s", "´S", "´s", "\"S", "\"s", "”S", "”s", "’s", "’S"]

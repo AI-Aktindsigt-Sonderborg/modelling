@@ -124,3 +124,15 @@ class DataPrepArgParser:
             metavar='<str>',
             default=None,
             help="Print specific entity for data inspection.")
+        self.parser.add_argument(
+            '--test_file',
+            type=str,
+            metavar='<str>',
+            default="bilou_test",
+            help="Name of test file.")
+        self.parser.add_argument(
+            '--test_size',
+            type=int,
+            metavar='<int>',
+            default=10,
+            help="Number of sentences within each class.")
