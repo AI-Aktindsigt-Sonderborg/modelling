@@ -1,8 +1,11 @@
 # to be created
 
+from textwrap import wrap
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
 from shared.modelling_utils.helpers import create_data_loader
+from ner.data_utils.get_dataset import tokenize_and_align_labels_for_dataset
+from shared.data_utils.helpers import DatasetWrapper
 
 sc_parser = NERArgParser()
 
@@ -23,9 +26,15 @@ modelling = NERModelling(args)
 
 modelling.load_data(train=False, test=args.test)
 
+tokenized = tokenize_and_align_labels_for_dataset(
+    dataset=modelling.data.test, tokenizer=modelling.tokenizer
+)
+
+wrapped = DatasetWrapper(tokenized)
 
 wrapped, test_loader = create_data_loader(
-    data_wrapped=modelling.tokenize_and_wrap_data(modelling.data.test),
+    # data_wrapped=modelling.tokenize_and_wrap_data(modelling.data.test),
+    data_wrapped=tokenized,
     data_collator=modelling.data_collator,
     batch_size=modelling.args.eval_batch_size,
     shuffle=False,
@@ -33,10 +42,17 @@ wrapped, test_loader = create_data_loader(
 
 model = modelling.get_model()
 model.config.label2id = modelling.label2id
+model.config.id2label = modelling.id2label
 
 eval_scores = modelling.evaluate(model=model, val_loader=test_loader, conf_plot=True)
 
 print(eval_scores)
+print("len test_loader")
+print(len(test_loader))
 
+print("len dataset")
+print(len(modelling.data.test))
 
 print(model.config.label2id)
+
+print(model.config.id2label)
