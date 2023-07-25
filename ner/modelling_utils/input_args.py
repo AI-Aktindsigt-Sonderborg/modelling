@@ -82,3 +82,9 @@ class NERArgParser(ModellingArgParser):
             metavar='<bool>',
             default=False,
             help="Whether to compute one single f1_score per entity")
+        ner_params.add_argument(
+            "-nc", "--normalize_conf",
+            type=str,
+            default=None,
+            help="whether to normalize conf_plot",
+            metavar='<str>')
