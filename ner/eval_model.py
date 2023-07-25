@@ -14,7 +14,7 @@ args.evaluate_during_training = False
 args.load_alvenir_pretrained = True
 args.differential_privacy = False
 args.test = True
-args.test_data = "bilou_val.jsonl"
+# args.test_data = "bilou_val.jsonl"
 # args.concat_bilu = True
 
 modelling = NERModelling(args)
@@ -25,17 +25,13 @@ wrapped, test_loader = create_data_loader(
     data_wrapped=modelling.tokenize_and_wrap_data(modelling.data.test),
     data_collator=modelling.data_collator,
     batch_size=modelling.args.eval_batch_size,
-    shuffle=False
+    shuffle=False,
 )
 
 model = modelling.get_model()
 model.config.label2id = modelling.label2id
 
-eval_scores = modelling.evaluate(
-    model=model,
-    val_loader=test_loader,
-    conf_plot=True)
-
+eval_scores = modelling.evaluate(model=model, val_loader=test_loader, conf_plot=True)
 
 
 print(eval_scores)
