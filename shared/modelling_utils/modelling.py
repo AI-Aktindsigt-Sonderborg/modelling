@@ -176,6 +176,7 @@ class Modelling:
                 train_data_wrapped=train_data_wrapped,
                 model=model)
             optimizer = dummy_trainer.create_optimizer()
+            dummy_trainer.save_model(output_dir=self.output_dir)
 
         if self.args.freeze_layers:
             self.scheduler = create_scheduler(
