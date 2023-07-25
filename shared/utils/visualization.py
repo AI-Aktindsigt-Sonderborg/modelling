@@ -77,9 +77,13 @@ def plot_confusion_matrix(
         labels = list(OrderedDict.fromkeys(
             [label[2:] if label != 'O' else label for label in labels]))
 
+
         print(f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}")
         print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
         print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
+
+    print(labels)
+    print(y_true)
 
     conf_matrix = confusion_matrix(y_true, y_pred, labels=labels, normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
