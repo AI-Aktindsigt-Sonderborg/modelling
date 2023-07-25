@@ -593,6 +593,7 @@ def create_bilou_from_one_document(
                         tag.startswith(("B-", "U-", "I-", "L-"))
                         and tag[2:].isupper()
                         and tag[2:].isalpha()
+                        and tag != "U-ADRESSE"
                     )
                     else "O"
                     for tag in tags_no_whitespace
