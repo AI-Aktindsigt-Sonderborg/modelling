@@ -162,6 +162,11 @@ class Modelling:
 
         # ToDo: Consider assigning model to class such that it is injected directly for training and inference
         model = self.get_model()
+        dummy_trainer_ = self.create_dummy_trainer(
+            train_data_wrapped=train_data_wrapped,
+            model=model)
+        optimizer_ = dummy_trainer_.create_optimizer()
+        dummy_trainer_.save_model(output_dir=self.output_dir)
 
         if self.args.freeze_embeddings:
             for param in model.bert.embeddings.parameters():
