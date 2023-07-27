@@ -122,16 +122,14 @@ class NERModelling(Modelling):
                 print("-------printing labels!!!-------------")
                 # print(batch["input_ids"])
                 print("-labels-")
-                print(batch_labels)
-                print("-ner_tags-")
-                print(self.data.test[i]["ner_tags"])
-                print("--ner tags converted--")
-                print([self.id2label[l] for l in self.data.test[i]["ner_tags"]])
+                print(batch_labels[0])
                 print("-original tags-")
                 print(self.data.test[i]["tags"])
-                print("--tags converted--")
+                print("label_ids")
+                print([self.label2id[l] for l in batch_labels[0]])
+                print("--original tag_ids--")
                 print([self.label2id[l] for l in self.data.test[i]["tags"]])
-
+                assert batch_labels[0] == self.data.test[i]["tags"]
                 print("----------------")
 
                 # print("printing batch labels!!")
@@ -197,14 +195,14 @@ class NERModelling(Modelling):
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=f_1_none)
 
-    def tokenize_and_align(self, dataset, tokenizer):
+    def tokenize_and_wrap_data(self, data: Dataset):
         def tokenize_and_align_labels(examples):
-            tokenized_inputs = tokenizer(
+            tokenized_inputs = self.tokenizer(
                 examples["tokens"],
                 truncation=True,
                 is_split_into_words=True,
                 padding="max_length",
-                max_length=args.max_length,
+                max_length=self.args.max_length,
             )
 
             labels = []
@@ -212,7 +210,7 @@ class NERModelling(Modelling):
 
             for i, label in enumerate(examples["tags"]):
                 label = [self.label2id[lab] for lab in label]
-                label_tokenized = tokenizer.tokenize(" ".join(examples["tokens"][i]))
+                label_tokenized = self.tokenizer.tokenize(" ".join(examples["tokens"][i]))
                 label_tokenized.insert(0, "-100")
                 label_tokenized.append("-100")
 
@@ -234,22 +232,18 @@ class NERModelling(Modelling):
                 labels.append(label_ids)
                 labels_tokenized.append(label_tokenized)
 
-            # ToDo: labels tokenized instead of labels?
             tokenized_inputs["labels"] = labels
             # tokenized_inputs["labels_tokenized"] = labels_tokenized
 
             return tokenized_inputs
 
-        tokenized_dataset = dataset.map(
-            tokenize_and_align_labels, batched=True, remove_columns=dataset.column_names
+        tokenized_dataset = data.map(
+            tokenize_and_align_labels, batched=True, remove_columns=data.column_names
         )
         tokenized_dataset.set_format("torch")
+        wrapped = DatasetWrapper(tokenized_dataset)
 
-        #    tokenized_dataset_new = tokenized_dataset.remove_columns(
-        #       ["ner_tags", "labels_tokenized", "tokens"]
-        #  )
-
-        return tokenized_dataset
+        return wrapped
 
     def load_data(self, train: bool = True, test: bool = False):
         """
@@ -304,7 +298,7 @@ class NERModelling(Modelling):
                 split="train",
             )
 
-    def tokenize_and_wrap_data(self, data: Dataset):
+    def tokenize_and_wrap_data_(self, data: Dataset):
         def tokenize_and_align_labels(examples):
             tokenized_inputs = self.tokenizer(
                 examples["tokens"],

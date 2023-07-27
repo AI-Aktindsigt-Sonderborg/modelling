@@ -93,7 +93,7 @@ class NERDataPreprocessing:
                 tag if ((tag[2:] in args.entities) or (tag == "O")) else "O"
                 for tag in obs["tags"]
             ]
-            obs["ner_tags"] = [label2id[x] for x in obs["tags"]]
+            # obs["ner_tags"] = [label2id[x] for x in obs["tags"]]
 
         write_json_lines(out_dir=DATA_DIR, filename="bilou_" + out_suffix, data=bilou)
         return bilou
