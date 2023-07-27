@@ -50,12 +50,14 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
             truncation=True,
             is_split_into_words=True,
             padding="max_length",
-            max_length=64,
+            max_length=512,
         )
 
         labels = []
         labels_tokenized = []
+
         for i, label in enumerate(examples["ner_tags"]):
+            # label = label2id[label]
             label_tokenized = tokenizer.tokenize(" ".join(examples["tokens"][i]))
             label_tokenized.insert(0, "-100")
             label_tokenized.append("-100")
@@ -80,7 +82,7 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
 
         # ToDo: labels tokenized instead of labels?
         tokenized_inputs["labels"] = labels
-        tokenized_inputs["labels_tokenized"] = labels_tokenized
+        # tokenized_inputs["labels_tokenized"] = labels_tokenized
 
         return tokenized_inputs
 
