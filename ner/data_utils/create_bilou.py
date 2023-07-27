@@ -27,12 +27,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
     for annotation_num, annotation in enumerate(current_page_annotations):
         # ToDo: Fix this guid thing as they may not be unique
-        if (
-            annotation["annotation"]["category"]["guid"]
-            == "1f51090c-9454-49c0-ade8-d4adb24fcf0a"
-        ) and (annotation["annotation"]["content"] == "Børn og Familie"):
-            del current_page_annotations[annotation_num]
-            continue
+        # if (
+        #     annotation["annotation"]["category"]["guid"]
+        #     == "1f51090c-9454-49c0-ade8-d4adb24fcf0a"
+        # ) and (annotation["annotation"]["content"] == "Børn og Familie"):
+        #     del current_page_annotations[annotation_num]
+        #     continue
+
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
             del current_page_annotations[annotation_num]
             print(f"deleted helbred annot: {annotation['annotation']['content']}")
@@ -43,7 +44,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             print(f"deleted forbrydelse annot: {annotation['annotation']['content']}")
             continue
 
-        annotated_content_init = annotation["annotation"]["content"]
         annotated_class = annotation["annotation"]["annotation"]
 
         start_index_init = annotation["annotation"]["start"]
@@ -52,6 +52,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         annotated_content_init = annotation["annotation"]["content"]
         annotated_content = annotated_content_init
         annotated_content_last = annotated_content[-1]
+        annotated_content_first = annotated_content[0]
 
         start_index = start_index_init
         end_index = end_index_init
@@ -62,7 +63,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             annotation["annotation"]["content"] = annotated_content
             annotated_content_last = annotated_content[-1]
 
-        special_chars = [")", "(", "]", "[", ".", "-", "=", ",", ";", ":"]
+        special_chars = [")", "(", "]", "[", ".", "-", "=", ",", ";", ":", "?", "/", "_"]
         while annotated_content_last in special_chars:
             end_index = end_index - 1
             annotation["annotation"]["end"] -= 1
@@ -76,6 +77,21 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 del current_page_annotations[annotation_num]
                 print(f"removed annotation {annotation_num} from {document_num + 1}")
                 break
+
+        while annotated_content_first in special_chars:
+            end_index = end_index - 1
+            annotation["annotation"]["start"] += 1
+            annotated_content = annotated_content[1:]
+            annotation["annotation"]["content"] = annotated_content
+            try:
+                annotated_content_first = annotated_content[0]
+            except IndexError:
+                print(f"removing annotation {annotation_num} from {document_num + 1}")
+                print(current_page_annotations[annotation_num])
+                del current_page_annotations[annotation_num]
+                print(f"removed annotation {annotation_num} from {document_num + 1}")
+                break
+
 
         true_original = pdf_text[start_index:end_index]
 
@@ -535,7 +551,7 @@ def create_bilou_from_one_document(
                                 print(traceback.format_exc())
 
                             sentence_anon = (
-                                sentence_anon[:start_index]
+                                sentence_anon[:start_index] + " "
                                 + annotation_to_insert
                                 + sentence_anon[end_index:]
                             )
@@ -593,7 +609,7 @@ def create_bilou_from_one_document(
                         tag.startswith(("B-", "U-", "I-", "L-"))
                         and tag[2:].isupper()
                         and tag[2:].isalpha()
-                        and tag != "U-ADRESSE"
+                        and tag not in ("U-ADRESSE", "U-KOMMUNE")
                     )
                     else "O"
                     for tag in tags_no_whitespace
