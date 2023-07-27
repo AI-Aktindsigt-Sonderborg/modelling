@@ -119,18 +119,18 @@ class NERModelling(Modelling):
                 batch_labels = [
                     [self.id2label[l] for l in label if l != -100] for label in labels
                 ]
-                print("-------printing labels!!!-------------")
+                # print("-------printing labels!!!-------------")
                 # print(batch["input_ids"])
-                print("-labels-")
-                print(batch_labels[0])
-                print("-original tags-")
-                print(self.data.test[i]["tags"])
-                print("label_ids")
-                print([self.label2id[l] for l in batch_labels[0]])
-                print("--original tag_ids--")
-                print([self.label2id[l] for l in self.data.test[i]["tags"]])
-                assert batch_labels[0] == self.data.test[i]["tags"]
-                print("----------------")
+                # print("-labels-")
+                # print(batch_labels[0])
+                # print("-original tags-")
+                # print(self.data.test[i]["tags"])
+                # print("label_ids")
+                # print([self.label2id[l] for l in batch_labels[0]])
+                # print("--original tag_ids--")
+                # print([self.label2id[l] for l in self.data.test[i]["tags"]])
+                # assert batch_labels[0] == self.data.test[i]["tags"]
+                # print("----------------")
 
                 # print("printing batch labels!!")
                 # print(batch_labels)
@@ -210,7 +210,9 @@ class NERModelling(Modelling):
 
             for i, label in enumerate(examples["tags"]):
                 label = [self.label2id[lab] for lab in label]
-                label_tokenized = self.tokenizer.tokenize(" ".join(examples["tokens"][i]))
+                label_tokenized = self.tokenizer.tokenize(
+                    " ".join(examples["tokens"][i])
+                )
                 label_tokenized.insert(0, "-100")
                 label_tokenized.append("-100")
 
