@@ -788,7 +788,7 @@ if __name__ == "__main__":
 
         write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_1507")
 
-    print(f"total valid sentences: {len(entity_data)}")
+    print(f"Total valid sentences: {len(entity_data)}")
     print(f"word/tag length mismatch errors: {word_tag_mismatch_errors}")
     print(f"wrong index errors: {wrong_index_errors}")
     print(f"wrong raw index errors: {wrong_raw_index_errors}")
