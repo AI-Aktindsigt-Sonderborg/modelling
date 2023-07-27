@@ -16,23 +16,40 @@ j = 0
 BILOU_ERROR_COUNT = 0
 total_entities = []
 for i, obs in enumerate(data_bilou):
-    if prep_args.print_entity and prep_args.print_entity in obs['entities']:
+    if prep_args.print_entity and prep_args.print_entity in obs["entities"]:
         print("----- Tokens -------")
-        print(obs['tokens'])
+        print(obs["tokens"])
         print("----- Tags ---------")
-        print(obs['tags'])
+        print(obs["tags"])
 
-    if len(obs['tokens']) != len(obs['tags']):
+    if len(obs["tokens"]) != len(obs["tags"]):
         BILOU_ERROR_COUNT = BILOU_ERROR_COUNT + 1
-        print(f'len(Words) != len(tags): Bilou data med linjenummer {i + 1}'
-              f' fejlede')
-        print(obs['sentence'])
-        if obs['faulty_annotation']:
+        print(
+            f"len(Words) != len(tags): Bilou data med linjenummer {i + 1}" f" fejlede"
+        )
+        print(obs["sentence"])
+        if obs["faulty_annotation"]:
             BILOU_ERROR_COUNT = BILOU_ERROR_COUNT + 1
-            print(f'faulty_annotation fejl: Bilou data med linjenummer {i + 1}'
-                  f' fejlede')
+            print(
+                f"faulty_annotation fejl: Bilou data med linjenummer {i + 1}"
+                f" fejlede"
+            )
+
     else:
-        total_entities.extend(obs['entities'])
+        total_entities.extend(obs["entities"])
+
+    for tag in obs["tags"]:
+        if tag.count("-") > 1:
+            print(obs["tags"])
+        if "[" in tag:
+            print(obs["tags"])
+
+    for token in obs["tokens"]:
+        if "[" in token:
+            print(obs["tokens"])
+
+    # print(obs["tags"])
+
 
 total_entities.sort()
 grouped = [list(group) for key, group in groupby(total_entities)]

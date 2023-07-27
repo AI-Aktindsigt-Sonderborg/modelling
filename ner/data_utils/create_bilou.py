@@ -63,7 +63,21 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             annotation["annotation"]["content"] = annotated_content
             annotated_content_last = annotated_content[-1]
 
-        special_chars = [")", "(", "]", "[", ".", "-", "=", ",", ";", ":", "?", "/", "_"]
+        special_chars = [
+            ")",
+            "(",
+            "]",
+            "[",
+            ".",
+            "-",
+            "=",
+            ",",
+            ";",
+            ":",
+            "?",
+            "/",
+            "_",
+        ]
         while annotated_content_last in special_chars:
             end_index = end_index - 1
             annotation["annotation"]["end"] -= 1
@@ -86,12 +100,19 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             try:
                 annotated_content_first = annotated_content[0]
             except IndexError:
-                print(f"removing annotation {annotation_num} from {document_num + 1}")
-                print(current_page_annotations[annotation_num])
-                del current_page_annotations[annotation_num]
-                print(f"removed annotation {annotation_num} from {document_num + 1}")
-                break
+                try:
+                    print(
+                        f"removing annotation {annotation_num} from {document_num + 1}"
+                    )
+                    print(current_page_annotations[annotation_num])
+                    del current_page_annotations[annotation_num]
+                    print(
+                        f"removed annotation {annotation_num} from {document_num + 1}"
+                    )
+                except Exception:
+                    print("data might already be removed")
 
+                break
 
         true_original = pdf_text[start_index:end_index]
 
@@ -263,6 +284,19 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                             "content"
                         ]
                         + "s"
+                    )
+                    current_page_annotations[annotation_num]["annotation"]["end"] = (
+                        current_page_annotations[annotation_num]["annotation"]["end"]
+                        + 1
+                    )
+                if pdf_text[end_index : end_index + 1] == "i":
+                    current_page_annotations[annotation_num]["annotation"][
+                        "content"
+                    ] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "content"
+                        ]
+                        + "i"
                     )
                     current_page_annotations[annotation_num]["annotation"]["end"] = (
                         current_page_annotations[annotation_num]["annotation"]["end"]
@@ -551,7 +585,7 @@ def create_bilou_from_one_document(
                                 print(traceback.format_exc())
 
                             sentence_anon = (
-                                sentence_anon[:start_index] + " "
+                                sentence_anon[:start_index]
                                 + annotation_to_insert
                                 + sentence_anon[end_index:]
                             )
@@ -577,8 +611,25 @@ def create_bilou_from_one_document(
                 sentence = re.sub(r"\s+", " ", sentence + "\n")
                 sentence_anon = re.sub(r"\s+", " ", sentence_anon + "\n")
 
-                words = re.split(r"( |,|\. |\.\n|:)", sentence)
-                tags = re.split(r"( |,|\. |\.\n|:)", sentence_anon)
+                special_chars = [
+                    ")",
+                    "(",
+                    "]",
+                    "[",
+                    ".",
+                    "-",
+                    "=",
+                    ",",
+                    ";",
+                    ":",
+                    "?",
+                    "/",
+                    "_",
+                ]
+                split_pattern = r"( |,|\. |\.\n|:|\(|\[|\]|=|;)"
+                # split_pattern = r"(\w+|[.,:;()?\[\]_])"
+                words = re.split(split_pattern, sentence)
+                tags = re.split(split_pattern, sentence_anon)
                 if print_stats and (len(words) != len(tags)):
                     print(f"len(words): {len(words)}, len(tags): {len(tags)}")
 
@@ -786,7 +837,7 @@ if __name__ == "__main__":
             total_not_danish_counter += errors[7]
             entity_data.extend(single_obs_data)
 
-        write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_1507")
+        write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_2707")
 
     print(f"Total valid sentences: {len(entity_data)}")
     print(f"word/tag length mismatch errors: {word_tag_mismatch_errors}")
