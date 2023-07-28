@@ -744,7 +744,7 @@ def create_bilou_from_one_document(
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
                         )
-                    print("fucktard2")
+
                     print("----sentence-----")
                     print(f"|{sentence}|")
                     print("----sentence_anon-----")
@@ -763,9 +763,6 @@ def create_bilou_from_one_document(
                     print("---------------------")
                     for count in range(len(words_final)):
                         print(f"{words_final[count]} - {tags_no_whitespace[count]}")
-
-                    print("fucktard")
-                    # raise SystemExit
 
                 sentence_index_diff += len(sentence)
 
