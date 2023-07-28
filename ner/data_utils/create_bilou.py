@@ -25,14 +25,21 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
     )
 
+    filtered_annotation_list = []
+    for annotation in current_page_annotations:
+        if annotation["annotation"]["state"] != "deleted":
+            filtered_annotation = {
+                "content": annotation["annotation"]["content"],
+                "annotation": annotation["annotation"]["annotation"],
+                "start": annotation["annotation"]["start"],
+                "end": annotation["annotation"]["end"]}
+            if filtered_annotation in filtered_annotation_list:
+                annotation["annotation"]['state'] = "deleted"
+                print("deleted duplicate annotation")
+            else:
+                filtered_annotation_list.append(filtered_annotation)
+
     for annotation_num, annotation in enumerate(current_page_annotations):
-        # ToDo: Fix this guid thing as they may not be unique
-        # if (
-        #     annotation["annotation"]["category"]["guid"]
-        #     == "1f51090c-9454-49c0-ade8-d4adb24fcf0a"
-        # ) and (annotation["annotation"]["content"] == "Børn og Familie"):
-        #     del current_page_annotations[annotation_num]
-        #     continue
 
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
             del current_page_annotations[annotation_num]
@@ -837,7 +844,7 @@ if __name__ == "__main__":
             total_not_danish_counter += errors[7]
             entity_data.extend(single_obs_data)
 
-        write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_2707")
+        write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_2807")
 
     print(f"Total valid sentences: {len(entity_data)}")
     print(f"word/tag length mismatch errors: {word_tag_mismatch_errors}")
