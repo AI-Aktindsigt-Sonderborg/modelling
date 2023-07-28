@@ -1,13 +1,13 @@
 from itertools import groupby
 
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
-from ner.local_constants import PREP_DATA_DIR
+from ner.local_constants import DATA_DIR, PREP_DATA_DIR
 from shared.utils.helpers import read_json_lines, get_sublist_length
 
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
 
-data_bilou = read_json_lines(PREP_DATA_DIR, prep_args.bilou_input_file)
+data_bilou = read_json_lines(DATA_DIR, prep_args.bilou_input_file)
 ERROR_COUNT = 0
 ANNOTATION_ERRORS = 0
 ANNOTATION_COUNTER = 0
@@ -45,8 +45,17 @@ for i, obs in enumerate(data_bilou):
             print(obs["tags"])
 
     for token in obs["tokens"]:
-        if "[" in token:
-            print(obs["tokens"])
+        crap = ["(", ")", "[", "]"]
+        for c in crap:
+            if c in token and len(token) > 1:
+                print("---tokens---")
+                print(obs["tokens"])
+                print("---tags---")
+                print(obs["tags"])
+                print("---sentence---")
+                print(obs["sentence"])
+                print("---sentence_anon---")
+                print(obs["sentence_anon"])
 
     # print(obs["tags"])
 

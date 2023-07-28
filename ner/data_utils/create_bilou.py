@@ -32,15 +32,15 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 "content": annotation["annotation"]["content"],
                 "annotation": annotation["annotation"]["annotation"],
                 "start": annotation["annotation"]["start"],
-                "end": annotation["annotation"]["end"]}
+                "end": annotation["annotation"]["end"],
+            }
             if filtered_annotation in filtered_annotation_list:
-                annotation["annotation"]['state'] = "deleted"
+                annotation["annotation"]["state"] = "deleted"
                 print("deleted duplicate annotation")
             else:
                 filtered_annotation_list.append(filtered_annotation)
 
     for annotation_num, annotation in enumerate(current_page_annotations):
-
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
             del current_page_annotations[annotation_num]
             print(f"deleted helbred annot: {annotation['annotation']['content']}")
@@ -84,6 +84,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             "?",
             "/",
             "_",
+            " ",
         ]
         while annotated_content_last in special_chars:
             end_index = end_index - 1
@@ -615,8 +616,18 @@ def create_bilou_from_one_document(
             for s, (sentence, sentence_anon) in enumerate(
                 zip(modified_sentences, sentences_anon)
             ):
-                sentence = re.sub(r"\s+", " ", sentence + "\n")
-                sentence_anon = re.sub(r"\s+", " ", sentence_anon + "\n")
+                patterns = {
+                    r"\s+": " ",
+                    r"\|": " | ",
+                    r"\)": " ) ",
+                    r"\(": " ( ",
+                    r"\[": " [ ",
+                    r"\]": " ] ",
+                }
+
+                for pattern, replacement in patterns.items():
+                    sentence = re.sub(pattern, replacement, sentence + "\n")
+                    sentence_anon = re.sub(pattern, replacement, sentence_anon + "\n")
 
                 special_chars = [
                     ")",
@@ -640,7 +651,7 @@ def create_bilou_from_one_document(
                 if print_stats and (len(words) != len(tags)):
                     print(f"len(words): {len(words)}, len(tags): {len(tags)}")
 
-                to_remove = [" ", "", "\n", "[", "]", "(", ")", "*", ":", ";"]
+                to_remove = [" ", "", "\n", "[", "]", "(", ")", ":", ";"]
                 words_final = list(
                     filter(
                         lambda word: word.strip().rstrip("\\n").strip()
@@ -711,6 +722,7 @@ def create_bilou_from_one_document(
                             print(f"{words_final[count]} - {tags_no_whitespace[count]}")
 
                 if len(tags_final) != len(words_final):
+                    print("fucktards")
                     word_tag_mismatch_error += 1
                     print(
                         f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}."
@@ -732,7 +744,7 @@ def create_bilou_from_one_document(
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
                         )
-
+                    print("fucktard2")
                     print("----sentence-----")
                     print(f"|{sentence}|")
                     print("----sentence_anon-----")
@@ -752,7 +764,8 @@ def create_bilou_from_one_document(
                     for count in range(len(words_final)):
                         print(f"{words_final[count]} - {tags_no_whitespace[count]}")
 
-                    # sys.exit(0)
+                    print("fucktard")
+                    # raise SystemExit
 
                 sentence_index_diff += len(sentence)
 
@@ -778,6 +791,8 @@ def create_bilou_from_one_document(
                 f"data med linjenummer {data_number + 1} med id {input_data['document_id']} fejlede."
             )
             print(traceback.format_exc())
+            # assert len(tags_final) == len(words_final)
+            # raise Exception("tralala")
 
     return output_data, [
         word_tag_mismatch_error,
