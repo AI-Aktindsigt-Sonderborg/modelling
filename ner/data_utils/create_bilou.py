@@ -16,6 +16,7 @@ sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
     indices_reindexed = 0
+    annotation_errors = 0
 
     BLACKLIST_HELBRED = read_json(
         filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
@@ -27,6 +28,8 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
     filtered_annotation_list = []
     for annotation in current_page_annotations:
+        annotation_error = 0
+
         if annotation["annotation"]["state"] != "deleted":
             filtered_annotation = {
                 "content": annotation["annotation"]["content"],
@@ -35,6 +38,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 "end": annotation["annotation"]["end"],
             }
             if filtered_annotation in filtered_annotation_list:
+                annotation_error = 1
                 annotation["annotation"]["state"] = "deleted"
                 print("deleted duplicate annotation")
             else:
@@ -42,11 +46,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
     for annotation_num, annotation in enumerate(current_page_annotations):
         if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
+            annotation_error = 1
             del current_page_annotations[annotation_num]
             print(f"deleted helbred annot: {annotation['annotation']['content']}")
             continue
 
         if annotation["annotation"]["content"] in BLACKLIST_FORB:
+            annotation_error = 1
             del current_page_annotations[annotation_num]
             print(f"deleted forbrydelse annot: {annotation['annotation']['content']}")
             continue
@@ -64,6 +70,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         start_index = start_index_init
         end_index = end_index_init
         while annotated_content_last.isspace() | (annotated_content_last == " "):
+            annotation_error = 1
             end_index = end_index - 1
             annotation["annotation"]["end"] -= 1
             annotated_content = annotated_content[:-1]
@@ -87,6 +94,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             " ",
         ]
         while annotated_content_last in special_chars:
+            annotation_error = 1
             end_index = end_index - 1
             annotation["annotation"]["end"] -= 1
             annotated_content = annotated_content[:-1]
@@ -101,6 +109,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 break
 
         while annotated_content_first in special_chars:
+            annotation_error = 1
             end_index = end_index - 1
             annotation["annotation"]["start"] += 1
             annotated_content = annotated_content[1:]
@@ -125,6 +134,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         true_original = pdf_text[start_index:end_index]
 
         if true_original.lower() != annotated_content.lower():
+            annotation_error = 1
             skewness_list = list(range(-10, 10))
             true_content_skewed = true_original
             for skewness in skewness_list:
@@ -153,6 +163,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 continue
 
         if true_original.lower() != annotated_content.lower():
+            annotation_error = 1
             try:
                 match1 = re.search(
                     re.escape(annotated_content.lower() + "[^0-9a-zA-Z]"),
@@ -204,6 +215,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
+            annotation_error = 1
             # where annotation does not include the last s in word
             if len(pdf_text) > end_index + 2:
                 if pdf_text[end_index_init : end_index_init + 2] == "s ":
@@ -310,8 +322,9 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                         current_page_annotations[annotation_num]["annotation"]["end"]
                         + 1
                     )
+        annotation_errors += annotation_error
 
-    return current_page_annotations, indices_reindexed
+    return current_page_annotations, indices_reindexed, annotation_errors
 
 
 def create_bilou_from_one_document(
@@ -328,6 +341,7 @@ def create_bilou_from_one_document(
     deleted_annotation: int = 0
     not_danish_counter: int = 0
     output_data = []
+    document_annotation_errors: int = 0
 
     for k, pdf_text in enumerate(input_data["pdf_text"]):
         sentence_data = []
@@ -343,9 +357,12 @@ def create_bilou_from_one_document(
             current_page_annotations = input_data["text_annotation"][page_num]
             current_page_annotations_original = current_page_annotations
 
-            current_page_annotations, indices_reindexed = fix_faulty_indices(
-                current_page_annotations, pdf_text, data_number
-            )
+            (
+                current_page_annotations,
+                indices_reindexed,
+                annotation_errors,
+            ) = fix_faulty_indices(current_page_annotations, pdf_text, data_number)
+            document_annotation_errors += annotation_errors
 
             sorted_page_annotations = sorted(
                 current_page_annotations, key=lambda x: x["annotation"]["start"]
@@ -382,14 +399,14 @@ def create_bilou_from_one_document(
                         or x["annotation"]["start"] <= (page_index_diff)
                     )
                 ]
-                if len(wrong_sentence_annotations) > 0:
-                    for element in wrong_sentence_annotations:
-                        if element["annotation"]["annotation"] == "HELBRED":
-                            print("---Wrong sentence annotation----")
-                            print(
-                                f"document_num: {data_number + 1} - page_num: {page_num}"
-                            )
-                            print(element)
+                # if len(wrong_sentence_annotations) > 0:
+                # for element in wrong_sentence_annotations:
+                # if element["annotation"]["annotation"] == "HELBRED":
+                # print("---Wrong sentence annotation----")
+                # print(
+                #   f"document_num: {data_number + 1} - page_num: {page_num}"
+                # )
+                # print(element)
 
                 sorted_sentence_annotations = sorted(
                     current_sentence_annotations,
@@ -623,6 +640,11 @@ def create_bilou_from_one_document(
                     r"\(": " ( ",
                     r"\[": " [ ",
                     r"\]": " ] ",
+                    r"\;": " ; ",
+                    r"\:": " : ",
+                    r"\<": " < ",
+                    r"\>": " > ",
+                    "\?": " ? ",
                 }
 
                 for pattern, replacement in patterns.items():
@@ -800,6 +822,7 @@ def create_bilou_from_one_document(
         wrong_raw_index,
         indices_reindexed,
         not_danish_counter,
+        document_annotation_errors,
     ]
 
 
@@ -820,6 +843,7 @@ if __name__ == "__main__":
     deleted_annotations: int = 0
     total_indices_reindexed: int = 0
     total_not_danish_counter: int = 0
+    total_annotation_errors: int = 0
 
     if len(args) == 4:
         args[2] = int(args[2])
@@ -839,6 +863,7 @@ if __name__ == "__main__":
         wrong_raw_index_errors += errors[5]
         total_indices_reindexed += errors[6]
         total_not_danish_counter += errors[7]
+        total_annotation_errors += errors[8]
 
     else:
         for i, obs in enumerate(raw_data):
@@ -854,6 +879,8 @@ if __name__ == "__main__":
             wrong_raw_index_errors += errors[5]
             total_indices_reindexed += errors[6]
             total_not_danish_counter += errors[7]
+            total_annotation_errors += errors[8]
+
             entity_data.extend(single_obs_data)
 
         write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_2807")
@@ -866,4 +893,5 @@ if __name__ == "__main__":
     print(f"deleted annotations: {deleted_annotations}")
     print(f"correct indexes: {correct_indexes}")
     print(f"sentences not danish: {total_not_danish_counter}")
+    print(f"total annotation errors: {total_annotation_errors}")
     print(f"total sentences: {total_sentences}")
