@@ -136,3 +136,9 @@ class DataPrepArgParser:
             metavar='<int>',
             default=10,
             help="Number of sentences within each class.")
+        self.parser.add_argument(
+            '--add_dane',
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            help='whether or not to add dane data to training set',
+            metavar='<bool>')

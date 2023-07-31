@@ -46,7 +46,7 @@ class NERModelling(Modelling):
             self.id2label,
             self.label2id,
             self.label2weight,
-        ) = get_label_list(self.args.entities)
+        ) = get_label_list(self.args.entities, data_format=self.args.data_format)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels), names=self.args.labels
         )

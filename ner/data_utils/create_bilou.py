@@ -14,17 +14,20 @@ from langdetect import detect_langs
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 
-def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
+def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
     indices_reindexed = 0
     annotation_errors = 0
 
-    BLACKLIST_HELBRED = read_json(
-        filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
-    )
+    try:
+        BLACKLIST_HELBRED = read_json(
+            filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
+        )
 
-    BLACKLIST_FORB = read_json(
-        filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
-    )
+        BLACKLIST_FORB = read_json(
+            filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
+        )
+    except Exception:
+        print("files not available locally")
 
     filtered_annotation_list = []
     for annotation in current_page_annotations:
@@ -45,17 +48,21 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 filtered_annotation_list.append(filtered_annotation)
 
     for annotation_num, annotation in enumerate(current_page_annotations):
-        if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
-            annotation_error = 1
-            del current_page_annotations[annotation_num]
-            print(f"deleted helbred annot: {annotation['annotation']['content']}")
-            continue
 
-        if annotation["annotation"]["content"] in BLACKLIST_FORB:
-            annotation_error = 1
-            del current_page_annotations[annotation_num]
-            print(f"deleted forbrydelse annot: {annotation['annotation']['content']}")
-            continue
+        try:
+            if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
+                annotation_error = 1
+                del current_page_annotations[annotation_num]
+                print(f"deleted helbred annot: {annotation['annotation']['content']}")
+                continue
+
+            if annotation["annotation"]["content"] in BLACKLIST_FORB:
+                annotation_error = 1
+                del current_page_annotations[annotation_num]
+                print(f"deleted forbrydelse annot: {annotation['annotation']['content']}")
+                continue
+        except Exception:
+            print("Files not available locally")
 
         annotated_class = annotation["annotation"]["annotation"]
 

@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 
 from ner.data_utils.create_bilou import create_bilou_from_one_document
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
+from ner.data_utils.get_dataset import get_dane_train, get_label_list_old
 from ner.local_constants import DATA_DIR, PREP_DATA_DIR
 from ner.modelling_utils.helpers import get_label_list
 from shared.utils.helpers import read_json_lines, write_json_lines
@@ -70,7 +71,6 @@ class NERDataPreprocessing:
         print(f"deleted annotations: {deleted_annotations}")
         print(f"correct indexes: {correct_indexes}")
         print(f"sentences not danish: {total_not_danish_counter}")
-
         print(f"total sentences: {total_sentences}")
 
     @staticmethod
@@ -107,6 +107,7 @@ class NERDataPreprocessing:
         train_outfile: str = None,
         val_outfile: str = None,
         test_outfile: str = None,
+        add_dane: bool = False
     ):
         """
         Read grouped data, split to train, val and test and save json
@@ -152,6 +153,32 @@ class NERDataPreprocessing:
             )
 
             train = train_val_split[0]
+            if add_dane:
+                dane = get_dane_train()
+                dane_label_list, dane_id2label, dane_label2id, _ = get_label_list_old()
+
+                dane_to_akt_label_mapping = {"O": "O", "B-ORG": "B-ORGANISATION", "I-ORG": "I-ORGANISATION", "B-LOC": "B-LOKATION", "I-LOC": "I-LOKATION",
+                                             "B-PER": "B-PERSON", "I-PER": "I-PERSON", "B-MISC": "O", "I-MISC": "O"}
+
+                for obs in dane:
+                    dane_tags = [dane_id2label[x] for x in obs["ner_tags"]]
+                    if "B-ORG" in dane_tags or "I-ORG" in dane_tags:
+                        tags = [dane_to_akt_label_mapping[x] for x in dane_tags]
+                        tokens = obs["tokens"]
+
+                        train.append({"tokens": obs["tokens"], "tags": tags,
+                                      "sentence": obs["text"]})
+
+                train_outfile = "bio_train"
+                val_outfile = "bio_val"
+
+
+
+
+                print()
+
+
+
             val = train_val_split[1]
 
             write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
@@ -169,6 +196,7 @@ if __name__ == "__main__":
     # prep_args.bilou_input_file = 'bilou_entities_kasper_all'
     # prep_args.create_bilou = True
     data_prep = NERDataPreprocessing(prep_args)
+    # prep_args.add_dane = True
 
     if prep_args.create_bilou:
         data_prep.create_bilou(args=prep_args)
@@ -182,4 +210,5 @@ if __name__ == "__main__":
         train_outfile="bilou_train",
         val_outfile="bilou_val",
         test_outfile=prep_args.test_file,
-    )
+        add_dane=prep_args.add_dane)
+

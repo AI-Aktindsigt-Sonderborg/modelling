@@ -88,3 +88,9 @@ class NERArgParser(ModellingArgParser):
             default=None,
             help="whether to normalize conf_plot",
             metavar='<str>')
+        ner_params.add_argument(
+            "-df", "--data_format",
+            type=str,
+            default="bilou",
+            help="whether to use BILOU or BIO format",
+            metavar='<str>')
