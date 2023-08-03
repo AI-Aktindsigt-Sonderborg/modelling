@@ -178,7 +178,7 @@ class NERDataPreprocessing:
                                   "sentence": obs["text"]})
 
                 for obs in train:
-                    obs["tags"] = list(map(lambda obs:  map_bilou_to_bio(obs["tags"]), obs["tags"]))
+                    obs["tags"] = map_bilou_to_bio(obs["tags"])
 
                 # val = train_val_split[1]
                 val = list(map(lambda obs:  map_bilou_to_bio(obs['tags']), val))
