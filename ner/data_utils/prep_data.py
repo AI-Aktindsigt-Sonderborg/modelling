@@ -182,7 +182,10 @@ class NERDataPreprocessing:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
                 # val = train_val_split[1]
-                val = list(map(lambda obs:  map_bilou_to_bio(obs['tags']), val))
+                for obs in val:
+                    obs["tags"] = map_bilou_to_bio(obs["tags"])
+
+                # val = list(map(lambda obs:  map_bilou_to_bio(obs['tags']), val))
 
                 # [bilou_to_bio_mapping[tag] if tag[:2] in ["U-", "L-"] else tag for tag in train[3]["tags"]]
 
