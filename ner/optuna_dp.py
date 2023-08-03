@@ -17,6 +17,9 @@ ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
+args.train_data = "bio_train.jsonl"
+args.eval_data = "bio_val.jsonl"
+args.data_format = "bio"
 
 args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION",
                  "KOMMUNE", "TELEFONNUMMER"]
@@ -116,7 +119,12 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                     eval_score.step = step
                     eval_score.epoch = epoch
                     eval_scores.append(eval_score)
-                    wandb.log({"f1": eval_score.f_1})
+                    wandb.log({"eval f1": eval_score.f_1})
+                    wandb.log({"eval loss": eval_score.loss})
+                    wandb.log({"accuracy": eval_score.accuracy})
+                    wandb.log({"step": eval_score.step})
+                    wandb.log({"learning rate": learning_rate})
+
 
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
@@ -158,6 +166,6 @@ if __name__ == "__main__":
     print('  Value: {:.6f}'.format(best_trial.value))
     print('  Params: ')
     for key, value in best_trial.params.items():
-        print('    {}: {}'.format(key, value))
+        print('{}: {}'.format(key, value))
 
 

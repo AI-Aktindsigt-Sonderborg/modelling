@@ -83,20 +83,20 @@ class DataPrepArgParser:
             '--train_outfile',
             type=str,
             metavar='<str>',
-            default='train',
+            default='bilou_train',
             help="Name of final training data file fx 'train'")
         self.parser.add_argument(
             '--val_outfile',
             type=str,
             metavar='<str>',
-            default='validation',
+            default='bilou_val',
             help="Name of final validation data file fx 'validation'")
         self.parser.add_argument(
             '--test_outfile',
             type=str,
             metavar='<str>',
-            default='test',
-            help="Name of final validation data file fx 'validation'")
+            default='bilou_test',
+            help="Name of final test data file fx 'test'")
         self.parser.add_argument(
             '-stnt', '--split_train_n_times',
             type=int,
@@ -124,12 +124,6 @@ class DataPrepArgParser:
             metavar='<str>',
             default=None,
             help="Print specific entity for data inspection.")
-        self.parser.add_argument(
-            '--test_file',
-            type=str,
-            metavar='<str>',
-            default="bilou_test",
-            help="Name of test file.")
         self.parser.add_argument(
             '--test_size',
             type=int,

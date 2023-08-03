@@ -98,7 +98,7 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
     return tokenized_dataset
 
 
-def get_label_list_old():
+def get_label_list_dane():
     label_list = [
         "O",
         "B-PER",

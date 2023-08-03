@@ -2,7 +2,7 @@ import evaluate
 import numpy as np
 from transformers import TrainingArguments, Trainer
 
-from ner.data_utils.get_dataset import get_label_list_old
+from ner.data_utils.get_dataset import get_label_list_dane
 from ner.modelling_utils.helpers import align_labels_with_tokens
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
@@ -14,7 +14,7 @@ args = ner_parser.parser.parse_args()
 args.test = False
 args.differential_privacy = False
 
-label_list, id2label, label2id, label2weight = get_label_list_old()
+label_list, id2label, label2id, label2weight = get_label_list_dane()
 
 ner_modelling = NERModelling(args=args)
 
