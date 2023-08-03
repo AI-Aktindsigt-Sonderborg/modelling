@@ -168,12 +168,11 @@ class NERDataPreprocessing:
                     # if "B-ORG" in dane_tags or "I-ORG" in dane_tags:
                     try:
                         tags = [dane_to_akt_label_mapping[x] for x in dane_tags]
-
                         # tags = [bilou_to_bio_mapping[x] if (len(x) > 2 and x[])]
                     except Exception:
                         print()
-                    tokens = obs["tokens"]
-                    entities = [tag[2:] for tag in obs["tokens"] if "-" in tag]
+                    # tokens = obs["tokens"]
+                    entities = [tag[2:] for tag in tags if "-" in tag]
                     train.append({"tokens": obs["tokens"], "tags": tags,
                                   "sentence": obs["text"], "sentence_anon": "", "doc_id": "",
                                   "page_no": "", "sentence_no": 0, "origin_line_no": 0, "entities": entities
