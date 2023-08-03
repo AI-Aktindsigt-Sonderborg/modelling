@@ -173,9 +173,11 @@ class NERDataPreprocessing:
                     except Exception:
                         print()
                     tokens = obs["tokens"]
-
+                    entities = [tag[2:] for tag in obs["tokens"] if "-" in tag]
                     train.append({"tokens": obs["tokens"], "tags": tags,
-                                  "sentence": obs["text"]})
+                                  "sentence": obs["text"], "sentence_anon": "", "doc_id": "",
+                                  "page_no": "", "sentence_no": 0, "origin_line_no": 0, "entities": entities
+                                  })
 
                 for obs in train:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
