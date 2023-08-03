@@ -93,3 +93,9 @@ def filter_language(string: str, approved_languages: List[str]):
     except:
         print('No language detected')
         return False, None
+
+
+def map_bilou_to_bio(data):
+    bilou_to_bio_mapping = {"U-": "B-", "L-": "I-"}
+    bio_mapped = [bilou_to_bio_mapping[tag[:2]] + tag[2:] if tag[:2] in ["U-", "L-"] else tag for tag in data]
+    return bio_mapped
