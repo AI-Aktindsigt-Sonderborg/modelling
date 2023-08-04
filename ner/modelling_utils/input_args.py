@@ -92,5 +92,5 @@ class NERArgParser(ModellingArgParser):
             "-df", "--data_format",
             type=str,
             default="bilou",
-            help="whether to use BILOU or BIO format",
+            help="whether to use BILOU or BIO format - input must be either 'bilou' or 'bio'",
             metavar='<str>')

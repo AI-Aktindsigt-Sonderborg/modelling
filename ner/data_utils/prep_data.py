@@ -10,7 +10,6 @@ from ner.data_utils.get_dataset import get_dane_train, get_label_list_dane
 from ner.data_utils.helpers import map_bilou_to_bio
 from ner.local_constants import DATA_DIR, PREP_DATA_DIR, \
     DANE_TO_AKT_LABEL_MAPPING
-from ner.modelling_utils.helpers import get_label_list
 from shared.utils.helpers import read_json_lines, write_json_lines
 
 
@@ -86,22 +85,21 @@ class NERDataPreprocessing:
         :param argparse.Namespace args: input arguments from :class: `.DataPrepArgParser`.
         -------
         """
-        bilou = read_json_lines(input_dir=DATA_DIR,
-                                filename=args.bilou_input_file)
+        bilou_data = read_json_lines(input_dir=DATA_DIR,
+                                     filename=args.bilou_input_file)
         # labels, id2label, label2id, _ = get_label_list(args.entities)
 
         out_suffix = "".join([x[0] for x in args.entities])
 
-        for i, obs in enumerate(bilou):
+        for obs in bilou_data:
             obs["tags"] = [
                 tag if ((tag[2:] in args.entities) or (tag == "O")) else "O"
                 for tag in obs["tags"]
             ]
-            # obs["ner_tags"] = [label2id[x] for x in obs["tags"]]
 
         write_json_lines(out_dir=DATA_DIR, filename="bilou_" + out_suffix,
-                         data=bilou)
-        return bilou
+                         data=bilou_data)
+        return bilou_data
 
     @staticmethod
     def train_val_test_to_json_split(
@@ -163,7 +161,7 @@ class NERDataPreprocessing:
             # Add dane dataset to data for robustness
             if add_dane:
                 dane = get_dane_train()
-                dane_label_list, dane_id2label, dane_label2id, _ = get_label_list_dane()
+                _, dane_id2label, _, _ = get_label_list_dane()
 
                 for obs in dane:
                     dane_tags = [dane_id2label[x] for x in obs["ner_tags"]]

@@ -30,6 +30,14 @@ if args.freeze_layers and args.lr_freezed < args.learning_rate:
     print('exiting - try again')
     ner_parser.parser.exit()
 
+if args.data_format not in ["bilou", "bio"]:
+    logger.warning(
+        f'{ner_parser.parser._option_string_actions["--data_format"].help}')
+    print('exiting - try again')
+    ner_parser.parser.exit()
+
+
+
 args.cmd_line_args = sys.argv
 
 if args.differential_privacy:

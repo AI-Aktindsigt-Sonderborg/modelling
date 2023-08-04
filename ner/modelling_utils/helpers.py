@@ -27,6 +27,7 @@ def align_labels_with_tokens(labels, word_ids):
 
 def get_label_list(ner_entities: List[str], data_format: str = "bilou"):
 
+
     # ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
     id2label = {}
     label_list = ["O"]

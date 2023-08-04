@@ -162,7 +162,7 @@ def objective(trial):
     delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
     wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
-    wandb.init(reinit=True)
+    wandb.init(reinit=True, name=f'params-{learning_rate}-{lot_size}-{epsilon}-{delta}')
 
     f_1 = train_model(
         learning_rate=learning_rate, epsilon=epsilon, delta=delta, lot_size=lot_size
