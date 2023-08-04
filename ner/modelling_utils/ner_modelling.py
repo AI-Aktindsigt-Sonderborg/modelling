@@ -15,7 +15,7 @@ from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 from transformers import AutoTokenizer, DataCollatorForTokenClassification
 
-from ner.data_utils.get_dataset import get_label_list_old, get_dane_train, get_dane_val
+from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
