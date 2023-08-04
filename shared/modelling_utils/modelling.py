@@ -9,6 +9,7 @@ from typing import List
 
 import numpy as np
 import torch
+import wandb
 from datasets import load_dataset
 from opacus import PrivacyEngine
 from sklearn.metrics import accuracy_score, f1_score
@@ -322,6 +323,9 @@ class Modelling:
         """
         load data, set up training and train model
         """
+        wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
+        wandb.init(reinit=True, name=self.args.model_name)
+
         model, optimizer, train_loader = self.set_up_training()
 
         code_timer = TimeCode()
@@ -487,6 +491,14 @@ class Modelling:
                 val_loader=val_loader)
             eval_score.step = step
             eval_score.epoch = epoch
+
+            # log to wandb
+            wandb.log({"eval f1": eval_score.f_1})
+            wandb.log({"eval f1 per class": eval_score.f_1_none})
+            wandb.log({"eval loss": eval_score.loss})
+            wandb.log({"accuracy": eval_score.accuracy})
+            wandb.log({"step": eval_score.step})
+            wandb.log({"learning rate": get_lr(optimizer)[0]})
 
             append_json_lines(output_dir=self.metrics_dir,
                               filename='eval_scores',

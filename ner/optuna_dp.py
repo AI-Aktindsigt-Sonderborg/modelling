@@ -139,6 +139,7 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                     eval_score.epoch = epoch
                     eval_scores.append(eval_score)
                     wandb.log({"eval f1": eval_score.f_1})
+                    wandb.log({"eval f1 per class": eval_score.f_1_none})
                     wandb.log({"eval loss": eval_score.loss})
                     wandb.log({"accuracy": eval_score.accuracy})
                     wandb.log({"step": eval_score.step})

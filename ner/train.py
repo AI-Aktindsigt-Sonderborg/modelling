@@ -6,6 +6,7 @@ import traceback
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 from shared.utils.helpers import init_logging
+from ner.data_utils.custom_dataclasses import DataPrepConstants
 
 logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 
@@ -15,7 +16,7 @@ ner_parser = NERArgParser()
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
 
-args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
+args.entities = DataPrepConstants.standard_ner_entities
 
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name

@@ -1,15 +1,17 @@
 # pylint: disable=line-too-long
+import os
 import re
 import sys
 import traceback
 from typing import List
-import os
+
 import nltk
 
-from ner.data_utils.helpers import split_sentences_bilou, filter_language
+from ner.data_utils.custom_dataclasses import DataPrepConstants
+from ner.data_utils.helpers import filter_language, \
+    delete_duplicate_annotations, reindexing_first_or_last, fix_skewed_indices
 from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json, read_json_lines, write_json_lines
-from langdetect import detect_langs
 
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
@@ -18,7 +20,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
     indices_reindexed = 0
     annotation_errors = 0
 
-    try:
+    if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
         BLACKLIST_HELBRED = read_json(
             filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
         )
@@ -26,206 +28,63 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
         BLACKLIST_FORB = read_json(
             filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
         )
-    except Exception:
-        print("files not available locally")
 
     filtered_annotation_list = []
     for annotation in current_page_annotations:
         annotation_error = 0
 
-        if annotation["annotation"]["state"] != "deleted":
-            filtered_annotation = {
-                "content": annotation["annotation"]["content"],
-                "annotation": annotation["annotation"]["annotation"],
-                "start": annotation["annotation"]["start"],
-                "end": annotation["annotation"]["end"],
-            }
-            if filtered_annotation in filtered_annotation_list:
-                annotation_error = 1
-                annotation["annotation"]["state"] = "deleted"
-                print("deleted duplicate annotation")
-            else:
-                filtered_annotation_list.append(filtered_annotation)
+        annotation, filtered_annotation_list, annotation_error = delete_duplicate_annotations(
+            data=annotation,
+            filtered_list=filtered_annotation_list)
 
     for annotation_num, annotation in enumerate(current_page_annotations):
 
-        try:
+        if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
             if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
                 annotation_error = 1
                 del current_page_annotations[annotation_num]
-                print(f"deleted helbred annot: {annotation['annotation']['content']}")
+                print(
+                    f"deleted helbred annot: {annotation['annotation']['content']}")
                 continue
 
             if annotation["annotation"]["content"] in BLACKLIST_FORB:
                 annotation_error = 1
                 del current_page_annotations[annotation_num]
-                print(f"deleted forbrydelse annot: {annotation['annotation']['content']}")
+                print(
+                    f"deleted forbrydelse annot: {annotation['annotation']['content']}")
                 continue
-        except Exception:
-            print("Files not available locally")
 
         annotated_class = annotation["annotation"]["annotation"]
-
         start_index_init = annotation["annotation"]["start"]
         end_index_init = annotation["annotation"]["end"]
         true_original_init = pdf_text[start_index_init:end_index_init]
         annotated_content_init = annotation["annotation"]["content"]
-        annotated_content = annotated_content_init
-        annotated_content_last = annotated_content[-1]
-        annotated_content_first = annotated_content[0]
 
-        start_index = start_index_init
-        end_index = end_index_init
-        while annotated_content_last.isspace() | (annotated_content_last == " "):
-            annotation_error = 1
-            end_index = end_index - 1
-            annotation["annotation"]["end"] -= 1
-            annotated_content = annotated_content[:-1]
-            annotation["annotation"]["content"] = annotated_content
-            annotated_content_last = annotated_content[-1]
+        annotation, annotation_error = reindexing_first_or_last(data=annotation)
 
-        special_chars = [
-            ")",
-            "(",
-            "]",
-            "[",
-            ".",
-            "-",
-            "=",
-            ",",
-            ";",
-            ":",
-            "?",
-            "/",
-            "_",
-            " ",
-        ]
-        while annotated_content_last in special_chars:
-            annotation_error = 1
-            end_index = end_index - 1
-            annotation["annotation"]["end"] -= 1
-            annotated_content = annotated_content[:-1]
-            annotation["annotation"]["content"] = annotated_content
-            try:
-                annotated_content_last = annotated_content[-1]
-            except IndexError:
-                print(f"removing annotation {annotation_num} from {document_num + 1}")
-                print(current_page_annotations[annotation_num])
-                del current_page_annotations[annotation_num]
-                print(f"removed annotation {annotation_num} from {document_num + 1}")
-                break
+        start_index = annotation["annotation"]["start"]
+        end_index = annotation["annotation"]["end"]
 
-        while annotated_content_first in special_chars:
-            annotation_error = 1
-            end_index = end_index - 1
-            annotation["annotation"]["start"] += 1
-            annotated_content = annotated_content[1:]
-            annotation["annotation"]["content"] = annotated_content
-            try:
-                annotated_content_first = annotated_content[0]
-            except IndexError:
-                try:
-                    print(
-                        f"removing annotation {annotation_num} from {document_num + 1}"
-                    )
-                    print(current_page_annotations[annotation_num])
-                    del current_page_annotations[annotation_num]
-                    print(
-                        f"removed annotation {annotation_num} from {document_num + 1}"
-                    )
-                except Exception:
-                    print("data might already be removed")
+        annotated_content = annotation["annotation"]["content"]
+        # true_original = pdf_text[start_index:end_index]
 
-                break
+        # ToDo: fix skewness
+        annotation, true_original, indices_reindexed, annotation_error = fix_skewed_indices(
+            text=pdf_text,
+            data=annotation,
+            reindex_counter=indices_reindexed)
 
-        true_original = pdf_text[start_index:end_index]
+        if current_page_annotations[annotation_num]['annotation']['start'] != annotation["annotation"]["start"]:
+            print("This should not happen!!")
+            sys.exit(1)
 
-        if true_original.lower() != annotated_content.lower():
-            annotation_error = 1
-            skewness_list = list(range(-10, 10))
-            true_content_skewed = true_original
-            for skewness in skewness_list:
-                try:
-                    true_content_skewed = pdf_text[
-                        start_index + skewness : end_index + skewness
-                    ]
-                except IndexError:
-                    print("skewness search error")
-                    print(traceback.format_exc())
-                if true_content_skewed.lower() == annotated_content.lower():
-                    current_page_annotations[annotation_num]["annotation"]["start"] = (
-                        start_index + skewness
-                    )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        end_index + skewness
-                    )
-                    true_original = pdf_text[
-                        start_index + skewness : end_index + skewness
-                    ]
-                    indices_reindexed += 1
-                    print("sentence reindexed")
-                    print(current_page_annotations[annotation_num])
-                    break
-                print(current_page_annotations[annotation_num])
-                continue
-
-        if true_original.lower() != annotated_content.lower():
-            annotation_error = 1
-            try:
-                match1 = re.search(
-                    re.escape(annotated_content.lower() + "[^0-9a-zA-Z]"),
-                    pdf_text.lower(),
-                )
-                match2 = re.search(
-                    annotated_content.lower() + "[^0-9a-zA-Z]", pdf_text.lower()
-                )
-                if (
-                    match1
-                    and (abs(match1.start() - annotation["annotation"]["start"]) > 10)
-                ) or (
-                    match2
-                    and (abs(match2.start() - annotation["annotation"]["start"]) > 10)
-                ):
-                    match1 = None
-                    match2 = None
-
-                if match1:
-                    manual_start_index = match1.start()
-                    manual_end_index = match1.end() - 1
-                    current_page_annotations[annotation_num]["annotation"][
-                        "start"
-                    ] = manual_start_index
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"
-                    ] = manual_end_index
-                    indices_reindexed += 1
-                elif match2:
-                    manual_start_index = match2.start()
-                    manual_end_index = match2.end() - 1
-                    current_page_annotations[annotation_num]["annotation"][
-                        "start"
-                    ] = manual_start_index
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"
-                    ] = manual_end_index
-                    indices_reindexed += 1
-                else:
-                    print(f"found no manual match - doc_num: {document_num}")
-                    print(f"true original content: |{true_original_init}|")
-                    print(f"true modified content: |{true_original}|")
-                    print(f"annotated content:  |{annotated_content}|")
-                    print(f"|{pdf_text[start_index_init - 15:end_index_init + 15]}|")
-                    print(f"entity: |{annotation['annotation']['annotation']}|")
-            except Exception:
-                print("manual search error")
-                print(traceback.format_exc())
-
+        # FixMe: Continue from here
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
             annotation_error = 1
             # where annotation does not include the last s in word
             if len(pdf_text) > end_index + 2:
-                if pdf_text[end_index_init : end_index_init + 2] == "s ":
+                if pdf_text[end_index_init: end_index_init + 2] == "s ":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -234,11 +93,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "s"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index_init : end_index_init + 3] == "'s ":
+                if pdf_text[end_index_init: end_index_init + 3] == "'s ":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -247,11 +108,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "s"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index_init : end_index_init + 2] == "k ":
+                if pdf_text[end_index_init: end_index_init + 2] == "k ":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -260,11 +123,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "k"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index_init : end_index_init + 1] == "e":
+                if pdf_text[end_index_init: end_index_init + 1] == "e":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -273,11 +138,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "e"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index_init : end_index_init + 1] == "r":
+                if pdf_text[end_index_init: end_index_init + 1] == "r":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -286,11 +153,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "r"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index_init : end_index_init + 1] == "n":
+                if pdf_text[end_index_init: end_index_init + 1] == "n":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -299,11 +168,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "n"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index : end_index + 1] == "s":
+                if pdf_text[end_index: end_index + 1] == "s":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -312,11 +183,13 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "s"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
-                if pdf_text[end_index : end_index + 1] == "i":
+                if pdf_text[end_index: end_index + 1] == "i":
                     current_page_annotations[annotation_num]["annotation"][
                         "content"
                     ] = (
@@ -325,8 +198,10 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
                         ]
                         + "i"
                     )
-                    current_page_annotations[annotation_num]["annotation"]["end"] = (
-                        current_page_annotations[annotation_num]["annotation"]["end"]
+                    current_page_annotations[annotation_num]["annotation"][
+                        "end"] = (
+                        current_page_annotations[annotation_num]["annotation"][
+                            "end"]
                         + 1
                     )
         annotation_errors += annotation_error
@@ -368,7 +243,8 @@ def create_bilou_from_one_document(
                 current_page_annotations,
                 indices_reindexed,
                 annotation_errors,
-            ) = fix_faulty_indices(current_page_annotations, pdf_text, data_number)
+            ) = fix_faulty_indices(current_page_annotations, pdf_text,
+                                   data_number)
             document_annotation_errors += annotation_errors
 
             sorted_page_annotations = sorted(
@@ -394,7 +270,8 @@ def create_bilou_from_one_document(
                     x
                     for x in current_page_annotations
                     if (
-                        x["annotation"]["start"] < (len(sentence) + page_index_diff)
+                        x["annotation"]["start"] < (
+                        len(sentence) + page_index_diff)
                         and x["annotation"]["start"] >= (page_index_diff)
                     )
                 ]
@@ -402,7 +279,8 @@ def create_bilou_from_one_document(
                     x
                     for x in current_page_annotations
                     if (
-                        x["annotation"]["start"] > (len(sentence) + page_index_diff)
+                        x["annotation"]["start"] > (
+                        len(sentence) + page_index_diff)
                         or x["annotation"]["start"] <= (page_index_diff)
                     )
                 ]
@@ -424,7 +302,7 @@ def create_bilou_from_one_document(
                     x
                     for x in sorted_sentence_annotations
                     if x["annotation"]["annotation"]
-                    not in ["EMAIL", "PRIS", "DATO", "URL", "CVR"]
+                       not in DataPrepConstants.none_ner_entities
                 ]
 
                 for j, annotation in enumerate(filtered_sentence_annotations):
@@ -440,7 +318,8 @@ def create_bilou_from_one_document(
                     end_index_init = annotation["annotation"]["end"]
                     true_orig_init = pdf_text[start_index_init:end_index_init]
 
-                    annotated_content = annotation["annotation"]["content"].replace(
+                    annotated_content = annotation["annotation"][
+                        "content"].replace(
                         " |", ""
                     )
 
@@ -461,38 +340,43 @@ def create_bilou_from_one_document(
                         first_is_space = True
 
                     true_content = sentence[
-                        start_index_init
-                        - page_index_diff : end_index_init
-                        - page_index_diff
-                    ]
+                                   start_index_init
+                                   - page_index_diff: end_index_init
+                                                      - page_index_diff
+                                   ]
                     try:
                         if (
                             (annotated_content.lower() == true_content.lower())
-                            and sentence[end_index_init - page_index_diff].isalpha()
-                            and sentence[end_index_init - page_index_diff - 1].isdigit()
+                            and sentence[
+                            end_index_init - page_index_diff].isalpha()
+                            and sentence[
+                            end_index_init - page_index_diff - 1].isdigit()
                         ):
                             sentence = (
                                 sentence[: start_index_init - page_index_diff]
                                 + annotated_content
                                 + " "
-                                + sentence[end_index_init - page_index_diff :]
+                                + sentence[end_index_init - page_index_diff:]
                             )
                     except IndexError:
                         print("weird index error")
                         print(traceback.format_exc())
 
                     true_original = pdf_text[
-                        annotation["annotation"]["start"] : end_index_init
-                    ]
+                                    annotation["annotation"][
+                                        "start"]: end_index_init
+                                    ]
 
                     if (
                         annotation["annotation"]["content"] == "Ankestyrelsen"
-                        or annotation["annotation"]["content"] == "Ankestyrelsens"
+                        or annotation["annotation"][
+                        "content"] == "Ankestyrelsens"
                     ):
                         print(
                             f"----------annotation_stats: {data_number + 1} - page_number: {k + 1} - {i} - anno_nr: {j} -------------"
                         )
-                        print(f"true original index content: |{true_orig_init}|")
+                        print(
+                            f"true original index content: |{true_orig_init}|")
                         print(
                             f"true modified original index content: |{true_original}|"
                         )
@@ -504,23 +388,24 @@ def create_bilou_from_one_document(
                         print(len(pdf_text) > annotation["annotation"]["end"])
                         if len(pdf_text) > annotation["annotation"]["end"]:
                             print(annotation["annotation"]["end"])
-                            print("|" + pdf_text[annotation["annotation"]["end"]] + "|")
+                            print("|" + pdf_text[
+                                annotation["annotation"]["end"]] + "|")
                             print(
                                 "|"
                                 + pdf_text[
-                                    annotation["annotation"]["end"]
-                                    - 15 : annotation["annotation"]["end"]
-                                    + 15
-                                ]
+                                  annotation["annotation"]["end"]
+                                  - 15: annotation["annotation"]["end"]
+                                        + 15
+                                  ]
                                 + "|"
                             )
                             print(
                                 sentence[
-                                    annotation["annotation"]["start"]
-                                    - page_index_diff
-                                    + 1 : annotation["annotation"]["end"]
-                                    - page_index_diff
-                                    + 1
+                                annotation["annotation"]["start"]
+                                - page_index_diff
+                                + 1: annotation["annotation"]["end"]
+                                     - page_index_diff
+                                     + 1
                                 ]
                             )
 
@@ -535,12 +420,12 @@ def create_bilou_from_one_document(
                         if true_content.lower() != annotated_content.lower():
                             for skewness in skewness_list:
                                 true_content_skewed = sentence[
-                                    start_index_init
-                                    - page_index_diff
-                                    + skewness : end_index_init
-                                    - page_index_diff
-                                    + skewness
-                                ]
+                                                      start_index_init
+                                                      - page_index_diff
+                                                      + skewness: end_index_init
+                                                                  - page_index_diff
+                                                                  + skewness
+                                                      ]
                                 if (
                                     true_content_skewed.lower()
                                     == annotated_content.lower()
@@ -561,11 +446,13 @@ def create_bilou_from_one_document(
                         annotated_content.lower() == true_content.lower()
                     ) or manual_match:
                         correct_index += 1
-                        list_content = re.split(r"( |,|\. |\.\n)", annotated_content)
+                        list_content = re.split(r"( |,|\. |\.\n)",
+                                                annotated_content)
                         to_remove = [" ", ""]
                         list_content = list(
                             filter(
-                                lambda tag: tag.strip() not in to_remove, list_content
+                                lambda tag: tag.strip() not in to_remove,
+                                list_content
                             )
                         )
                         insert_annotation: bool = True
@@ -656,7 +543,8 @@ def create_bilou_from_one_document(
 
                 for pattern, replacement in patterns.items():
                     sentence = re.sub(pattern, replacement, sentence + "\n")
-                    sentence_anon = re.sub(pattern, replacement, sentence_anon + "\n")
+                    sentence_anon = re.sub(pattern, replacement,
+                                           sentence_anon + "\n")
 
                 special_chars = [
                     ")",
@@ -684,7 +572,7 @@ def create_bilou_from_one_document(
                 words_final = list(
                     filter(
                         lambda word: word.strip().rstrip("\\n").strip()
-                        not in to_remove,
+                                     not in to_remove,
                         words,
                     )
                 )
@@ -692,13 +580,15 @@ def create_bilou_from_one_document(
 
                 tags_no_whitespace = list(
                     filter(
-                        lambda tag: tag.strip().rstrip("\\n").strip() not in to_remove,
+                        lambda tag: tag.strip().rstrip(
+                            "\\n").strip() not in to_remove,
                         tags,
                     )
                 )
                 tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
 
-                if words_final[-1] == "." and not (tags_no_whitespace[-1] == "."):
+                if words_final[-1] == "." and not (
+                    tags_no_whitespace[-1] == "."):
                     tags_no_whitespace.append(".")
 
                 tags_final = [
@@ -748,7 +638,8 @@ def create_bilou_from_one_document(
                         print(language_codes)
                         print("---------------------")
                         for count in range(len(words_final)):
-                            print(f"{words_final[count]} - {tags_no_whitespace[count]}")
+                            print(
+                                f"{words_final[count]} - {tags_no_whitespace[count]}")
 
                 if len(tags_final) != len(words_final):
                     print("fucktards")
@@ -761,7 +652,8 @@ def create_bilou_from_one_document(
                     )
                     for annot in sorted_page_annotations:
                         print(annot)
-                    print("--------------Sorted annotations - start------------------")
+                    print(
+                        "--------------Sorted annotations - start------------------")
                     for annot in sorted_page_annotations:
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
@@ -791,7 +683,8 @@ def create_bilou_from_one_document(
                     print(language_codes)
                     print("---------------------")
                     for count in range(len(words_final)):
-                        print(f"{words_final[count]} - {tags_no_whitespace[count]}")
+                        print(
+                            f"{words_final[count]} - {tags_no_whitespace[count]}")
 
                 sentence_index_diff += len(sentence)
 
@@ -890,7 +783,8 @@ if __name__ == "__main__":
 
             entity_data.extend(single_obs_data)
 
-        write_json_lines(out_dir=DATA_DIR, data=entity_data, filename="bilou_2807")
+        write_json_lines(out_dir=DATA_DIR, data=entity_data,
+                         filename="bilou_2807")
 
     print(f"Total valid sentences: {len(entity_data)}")
     print(f"word/tag length mismatch errors: {word_tag_mismatch_errors}")
