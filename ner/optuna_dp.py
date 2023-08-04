@@ -20,12 +20,24 @@ args.test = False
 args.train_data = "bio_train.jsonl"
 args.eval_data = "bio_val.jsonl"
 args.data_format = "bio"
+args.evaluate_steps = 400
+args.logging_steps = 400
+args.train_batch_size = 16
+args.eval_batch_size = 16
 
-args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION",
-                 "KOMMUNE", "TELEFONNUMMER"]
+args.entities = [
+    "PERSON",
+    "LOKATION",
+    "ADRESSE",
+    "HELBRED",
+    "ORGANISATION",
+    "KOMMUNE",
+    "TELEFONNUMMER",
+]
 
-model_name_to_print = args.custom_model_name if \
-    args.custom_model_name else args.model_name
+model_name_to_print = (
+    args.custom_model_name if args.custom_model_name else args.model_name
+)
 
 ner_modelling = NERModellingDP(args=args)
 # args.train_data = "dane"
@@ -46,66 +58,71 @@ def train_model(learning_rate, epsilon, delta, lot_size):
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=ner_modelling.args.weight_decay)
+        weight_decay=ner_modelling.args.weight_decay,
+    )
 
     ner_modelling.load_data()
 
-    ner_modelling.save_config(output_dir=ner_modelling.output_dir,
-                     metrics_dir=ner_modelling.metrics_dir,
-                     args=ner_modelling.args)
+    ner_modelling.save_config(
+        output_dir=ner_modelling.output_dir,
+        metrics_dir=ner_modelling.metrics_dir,
+        args=ner_modelling.args,
+    )
 
     train_wrapped, train_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(
-            ner_modelling.data.train),
+        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.train),
         batch_size=lot_size,
-        data_collator=ner_modelling.data_collator)
+        data_collator=ner_modelling.data_collator,
+    )
 
     _, eval_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(
-            ner_modelling.data.eval),
+        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
         batch_size=ner_modelling.args.eval_batch_size,
         data_collator=ner_modelling.data_collator,
-        shuffle=False)
+        shuffle=False,
+    )
 
     privacy_engine = PrivacyEngine()
 
     model = model.train()
 
-    model, optimizer, train_loader = \
-        privacy_engine.make_private_with_epsilon(
-            module=model,
-            optimizer=optimizer,
-            data_loader=train_loader,
-            epochs=ner_modelling.args.epochs,
-            target_epsilon=epsilon,
-            target_delta=delta,
-            max_grad_norm=ner_modelling.args.max_grad_norm,
-            # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-            grad_sample_mode="hooks"
-        )
+    model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
+        module=model,
+        optimizer=optimizer,
+        data_loader=train_loader,
+        epochs=ner_modelling.args.epochs,
+        target_epsilon=epsilon,
+        target_delta=delta,
+        max_grad_norm=ner_modelling.args.max_grad_norm,
+        # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
+        grad_sample_mode="hooks",
+    )
 
     step = 0
     eval_scores = []
-    for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch",
-                      unit="epoch"):
+    for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch", unit="epoch"):
         model = model.to(ner_modelling.args.device)
         train_losses = []
         lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,
             max_physical_batch_size=ner_modelling.args.train_batch_size,
-            optimizer=optimizer
+            optimizer=optimizer,
         ) as memory_safe_data_loader:
-            for batch in tqdm(memory_safe_data_loader,
-                              desc=f'Epoch {epoch} of {ner_modelling.args.epochs}',
-                              unit="batch"):
+            for batch in tqdm(
+                memory_safe_data_loader,
+                desc=f"Epoch {epoch} of {ner_modelling.args.epochs}",
+                unit="batch",
+            ):
                 model.train()
 
                 output = model(
                     input_ids=batch["input_ids"].to(ner_modelling.args.device),
                     attention_mask=batch["attention_mask"].to(
-                        ner_modelling.args.device),
-                    labels=batch["labels"].to(ner_modelling.args.device))
+                        ner_modelling.args.device
+                    ),
+                    labels=batch["labels"].to(ner_modelling.args.device),
+                )
                 loss = output.loss
 
                 optimizer.zero_grad()
@@ -114,8 +131,8 @@ def train_model(learning_rate, epsilon, delta, lot_size):
 
                 if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
                     eval_score = ner_modelling.evaluate(
-                        model=model,
-                        val_loader=eval_loader)
+                        model=model, val_loader=eval_loader
+                    )
                     eval_score.step = step
                     eval_score.epoch = epoch
                     eval_scores.append(eval_score)
@@ -125,29 +142,29 @@ def train_model(learning_rate, epsilon, delta, lot_size):
                     wandb.log({"step": eval_score.step})
                     wandb.log({"learning rate": learning_rate})
 
-
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
-    append_json_lines(output_dir=ner_modelling.metrics_dir,
-                      data=dataclasses.asdict(max_f1),
-                      filename="best_f1")
+    append_json_lines(
+        output_dir=ner_modelling.metrics_dir,
+        data=dataclasses.asdict(max_f1),
+        filename="best_f1",
+    )
 
     return max_f1.f_1
 
+
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    epsilon = trial.suggest_float('epsilon', 1.0, 10.0)
+    epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
-    delta = trial.suggest_float('delta', 1e-6, 1e-2)
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True)
-    wandb.login(key='e99e480bf10627b2fa2ed6f2a9fe58472e3cb992')
+    delta = trial.suggest_float("delta", 1e-6, 1e-2)
+    learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-1, log=True)
+    wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
     wandb.init(reinit=True)
 
-
-    f_1 = train_model(learning_rate=learning_rate,
-                          epsilon=epsilon,
-                      delta=delta,
-                      lot_size=lot_size)
+    f_1 = train_model(
+        learning_rate=learning_rate, epsilon=epsilon, delta=delta, lot_size=lot_size
+    )
     trial.report(f_1, step=10)
 
     # Perform pruning check
@@ -158,14 +175,12 @@ def objective(trial):
 
 
 if __name__ == "__main__":
-    study = optuna.create_study(direction='maximize')
+    study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=args.n_trials)
 
-    print('Best trial:')
+    print("Best trial:")
     best_trial = study.best_trial
-    print('  Value: {:.6f}'.format(best_trial.value))
-    print('  Params: ')
+    print("  Value: {:.6f}".format(best_trial.value))
+    print("  Params: ")
     for key, value in best_trial.params.items():
-        print('{}: {}'.format(key, value))
-
-
+        print("{}: {}".format(key, value))
