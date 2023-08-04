@@ -24,6 +24,8 @@ args.evaluate_steps = 400
 args.logging_steps = 400
 args.train_batch_size = 16
 args.eval_batch_size = 16
+args.epochs = 5
+args.n_trials = 20
 
 args.entities = [
     "PERSON",
