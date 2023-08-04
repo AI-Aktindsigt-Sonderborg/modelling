@@ -68,7 +68,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
         annotated_content = annotation["annotation"]["content"]
         # true_original = pdf_text[start_index:end_index]
 
-        # ToDo: fix skewness
         annotation, true_original, indices_reindexed, annotation_error = fix_skewed_indices(
             text=pdf_text,
             data=annotation,
