@@ -9,7 +9,8 @@ import nltk
 
 from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.data_utils.helpers import filter_language, \
-    delete_duplicate_annotations, reindexing_first_or_last, fix_skewed_indices
+    delete_duplicate_annotations, reindexing_first_or_last, fix_skewed_indices, \
+    handle_wrong_annotation_end_letter
 from ner.local_constants import DATA_DIR
 from shared.utils.helpers import read_json, read_json_lines, write_json_lines
 
@@ -77,132 +78,14 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
             print("This should not happen!!")
             sys.exit(1)
 
-        # FixMe: Continue from here
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
-            annotation_error = 1
-            # where annotation does not include the last s in word
-            if len(pdf_text) > end_index + 2:
-                if pdf_text[end_index_init: end_index_init + 2] == "s ":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "s"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index_init: end_index_init + 3] == "'s ":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "s"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index_init: end_index_init + 2] == "k ":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "k"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index_init: end_index_init + 1] == "e":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "e"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index_init: end_index_init + 1] == "r":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "r"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index_init: end_index_init + 1] == "n":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "n"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index: end_index + 1] == "s":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "s"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
-                if pdf_text[end_index: end_index + 1] == "i":
-                    current_page_annotations[annotation_num]["annotation"][
-                        "content"
-                    ] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "content"
-                        ]
-                        + "i"
-                    )
-                    current_page_annotations[annotation_num]["annotation"][
-                        "end"] = (
-                        current_page_annotations[annotation_num]["annotation"][
-                            "end"]
-                        + 1
-                    )
+            annotation, annotation_error = handle_wrong_annotation_end_letter(
+                data=annotation, text=pdf_text,
+                patterns=DataPrepConstants.annotation_replacements,
+                end_index=end_index_init
+            )
+
         annotation_errors += annotation_error
 
     return current_page_annotations, indices_reindexed, annotation_errors

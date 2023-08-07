@@ -37,6 +37,13 @@ if args.data_format not in ["bilou", "bio"]:
     print('exiting - try again')
     ner_parser.parser.exit()
 
+if args.static_lr:
+    args.freeze_layers = False
+    args.lr_warmup_steps = 0
+    args.lr_freezed_warmup_steps = None
+    args.lr_freezed = None
+    args.lr_start_decay = None
+
 
 
 args.cmd_line_args = sys.argv

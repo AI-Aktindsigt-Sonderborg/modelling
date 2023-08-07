@@ -201,6 +201,25 @@ def reindexing_first_or_last(data):
     return data, error
 
 
+def handle_wrong_annotation_end_letter(data: dict, text: str, patterns: dict,
+                                       end_index):
+    error = 0
+    for pattern, replacement in patterns.items():
+        if len(text) > end_index + len(pattern):
+            if text[end_index: end_index + len(pattern)] == pattern:
+                error = 1
+                data["annotation"]["content"] = (
+                    data["annotation"]["content"] + replacement
+                )
+                data["annotation"]["end"] = (
+                        data["annotation"]["end"] + len(replacement)
+                        )
+                return data, error
+
+    return data, error
+
+
+
 def fix_skewed_indices(text, data, reindex_counter,
                        skew_bottom: int = -10, skew_top: int = 10):
     """
@@ -231,14 +250,16 @@ def fix_skewed_indices(text, data, reindex_counter,
         true_content_skewed = true_content
         for skewness in skewness_list:
             try:
-                true_content_skewed = text[start_index + skewness: end_index + skewness]
+                true_content_skewed = text[
+                                      start_index + skewness: end_index + skewness]
             except IndexError:
                 print("skewness search error")
                 print(traceback.format_exc())
             if true_content_skewed.lower() == annotated_content.lower():
                 data["annotation"]["start"] = (start_index + skewness)
                 data["annotation"]["end"] = (end_index + skewness)
-                true_content = text[start_index + skewness: end_index + skewness]
+                true_content = text[
+                               start_index + skewness: end_index + skewness]
                 reindex_counter += 1
                 break
             continue

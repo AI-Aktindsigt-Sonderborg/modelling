@@ -243,7 +243,7 @@ class ModellingArgParser:
         training_params.add_argument(
             "--n_trials",
             type=int,
-            default=10,
+            default=None,
             metavar='<int>',
             help="Number of trials to run when hp optimizing")
 

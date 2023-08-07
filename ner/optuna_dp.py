@@ -162,8 +162,9 @@ def objective(trial):
 
     wandb.init(
         reinit=True,
-        name=f"params-{round(learning_rate, 5)}-{lot_size}-{round(epsilon, 2)}"
-             f"-{round(delta, 5)}-{max_length}",
+        name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
+             f"{round(epsilon, 2)}"
+             f"-{round(delta, 5)}-{lot_size}-{max_length}",
     )
 
     f_1 = train_model(

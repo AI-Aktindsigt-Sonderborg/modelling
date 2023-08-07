@@ -26,6 +26,17 @@ class DataPrepConstants:
         " ",
     ]
 
+    annotation_replacements = {
+        "s ": "s",
+        "'s ": "s",
+        "k ": "k",
+        "e": "e",
+        "r": "r",
+        "n": "n",
+        "s": "s",
+        "i": "i"
+        }
+
     standard_ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
                          "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
 
