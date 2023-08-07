@@ -191,7 +191,11 @@ class Modelling:
                              self.args.lr_freezed_warmup_steps,
                 end_factor=1,
                 total_iters=self.args.lr_freezed_warmup_steps)
-        if self.args.static_lr:
+        elif self.args.static_lr:
+            self.args.lr_warmup_steps = 0
+            # self.args.lr_freezed_warmup_steps = None
+            # self.args.lr_freezed = None
+            self.args.lr_start_decay = None
             self.scheduler = create_scheduler(
                 optimizer,
                 start_factor=1,
