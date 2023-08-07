@@ -166,7 +166,7 @@ class Modelling:
         dummy_trainer_ = self.create_dummy_trainer(
             train_data_wrapped=train_data_wrapped,
             model=model)
-        optimizer_ = dummy_trainer_.create_optimizer()
+        # optimizer_ = dummy_trainer_.create_optimizer()
         dummy_trainer_.save_model(output_dir=self.output_dir)
 
         if self.args.freeze_embeddings:
@@ -330,7 +330,7 @@ class Modelling:
         load data, set up training and train model
         """
         wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
-        wandb.init(reinit=True, name=self.args.model_name)
+        wandb.init(reinit=True, name=self.args.output_name)
 
         model, optimizer, train_loader = self.set_up_training()
 
@@ -500,10 +500,10 @@ class Modelling:
 
             # log to wandb
             wandb.log({"eval f1": eval_score.f_1})
-            wandb.log({"eval f1 per class": eval_score.f_1_none})
+            # wandb.log({"eval f1 per class": eval_score.f_1_none})
             wandb.log({"eval loss": eval_score.loss})
             wandb.log({"accuracy": eval_score.accuracy})
-            wandb.log({"step": eval_score.step})
+            # wandb.log({"step": eval_score.step})
             wandb.log({"learning rate": get_lr(optimizer)[0]})
 
             append_json_lines(output_dir=self.metrics_dir,
@@ -590,7 +590,7 @@ class Modelling:
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
-    def tokenize_and_wrap_data(self, data, max_length):
+    def tokenize_and_wrap_data(self, data):
         pass
 
     def get_model(self):
