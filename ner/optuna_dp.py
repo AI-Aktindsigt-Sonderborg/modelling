@@ -26,6 +26,7 @@ args.train_batch_size = 16
 args.eval_batch_size = 16
 args.epochs = 10
 args.n_trials = 20
+args.load_alvenir_pretrained = False
 
 
 args.entities = [
@@ -157,7 +158,7 @@ def objective(trial):
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
     delta = trial.suggest_float("delta", 1e-6, 1e-2)
-    learning_rate = trial.suggest_float("learning_rate", 5e-5, 1e-2, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
     wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
 
     wandb.init(
