@@ -21,7 +21,7 @@ args.differential_privacy = False
 args.test = True
 # args.eval_batch_size = 1
 args.normalize_conf = "true"
-# args.max_length = 512
+args.max_length = 512
 # args.test_data = "bilou_val.jsonl"
 # args.concat_bilu = True
 

@@ -27,6 +27,7 @@ args.eval_batch_size = 16
 args.epochs = 10
 args.n_trials = 20
 args.load_alvenir_pretrained = False
+args.model_name = "base"
 
 
 args.entities = [
@@ -45,8 +46,8 @@ model_name_to_print = (
 
 ner_modelling = NERModellingDP(args=args)
 
-def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 
+def train_model(learning_rate, epsilon, delta, lot_size, max_length):
     model = ner_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
@@ -73,9 +74,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
     )
     ner_modelling.args.max_length = max_length
     _, eval_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(
-            ner_modelling.data.eval
-        ),
+        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
         batch_size=ner_modelling.args.eval_batch_size,
         data_collator=ner_modelling.data_collator,
         shuffle=False,
@@ -164,8 +163,8 @@ def objective(trial):
     wandb.init(
         reinit=True,
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
-             f"{round(epsilon, 2)}"
-             f"-{round(delta, 5)}-{lot_size}-{max_length}",
+        f"{round(epsilon, 2)}"
+        f"-{round(delta, 5)}-{lot_size}-{max_length}",
     )
 
     f_1 = train_model(
