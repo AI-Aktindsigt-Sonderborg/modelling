@@ -584,7 +584,7 @@ class Modelling:
             self.model_path,
             local_files_only=self.args.load_alvenir_pretrained)
 
-    def tokenize_and_wrap_data(self, data):
+    def tokenize_and_wrap_data(self, data, max_length):
         pass
 
     def get_model(self):
