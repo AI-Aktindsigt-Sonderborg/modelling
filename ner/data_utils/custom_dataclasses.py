@@ -60,4 +60,5 @@ class DataPrepConstants:
     standard_ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
                              "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
 
-    none_ner_entities = ["EMAIL", "PRIS", "DATO", "URL", "CVR"]
+    none_ner_entities = ["EMAIL", "PRIS", "DATO", "URL", "CVR", "REGNR",
+                         "KONTONR"]
