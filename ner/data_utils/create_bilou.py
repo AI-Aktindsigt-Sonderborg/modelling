@@ -45,7 +45,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         ) = delete_duplicate_annotations(
             data=annotation, filtered_list=filtered_annotation_list
         )
-        print("5 ?")
 
     for annotation_num, annotation in enumerate(current_page_annotations):
         if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
@@ -62,7 +61,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                     f"deleted forbrydelse annot: {annotation['annotation']['content']}"
                 )
                 continue
-        print("6 ?")
+
 
         annotated_class = annotation["annotation"]["annotation"]
         start_index_init = annotation["annotation"]["start"]
@@ -71,7 +70,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         annotated_content_init = annotation["annotation"]["content"]
 
         annotation, annotation_error = reindexing_first_or_last(data=annotation)
-        print("7 ?")
         start_index = annotation["annotation"]["start"]
         end_index = annotation["annotation"]["end"]
 
@@ -86,13 +84,14 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         ) = fix_skewed_indices(
             text=pdf_text, data=annotation, reindex_counter=indices_reindexed
         )
-        print("8 ?")
+
 
         if (
             current_page_annotations[annotation_num]["annotation"]["start"]
             != annotation["annotation"]["start"]
         ):
             print("This should not happen!!")
+            sys.exit(1)
 
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
@@ -102,7 +101,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
                 patterns=DataPrepConstants.annotation_replacements,
                 end_index=end_index_init,
             )
-        print("9 ?")
 
         annotation_errors += annotation_error
 

@@ -150,6 +150,7 @@ def reindexing_first_or_last(data):
         Updated data and whether error was detected
     -------
     """
+
     error = 0
     annotated_content = data["annotation"]["content"]
     annotated_content_last = annotated_content[-1]
@@ -197,6 +198,7 @@ def reindexing_first_or_last(data):
                 # print(f"removed annotation {annotation_num} from {document_num + 1}")
             except Exception:
                 print("data might already be removed")
+            break
 
     return data, error
 
