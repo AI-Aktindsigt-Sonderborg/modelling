@@ -97,6 +97,7 @@ def create_bilou_from_one_document(
     print_stats: bool = False,
     print_each_sentence: int = 0,
 ):
+    print("reach this?")
     word_tag_mismatch_error: int = 0
     wrong_raw_index: int = 0
     wrong_index: int = 0
