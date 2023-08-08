@@ -163,9 +163,7 @@ def create_bilou_from_one_document(
         splitted_sentences = pdf_text.split("\n\n")
 
         for i, sentence in enumerate(splitted_sentences):
-            if len(sentence) == 0:
-                # print("zerolen")
-                continue
+
             entities = []
             sentence_anon = sentence
 
@@ -174,6 +172,9 @@ def create_bilou_from_one_document(
                     page_index_diff = 0
                 else:
                     page_index_diff += len(splitted_sentences[i - 1]) + 2
+
+                if len(sentence) == 0:
+                    continue
 
                 current_sentence_annotations = [
                     x
@@ -195,6 +196,7 @@ def create_bilou_from_one_document(
                     if x["annotation"]["annotation"]
                     not in DataPrepConstants.none_ner_entities
                 ]
+
 
                 for j, annotation in enumerate(filtered_sentence_annotations):
                     manual_match = False
