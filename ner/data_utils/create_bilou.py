@@ -437,6 +437,8 @@ def create_bilou_from_one_document(
                     tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
                     if words_final[-1] == "." and tags_no_whitespace[-1] != ".":
                         tags_no_whitespace.append(".")
+                else:
+                    continue
 
                 tags_final = [
                     tag
