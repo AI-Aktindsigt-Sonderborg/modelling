@@ -5,11 +5,11 @@ from typing import List
 from sklearn.model_selection import train_test_split
 
 from ner.data_utils.create_bilou import create_bilou_from_one_document
+from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
 from ner.data_utils.get_dataset import get_dane_train, get_label_list_dane
 from ner.data_utils.helpers import map_bilou_to_bio
-from ner.local_constants import DATA_DIR, PREP_DATA_DIR, \
-    DANE_TO_AKT_LABEL_MAPPING
+from ner.local_constants import DATA_DIR, PREP_DATA_DIR
 from shared.utils.helpers import read_json_lines, write_json_lines
 
 
@@ -165,7 +165,7 @@ class NERDataPreprocessing:
 
                 for obs in dane:
                     dane_tags = [dane_id2label[x] for x in obs["ner_tags"]]
-                    tags = [DANE_TO_AKT_LABEL_MAPPING[x] for x in dane_tags]
+                    tags = [DataPrepConstants.dane_to_akt_label_mapping[x] for x in dane_tags]
                     entities = [tag[2:] for tag in tags if "-" in tag]
                     train.append({"tokens": obs["tokens"], "tags": tags,
                                   "sentence": obs["text"], "sentence_anon": "",
