@@ -39,7 +39,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         annotation_error = 0
 
         (
-            current_page_annotations[i],
+            annotation,
             filtered_annotation_list,
             annotation_error,
         ) = delete_duplicate_annotations(
@@ -148,7 +148,18 @@ def create_bilou_from_one_document(
             sorted_page_annotations = sorted(
                 current_page_annotations, key=lambda x: x["annotation"]["start"]
             )
-            # for annotation in sorted_page_annotations:
+
+            filtered_annotation_list = []
+            for i, annotation in enumerate(current_page_annotations):
+                (
+                    annotation,
+                    filtered_annotation_list,
+                    annotation_error,
+                ) = delete_duplicate_annotations(
+                    data=annotation, filtered_list=filtered_annotation_list
+                )
+                current_page_annotations[i] = annotation
+
 
         splitted_sentences = pdf_text.split("\n\n")
 
