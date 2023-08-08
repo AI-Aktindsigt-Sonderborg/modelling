@@ -173,7 +173,7 @@ def create_bilou_from_one_document(
                 else:
                     page_index_diff += len(splitted_sentences[i - 1]) + 2
 
-                if len(sentence) == 0:
+                if len(sentence) == 0 or sentence.isspace():
                     continue
 
                 current_sentence_annotations = [
