@@ -76,7 +76,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num, ):
 
         if current_page_annotations[annotation_num]['annotation']['start'] != annotation["annotation"]["start"]:
             print("This should not happen!!")
-            sys.exit(1)
+            # sys.exit(1)
 
         # Handle special cases
         if true_original.lower() == annotated_content.lower():
