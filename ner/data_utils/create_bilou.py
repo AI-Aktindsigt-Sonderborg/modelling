@@ -51,15 +51,11 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
                 annotation_error = 1
                 del current_page_annotations[annotation_num]
-                print(f"deleted helbred annot: {annotation['annotation']['content']}")
                 continue
 
             if annotation["annotation"]["content"] in BLACKLIST_FORB:
                 annotation_error = 1
                 del current_page_annotations[annotation_num]
-                print(
-                    f"deleted forbrydelse annot: {annotation['annotation']['content']}"
-                )
                 continue
 
 
@@ -74,7 +70,6 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         end_index = annotation["annotation"]["end"]
 
         annotated_content = annotation["annotation"]["content"]
-        # true_original = pdf_text[start_index:end_index]
 
         (
             annotation,
@@ -558,7 +553,7 @@ if __name__ == "__main__":
 
     else:
         for i, obs in enumerate(raw_data):
-            print(f"creating bilou from document number {i + 1}")
+            # print(f"creating bilou from document number {i + 1}")
             single_obs_data, errors = create_bilou_from_one_document(
                 input_data=obs, data_number=i
             )
