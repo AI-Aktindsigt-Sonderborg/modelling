@@ -158,8 +158,7 @@ def reindexing_first_or_last(data):
     start_index = data["annotation"]["start"]
     end_index = data["annotation"]["end"]
 
-    while annotated_content_last.isspace() | (
-        annotated_content_last == " "):
+    while annotated_content_last.isspace() | (annotated_content_last == " "):
         error = 1
         end_index = end_index - 1
         data["annotation"]["end"] -= 1
@@ -182,7 +181,7 @@ def reindexing_first_or_last(data):
             # print(f"removed annotation {annotation_num} from {document_num + 1}")
             break
 
-    while annotated_content_first in DataPrepConstants.special_characters:
+    while annotated_content_first.isspace() or (annotated_content_first in DataPrepConstants.special_characters):
         error = 1
         end_index = end_index - 1
         data["annotation"]["start"] += 1
