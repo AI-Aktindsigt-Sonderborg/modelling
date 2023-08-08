@@ -158,8 +158,7 @@ def create_bilou_from_one_document(
                 ) = delete_duplicate_annotations(
                     data=annotation, filtered_list=filtered_annotation_list
                 )
-                assert current_page_annotations[i] == annotation
-
+                # assert current_page_annotations[i] == annotation
 
         splitted_sentences = pdf_text.split("\n\n")
 

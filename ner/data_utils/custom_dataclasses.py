@@ -42,6 +42,7 @@ class DataPrepConstants:
         r"\<": " < ",
         r"\>": " > ",
         r"\?": " ? ",
+        "TELEFONNUMMERF": "TELEFONNUMMER F"
     }
 
     annotation_replacements = {
