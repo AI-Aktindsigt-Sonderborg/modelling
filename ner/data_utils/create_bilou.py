@@ -202,12 +202,12 @@ def create_bilou_from_one_document(
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
 
-                    # while annotated_content_last.isspace() | (
-                    #     annotated_content_last == " "
-                    # ):
-                    #     end_index_init = end_index_init - 1
-                    #     annotated_content = annotated_content[:-1]
-                    #     annotated_content_last = annotated_content[-1]
+                    while annotated_content_last.isspace() | (
+                        annotated_content_last == " "
+                    ):
+                        end_index_init = end_index_init - 1
+                        annotated_content = annotated_content[:-1]
+                        annotated_content_last = annotated_content[-1]
 
                     first_is_space = False
                     if annotated_content_first.isspace() | (
