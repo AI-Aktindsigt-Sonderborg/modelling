@@ -423,11 +423,7 @@ def create_bilou_from_one_document(
                         words,
                     )
                 )
-                try:
-                    words_final[-1] = words_final[-1].strip()
-                except:
-                    print("seehere")
-                    print(words_final)
+
 
                 tags_no_whitespace = list(
                     filter(
@@ -435,10 +431,12 @@ def create_bilou_from_one_document(
                         tags,
                     )
                 )
-                tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
 
-                if words_final[-1] == "." and tags_no_whitespace[-1] != ".":
-                    tags_no_whitespace.append(".")
+                if len(tags_no_whitespace) > 0 and len(words_final) > 0:
+                    words_final[-1] = words_final[-1].strip()
+                    tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
+                    if words_final[-1] == "." and tags_no_whitespace[-1] != ".":
+                        tags_no_whitespace.append(".")
 
                 tags_final = [
                     tag
