@@ -138,7 +138,6 @@ def create_bilou_from_one_document(
             current_page_annotations = input_data["text_annotation"][page_num]
             current_page_annotations_original = current_page_annotations
 
-            print("reach this 2 ?")
             (
                 current_page_annotations,
                 indices_reindexed,
@@ -146,15 +145,13 @@ def create_bilou_from_one_document(
             ) = fix_faulty_indices(current_page_annotations, pdf_text, data_number)
             document_annotation_errors += annotation_errors
 
-            print("reach this 3 ?")
-
             sorted_page_annotations = sorted(
                 current_page_annotations, key=lambda x: x["annotation"]["start"]
             )
 
-        splitted_sentences2 = pdf_text.split("\n\n")
+        splitted_sentences = pdf_text.split("\n\n")
 
-        for i, sentence in enumerate(splitted_sentences2):
+        for i, sentence in enumerate(splitted_sentences):
             is_danish = True
             if not is_danish:
                 print(f"----sentence is not danish-----: {sentence}")
@@ -166,7 +163,7 @@ def create_bilou_from_one_document(
                 if i == 0:
                     page_index_diff = 0
                 else:
-                    page_index_diff += len(splitted_sentences2[i - 1]) + 2
+                    page_index_diff += len(splitted_sentences[i - 1]) + 2
                 current_sentence_annotations = [
                     x
                     for x in current_page_annotations
@@ -428,7 +425,7 @@ def create_bilou_from_one_document(
                     r"\:": " : ",
                     r"\<": " < ",
                     r"\>": " > ",
-                    "\?": " ? ",
+                    r"\?": " ? ",
                 }
 
                 for pattern, replacement in patterns.items():
@@ -475,7 +472,7 @@ def create_bilou_from_one_document(
                 )
                 tags_no_whitespace[-1] = tags_no_whitespace[-1].strip()
 
-                if words_final[-1] == "." and not (tags_no_whitespace[-1] == "."):
+                if words_final[-1] == "." and tags_no_whitespace[-1] != ".":
                     tags_no_whitespace.append(".")
 
                 tags_final = [
@@ -484,6 +481,7 @@ def create_bilou_from_one_document(
                         tag.startswith(("B-", "U-", "I-", "L-"))
                         and tag[2:].isupper()
                         and tag[2:].isalpha()
+                        # and tag[2:] in DataPrepConstants.standard_ner_entities
                         and tag not in ("U-ADRESSE", "U-KOMMUNE")
                     )
                     else "O"
@@ -528,7 +526,6 @@ def create_bilou_from_one_document(
                             print(f"{words_final[count]} - {tags_no_whitespace[count]}")
 
                 if len(tags_final) != len(words_final):
-                    print("fucktards")
                     word_tag_mismatch_error += 1
                     print(
                         f"word/tag mismatch linje {data_number + 1} med document_id {input_data['document_id']}."
