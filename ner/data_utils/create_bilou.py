@@ -465,6 +465,7 @@ def create_bilou_from_one_document(
                     for annot in sorted_page_annotations:
                         print(annot)
                     print("--------------Sorted annotations - start------------------")
+                    print("seefromhere")
                     for annot in sorted_page_annotations:
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
@@ -472,11 +473,11 @@ def create_bilou_from_one_document(
                     print(
                         f"----------Original Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------"
                     )
-                    print("seefromhere")
-                    for annot in current_page_annotations_original:
-                        print(
-                            f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
-                        )
+
+                    # for annot in current_page_annotations_original:
+                    #     print(
+                    #         f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
+                    #     )
 
                     print("----sentence-----")
                     print(f"|{sentence}|")
