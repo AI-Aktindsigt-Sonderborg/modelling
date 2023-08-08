@@ -178,9 +178,17 @@ def reindexing_first_or_last(data):
             data["annotation"]["state"] = "deleted"
             break
 
+    while annotated_content_first.isspace() | (annotated_content_first == " "):
+        error = 1
+        start_index = start_index + 1
+        data["annotation"]["start"] += 1
+        annotated_content = annotated_content[1:]
+        data["annotation"]["content"] = annotated_content
+        annotated_content_first = annotated_content[0]
+
     while annotated_content_first in DataPrepConstants.special_characters:
         error = 1
-        end_index = end_index - 1
+        start_index = start_index + 1
         data["annotation"]["start"] += 1
         annotated_content = annotated_content[1:]
         data["annotation"]["content"] = annotated_content
