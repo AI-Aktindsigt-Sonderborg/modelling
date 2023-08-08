@@ -423,7 +423,11 @@ def create_bilou_from_one_document(
                         words,
                     )
                 )
-                words_final[-1] = words_final[-1].strip()
+                try:
+                    words_final[-1] = words_final[-1].strip()
+                except:
+                    print("seehere")
+                    print(words_final)
 
                 tags_no_whitespace = list(
                     filter(
@@ -486,11 +490,6 @@ def create_bilou_from_one_document(
                     print(
                         f"----------Original Annotations - start: {sentence_index_diff} - end: {sentence_index_diff + len(sentence)}---------------"
                     )
-
-                    # for annot in current_page_annotations_original:
-                    #     print(
-                    #         f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
-                    #     )
 
                     print("----sentence-----")
                     print(f"|{sentence}|")
