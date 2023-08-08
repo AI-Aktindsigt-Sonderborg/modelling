@@ -152,10 +152,6 @@ def create_bilou_from_one_document(
         splitted_sentences = pdf_text.split("\n\n")
 
         for i, sentence in enumerate(splitted_sentences):
-            is_danish = True
-            if not is_danish:
-                print(f"----sentence is not danish-----: {sentence}")
-                not_danish_counter += 1
             entities = []
             sentence_anon = sentence
 
@@ -164,6 +160,7 @@ def create_bilou_from_one_document(
                     page_index_diff = 0
                 else:
                     page_index_diff += len(splitted_sentences[i - 1]) + 2
+
                 current_sentence_annotations = [
                     x
                     for x in current_page_annotations
@@ -172,22 +169,6 @@ def create_bilou_from_one_document(
                         and x["annotation"]["start"] >= (page_index_diff)
                     )
                 ]
-                wrong_sentence_annotations = [
-                    x
-                    for x in current_page_annotations
-                    if (
-                        x["annotation"]["start"] > (len(sentence) + page_index_diff)
-                        or x["annotation"]["start"] <= (page_index_diff)
-                    )
-                ]
-                # if len(wrong_sentence_annotations) > 0:
-                # for element in wrong_sentence_annotations:
-                # if element["annotation"]["annotation"] == "HELBRED":
-                # print("---Wrong sentence annotation----")
-                # print(
-                #   f"document_num: {data_number + 1} - page_num: {page_num}"
-                # )
-                # print(element)
 
                 sorted_sentence_annotations = sorted(
                     current_sentence_annotations,
@@ -221,18 +202,18 @@ def create_bilou_from_one_document(
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
 
-                    while annotated_content_last.isspace() | (
-                        annotated_content_last == " "
-                    ):
-                        end_index_init = end_index_init - 1
-                        annotated_content = annotated_content[:-1]
-                        annotated_content_last = annotated_content[-1]
-
+                    # while annotated_content_last.isspace() | (
+                    #     annotated_content_last == " "
+                    # ):
+                    #     end_index_init = end_index_init - 1
+                    #     annotated_content = annotated_content[:-1]
+                    #     annotated_content_last = annotated_content[-1]
+                    #
                     first_is_space = False
-                    if annotated_content_first.isspace() | (
-                        annotated_content_first == " "
-                    ):
-                        first_is_space = True
+                    # if annotated_content_first.isspace() | (
+                    #     annotated_content_first == " "
+                    # ):
+                    #     first_is_space = True
 
                     true_content = sentence[
                         start_index_init
@@ -342,6 +323,7 @@ def create_bilou_from_one_document(
                                 lambda tag: tag.strip() not in to_remove, list_content
                             )
                         )
+
                         insert_annotation: bool = True
 
                         if len(list_content) == 1:
@@ -395,70 +377,38 @@ def create_bilou_from_one_document(
                                 + annotation_to_insert
                                 + sentence_anon[end_index:]
                             )
-            if is_danish:
-                sentences_anon.append(sentence_anon + "\n")
-                modified_sentences.append(sentence + "\n")
-                sentence_data.append(
-                    {
-                        "sentence": sentence + "\n",
-                        "sentence_anon": sentence_anon + "\n",
-                        "doc_id": input_data["document_id"],
-                        "page_no": page_num,
-                        "sentence_no": i,
-                        "entities": entities,
-                    }
-                )
+
+            sentences_anon.append(sentence_anon + "\n")
+            modified_sentences.append(sentence + "\n")
+
+            sentence_data.append(
+                {
+                    "sentence": sentence + "\n",
+                    "sentence_anon": sentence_anon + "\n",
+                    "doc_id": input_data["document_id"],
+                    "page_no": page_num,
+                    "sentence_no": i,
+                    "entities": entities,
+                }
+            )
 
         try:
             sentence_index_diff = 0
             for s, (sentence, sentence_anon) in enumerate(
                 zip(modified_sentences, sentences_anon)
             ):
-                patterns = {
-                    r"\s+": " ",
-                    r"\|": " | ",
-                    r"\)": " ) ",
-                    r"\(": " ( ",
-                    r"\[": " [ ",
-                    r"\]": " ] ",
-                    r"\;": " ; ",
-                    r"\:": " : ",
-                    r"\<": " < ",
-                    r"\>": " > ",
-                    r"\?": " ? ",
-                }
 
-                for pattern, replacement in patterns.items():
+                for pattern, replacement in DataPrepConstants.tag_replacements.items():
                     sentence = re.sub(pattern, replacement, sentence + "\n")
                     sentence_anon = re.sub(pattern, replacement, sentence_anon + "\n")
 
-                special_chars = [
-                    ")",
-                    "(",
-                    "]",
-                    "[",
-                    ".",
-                    "-",
-                    "=",
-                    ",",
-                    ";",
-                    ":",
-                    "?",
-                    "/",
-                    "_",
-                ]
-                split_pattern = r"( |,|\. |\.\n|:|\(|\[|\]|=|;)"
-                # split_pattern = r"(\w+|[.,:;()?\[\]_])"
-                words = re.split(split_pattern, sentence)
-                tags = re.split(split_pattern, sentence_anon)
-                if print_stats and (len(words) != len(tags)):
-                    print(f"len(words): {len(words)}, len(tags): {len(tags)}")
+                words = re.split(DataPrepConstants.sentence_split_pattern, sentence)
+                tags = re.split(DataPrepConstants.sentence_split_pattern, sentence_anon)
 
-                to_remove = [" ", "", "\n", "[", "]", "(", ")", ":", ";"]
                 words_final = list(
                     filter(
                         lambda word: word.strip().rstrip("\\n").strip()
-                        not in to_remove,
+                        not in DataPrepConstants.chars_to_remove,
                         words,
                     )
                 )
@@ -466,7 +416,7 @@ def create_bilou_from_one_document(
 
                 tags_no_whitespace = list(
                     filter(
-                        lambda tag: tag.strip().rstrip("\\n").strip() not in to_remove,
+                        lambda tag: tag.strip().rstrip("\\n").strip() not in DataPrepConstants.chars_to_remove,
                         tags,
                     )
                 )
@@ -489,7 +439,6 @@ def create_bilou_from_one_document(
                 ]
 
                 if print_stats and (len(words_final) != len(tags_final)):
-                    # if '0-17' in sentence:
                     print(f"docnumber: {data_number + 1}")
                     print(
                         f"len(words_final): {len(words_final)}, len(tags_final): {len(tags_final)}"
@@ -504,26 +453,6 @@ def create_bilou_from_one_document(
                         print(
                             f"start: {annot['annotation']['start']}, end: {annot['annotation']['end']}, content: {annot['annotation']['content']}, annotation: {annot['annotation']['annotation']}"
                         )
-
-                    if print_each_sentence == 1:
-                        print("----sentence-----")
-                        print(f"|{sentence}|")
-                        print("----sentence_anon-----")
-                        print(f"|{sentence_anon}|")
-                        print("----words_final-----")
-                        print(words_final)
-                        print("----tags_no_whitespace-----")
-                        print(tags_no_whitespace)
-                        print("----tags_final-----")
-                        print(tags_final)
-                        print("-------LANGUAGES--------------")
-                        is_danish, language_codes = filter_language(
-                            string=sentence, approved_languages=["da", "no"]
-                        )
-                        print(language_codes)
-                        print("---------------------")
-                        for count in range(len(words_final)):
-                            print(f"{words_final[count]} - {tags_no_whitespace[count]}")
 
                 if len(tags_final) != len(words_final):
                     word_tag_mismatch_error += 1
@@ -570,6 +499,7 @@ def create_bilou_from_one_document(
                 sentence_index_diff += len(sentence)
 
                 assert len(tags_final) == len(words_final)
+
                 total_sentence += 1
                 if len(tags_final) >= 5:
                     output_data.append(
