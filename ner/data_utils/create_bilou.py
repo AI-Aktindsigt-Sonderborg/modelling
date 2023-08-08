@@ -163,6 +163,8 @@ def create_bilou_from_one_document(
         splitted_sentences = pdf_text.split("\n\n")
 
         for i, sentence in enumerate(splitted_sentences):
+            if len(sentence) == 0:
+                print("zerolen")
             entities = []
             sentence_anon = sentence
 
@@ -250,45 +252,6 @@ def create_bilou_from_one_document(
                     true_original = pdf_text[
                         annotation["annotation"]["start"] : end_index_init
                     ]
-
-                    # if (
-                    #     annotation["annotation"]["content"] == "Ankestyrelsen"
-                    #     or annotation["annotation"]["content"] == "Ankestyrelsens"
-                    # ):
-                    #     print(
-                    #         f"----------annotation_stats: {data_number + 1} - page_number: {k + 1} - {i} - anno_nr: {j} -------------"
-                    #     )
-                    #     print(f"true original index content: |{true_orig_init}|")
-                    #     print(
-                    #         f"true modified original index content: |{true_original}|"
-                    #     )
-                    #     print(f"true index content: |{true_content}|")
-                    #     print(f"annotated content:  |{annotated_content}|")
-                    #     print(
-                    #         f"true == annotated: {true_original == annotated_content}"
-                    #     )
-                    #     print(len(pdf_text) > annotation["annotation"]["end"])
-                    #     if len(pdf_text) > annotation["annotation"]["end"]:
-                    #         print(annotation["annotation"]["end"])
-                    #         print("|" + pdf_text[annotation["annotation"]["end"]] + "|")
-                    #         print(
-                    #             "|"
-                    #             + pdf_text[
-                    #                 annotation["annotation"]["end"]
-                    #                 - 15 : annotation["annotation"]["end"]
-                    #                 + 15
-                    #             ]
-                    #             + "|"
-                    #         )
-                    #         print(
-                    #             sentence[
-                    #                 annotation["annotation"]["start"]
-                    #                 - page_index_diff
-                    #                 + 1 : annotation["annotation"]["end"]
-                    #                 - page_index_diff
-                    #                 + 1
-                    #             ]
-                    #         )
 
                     entity = annotation["annotation"]["annotation"]
                     content_index_diff = 0
