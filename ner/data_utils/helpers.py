@@ -176,12 +176,9 @@ def reindexing_first_or_last(data):
             annotated_content_last = annotated_content[-1]
         except IndexError:
             data["annotation"]["state"] = "deleted"
-            # print(f"removing annotation {annotation_num} from {document_num + 1}")
-            # del current_page_annotations[annotation_num]
-            # print(f"removed annotation {annotation_num} from {document_num + 1}")
             break
 
-    while annotated_content_first.isspace() or (annotated_content_first in DataPrepConstants.special_characters):
+    while annotated_content_first in DataPrepConstants.special_characters:
         error = 1
         end_index = end_index - 1
         data["annotation"]["start"] += 1

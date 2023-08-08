@@ -210,10 +210,10 @@ def create_bilou_from_one_document(
                     #     annotated_content_last = annotated_content[-1]
 
                     first_is_space = False
-                    # if annotated_content_first.isspace() | (
-                    #     annotated_content_first == " "
-                    # ):
-                    #     first_is_space = True
+                    if annotated_content_first.isspace() | (
+                        annotated_content_first == " "
+                    ):
+                        first_is_space = True
 
                     true_content = sentence[
                         start_index_init
