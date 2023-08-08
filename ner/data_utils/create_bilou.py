@@ -35,18 +35,18 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
         )
 
     filtered_annotation_list = []
-    for annotation in current_page_annotations:
+    for i, annotation in enumerate(current_page_annotations):
         annotation_error = 0
 
         (
-            annotation,
+            current_page_annotations[i],
             filtered_annotation_list,
             annotation_error,
         ) = delete_duplicate_annotations(
             data=annotation, filtered_list=filtered_annotation_list
         )
 
-    for annotation_num, annotation in enumerate(filtered_annotation_list):
+    for annotation_num, annotation in enumerate(current_page_annotations):
         if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
             if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
                 annotation_error = 1
