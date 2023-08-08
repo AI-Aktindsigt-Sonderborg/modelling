@@ -164,7 +164,8 @@ def create_bilou_from_one_document(
 
         for i, sentence in enumerate(splitted_sentences):
             if len(sentence) == 0:
-                print("zerolen")
+                # print("zerolen")
+                continue
             entities = []
             sentence_anon = sentence
 
