@@ -24,6 +24,7 @@ class DataPrepConstants:
         "/",
         "_",
         " ",
+        "|"
     ]
 
     sentence_split_pattern = r"( |,|\. |\.\n|:|\(|\[|\]|=|;)"
