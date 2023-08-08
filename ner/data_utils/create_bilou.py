@@ -113,7 +113,7 @@ def create_bilou_from_one_document(
     print_stats: bool = False,
     print_each_sentence: int = 0,
 ):
-    print("reach this?")
+
     word_tag_mismatch_error: int = 0
     wrong_raw_index: int = 0
     wrong_index: int = 0
@@ -202,18 +202,18 @@ def create_bilou_from_one_document(
                     annotated_content_last = annotated_content[-1]
                     annotated_content_first = annotated_content[0]
 
-                    # while annotated_content_last.isspace() | (
-                    #     annotated_content_last == " "
-                    # ):
-                    #     end_index_init = end_index_init - 1
-                    #     annotated_content = annotated_content[:-1]
-                    #     annotated_content_last = annotated_content[-1]
-                    #
+                    while annotated_content_last.isspace() | (
+                        annotated_content_last == " "
+                    ):
+                        end_index_init = end_index_init - 1
+                        annotated_content = annotated_content[:-1]
+                        annotated_content_last = annotated_content[-1]
+
                     first_is_space = False
-                    # if annotated_content_first.isspace() | (
-                    #     annotated_content_first == " "
-                    # ):
-                    #     first_is_space = True
+                    if annotated_content_first.isspace() | (
+                        annotated_content_first == " "
+                    ):
+                        first_is_space = True
 
                     true_content = sentence[
                         start_index_init
