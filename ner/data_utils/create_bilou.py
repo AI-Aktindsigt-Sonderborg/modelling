@@ -46,7 +46,7 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
             data=annotation, filtered_list=filtered_annotation_list
         )
 
-    for annotation_num, annotation in enumerate(current_page_annotations):
+    for annotation_num, annotation in enumerate(filtered_annotation_list):
         if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
             if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
                 annotation_error = 1
@@ -148,6 +148,7 @@ def create_bilou_from_one_document(
             sorted_page_annotations = sorted(
                 current_page_annotations, key=lambda x: x["annotation"]["start"]
             )
+            # for annotation in sorted_page_annotations:
 
         splitted_sentences = pdf_text.split("\n\n")
 
