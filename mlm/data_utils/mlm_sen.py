@@ -20,12 +20,10 @@ from shared.utils.helpers import read_json, read_json_lines, write_json_lines
 
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
-def create_sentences_from_one_document(
-    input_data: dict,
-    data_number: int,
-    file_number: int
-):
 
+def create_sentences_from_one_document(
+    input_data: dict, data_number: int, file_number: int
+):
     total_sentence: int = 0
     not_danish_counter: int = 0
     output_data = []
@@ -35,7 +33,6 @@ def create_sentences_from_one_document(
         splitted_sentences = pdf_text.split("\n\n")
 
         for i, sentence in enumerate(splitted_sentences):
-
             if len(sentence) == 0 or sentence.isspace():
                 continue
 
@@ -75,28 +72,38 @@ if __name__ == "__main__":
     total_sentences: int = 0
     total_not_danish_counter: int = 0
 
-    file_list = sorted([f.split(".")[0] for f in os.listdir(CONF_DATA_DIR) if
-             os.path.isfile(os.path.join(CONF_DATA_DIR, f)) and f.startswith("raw")])
-
+    file_list = sorted(
+        [
+            f.split(".")[0]
+            for f in os.listdir(CONF_DATA_DIR)
+            if os.path.isfile(os.path.join(CONF_DATA_DIR, f)) and f.startswith("raw")
+        ]
+    )
+    print(file_list)
 
     out_data: List[dict] = []
     for j, file in enumerate(file_list):
-
+        print(file)
+        print(os.path.join(CONF_DATA_DIR, file))
         raw_data = read_json_lines(input_dir=CONF_DATA_DIR, filename=file)
 
-
         for i, obs in enumerate(raw_data):
-            single_obs_data, errors = create_sentences_from_one_document(
-                input_data=obs, data_number=i, file_number=j
-            )
-            total_sentences += errors[0]
-            total_not_danish_counter += errors[1]
+            # print("---------")
+            # print(file)
+            # print(i)
+            # print(obs["pdf_text"][0])
+            if obs["pdf_text"]:
+                single_obs_data, errors = create_sentences_from_one_document(
+                    input_data=obs, data_number=i, file_number=j
+                )
+                total_sentences += errors[0]
+                total_not_danish_counter += errors[1]
 
-            out_data.extend(single_obs_data)
+                out_data.extend(single_obs_data)
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=out_data, filename="all_sentences")
 
-    unique = list(set([x['text'] for x in out_data]))
+    unique = list(set([x["text"] for x in out_data]))
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
 
