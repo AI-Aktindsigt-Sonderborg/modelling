@@ -14,7 +14,9 @@ from tqdm import tqdm
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
 from mlm.data_utils.helpers import split_sentences
 from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, \
-    SCRAPED_DATA_DIR, PREP_DATA_DIR
+    SCRAPED_DATA_DIR, CONF_DATA_DIR
+
+
 from sc.local_constants import CLASS_DATA_DIR
 from shared.data_utils.helpers import score_gpt2, load_model_for_ppl, \
     find_letters_and_word_count
@@ -164,7 +166,7 @@ class RawDataPreprocessing:
         unique_approved = []
         print("Splitting data to sentences...")
         seen = set()
-        with open(os.path.join(PREP_DATA_DIR, out_file_name), 'w',
+        with open(os.path.join(CONF_DATA_DIR, out_file_name), 'w',
                   encoding='utf-8') as outfile:
             file_count = len(os.listdir(FILTERED_SCRAPE_DIR))
             for file_index, filename in enumerate(
@@ -246,7 +248,7 @@ class RawDataPreprocessing:
         :param (int, Optional) seed: seed for reproducibility
         """
         sentences = []
-        with open(os.path.join(PREP_DATA_DIR, in_file), 'r',
+        with open(os.path.join(CONF_DATA_DIR, in_file), 'r',
                   encoding='utf-8') as file:
             for line in file:
                 data_dict = json.loads(line)
@@ -404,13 +406,13 @@ class RawDataPreprocessing:
         :param str, Optional in_file_name: unique sentences file
         """
 
-        in_file_path = os.path.join(PREP_DATA_DIR, in_file_name)
+        in_file_path = os.path.join(CONF_DATA_DIR, in_file_name)
         total_lines = count_num_lines(file_path=in_file_path)
         print("Filtering perplexity scores...")
         with open(in_file_path, 'r', encoding='utf-8') as infile, \
-            open(os.path.join(PREP_DATA_DIR, 'approved_sentences_ppl.json'),
+            open(os.path.join(CONF_DATA_DIR, 'approved_sentences_ppl.json'),
                  'w', encoding='utf-8') as approved_sentences, \
-            open(os.path.join(PREP_DATA_DIR,
+            open(os.path.join(CONF_DATA_DIR,
                               'disapproved_sentences_ppl.json'),
                  'w', encoding='utf-8') as disapproved_sentences:
 
@@ -430,8 +432,8 @@ class RawDataPreprocessing:
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    data_preprocessor = RawScrapePreprocessing(args=prep_args)
-    data_preprocessor.run()
+    data_preprocessor = RawDataPreprocessing(args=prep_args)
+    # data_preprocessor.run()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()
-    # data_preprocessor.split_train_val()
+    data_preprocessor.split_train_val()
