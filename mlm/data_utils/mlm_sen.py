@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     unique = list(set([x["text"] for x in out_data]))
 
-    unique = [{"text": x["text"]} for x in unique]
+    unique = [{"text": x} for x in unique]
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
 
