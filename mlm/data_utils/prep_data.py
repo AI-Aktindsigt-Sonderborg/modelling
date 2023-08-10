@@ -25,9 +25,9 @@ from shared.utils.helpers import count_num_lines
 DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
 
 
-class RawScrapePreprocessing:
+class RawDataPreprocessing:
     """
-    Class to preprocess raw data to MLM format from municipality scraped data.
+    Class to preprocess raw data to MLM format from confidential "aktindsigter".
 
     :param argparse.Namespace args:
         input arguments from :class:`.DataPrepArgParser`.
@@ -67,13 +67,12 @@ class RawScrapePreprocessing:
             - ``split_train_val()``
 
         """
-        self.extract_danish_and_save_from_raw()
+        # self.extract_danish_and_save_from_raw()
         self.create_unique_sentences()
-        if self.args.add_ppl:
-            self.filter_ppl_scores()
-            self.split_train_val(in_file='approved_sentences_ppl.json')
-        else:
-            self.split_train_val()
+        # if self.args.add_ppl:
+        #     self.filter_ppl_scores()
+        #     self.split_train_val(in_file='approved_sentences_ppl.json')
+        self.split_train_val()
 
     def extract_danish_and_save_from_raw(self):
         """
