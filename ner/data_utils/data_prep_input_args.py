@@ -128,8 +128,8 @@ class DataPrepArgParser:
             '--test_size',
             type=int,
             metavar='<int>',
-            default=10,
-            help="Number of sentences within each class.")
+            default=25,
+            help="Number of sentences containing each class (entity).")
         self.parser.add_argument(
             '--add_dane',
             type=lambda x: bool(strtobool(x)),

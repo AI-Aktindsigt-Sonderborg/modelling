@@ -110,7 +110,8 @@ class NERDataPreprocessing:
         train_outfile: str = None,
         val_outfile: str = None,
         test_outfile: str = None,
-        add_dane: bool = False
+        add_dane: bool = False,
+        random_seed: int = 2,
     ):
         """
         Read grouped data, split to train, val and test and save json
@@ -144,7 +145,7 @@ class NERDataPreprocessing:
                     if (entity_i in x["entities"]) and (i not in test_ids)
                 ]
                 if len(entity_i_data) >= test_size:
-                    random.seed(1)  # for reproducability
+                    random.seed(random_seed)  # for reproducability
                     random_selection = random.sample(entity_i_data, test_size)
                     test_ids.extend(x[0] for x in random_selection)
                     test_data.extend(x[1] for x in random_selection)
@@ -152,7 +153,7 @@ class NERDataPreprocessing:
             train_val = [x for i, x in enumerate(data) if i not in test_ids]
 
             train_val_split = train_test_split(
-                train_val, train_size=train_size, random_state=1
+                train_val, train_size=train_size, random_state=random_seed
             )
 
             train = train_val_split[0]
@@ -181,8 +182,12 @@ class NERDataPreprocessing:
                 for obs in val:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
-                train_outfile = "bio_train"
-                val_outfile = "bio_val"
+                for obs in test_data:
+                    obs["tags"] = map_bilou_to_bio(obs["tags"])
+
+                train_outfile = "bio_train1"
+                val_outfile = "bio_val1"
+                test_outfile = "bio_test1"
 
             write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile,
                              data=train)
