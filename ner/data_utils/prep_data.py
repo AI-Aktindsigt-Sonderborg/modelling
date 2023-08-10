@@ -33,8 +33,7 @@ class NERDataPreprocessing:
             input arguments from :class: `.DataPrepArgParser`.
 
         """
-        raw_data = read_json_lines(input_dir=DATA_DIR,
-                                   filename=args.origin_input_file)
+        raw_data = read_json_lines(input_dir=DATA_DIR, filename=args.origin_input_file)
 
         word_tag_mismatch_errors: int = 0
         wrong_index_errors: int = 0
@@ -85,8 +84,7 @@ class NERDataPreprocessing:
         :param argparse.Namespace args: input arguments from :class: `.DataPrepArgParser`.
         -------
         """
-        bilou_data = read_json_lines(input_dir=DATA_DIR,
-                                     filename=args.bilou_input_file)
+        bilou_data = read_json_lines(input_dir=DATA_DIR, filename=args.bilou_input_file)
         # labels, id2label, label2id, _ = get_label_list(args.entities)
 
         out_suffix = "".join([x[0] for x in args.entities])
@@ -97,8 +95,9 @@ class NERDataPreprocessing:
                 for tag in obs["tags"]
             ]
 
-        write_json_lines(out_dir=DATA_DIR, filename="bilou_" + out_suffix,
-                         data=bilou_data)
+        write_json_lines(
+            out_dir=DATA_DIR, filename="bilou_" + out_suffix, data=bilou_data
+        )
         return bilou_data
 
     @staticmethod
@@ -166,14 +165,24 @@ class NERDataPreprocessing:
 
                 for obs in dane:
                     dane_tags = [dane_id2label[x] for x in obs["ner_tags"]]
-                    tags = [DataPrepConstants.dane_to_akt_label_mapping[x] for x in dane_tags]
+                    tags = [
+                        DataPrepConstants.dane_to_akt_label_mapping[x]
+                        for x in dane_tags
+                    ]
                     entities = [tag[2:] for tag in tags if "-" in tag]
-                    train.append({"tokens": obs["tokens"], "tags": tags,
-                                  "sentence": obs["text"], "sentence_anon": "",
-                                  "doc_id": "",
-                                  "page_no": "", "sentence_no": 0,
-                                  "origin_line_no": 0, "entities": entities
-                                  })
+                    train.append(
+                        {
+                            "tokens": obs["tokens"],
+                            "tags": tags,
+                            "sentence": obs["text"],
+                            "sentence_anon": "",
+                            "doc_id": "",
+                            "page_no": "",
+                            "sentence_no": 0,
+                            "origin_line_no": 0,
+                            "entities": entities,
+                        }
+                    )
 
                 for obs in train:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
@@ -189,10 +198,8 @@ class NERDataPreprocessing:
                 val_outfile = "bio_val1"
                 test_outfile = "bio_test1"
 
-            write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile,
-                             data=train)
-            write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile,
-                             data=val)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile, data=val)
             write_json_lines(
                 out_dir=PREP_DATA_DIR, filename=test_outfile, data=test_data
             )
@@ -219,5 +226,6 @@ if __name__ == "__main__":
         test_size=prep_args.test_size,
         train_outfile=prep_args.train_outfile,
         val_outfile=prep_args.val_outfile,
-        test_outfile=prep_args.test_file,
-        add_dane=prep_args.add_dane)
+        test_outfile=prep_args.test_outfile,
+        add_dane=prep_args.add_dane,
+    )
