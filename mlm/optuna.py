@@ -15,12 +15,13 @@ mlm_parser = MLMArgParser()
 
 args, leftovers = mlm_parser.parser.parse_known_args()
 args.test = False
+args.replace_head = False
 args.train_data = "train.jsonl"
 args.eval_data = "test.jsonl"
 args.evaluate_steps = 25
 args.logging_steps = 250
-args.train_batch_size = 8
-args.eval_batch_size = 8
+args.train_batch_size = 32
+args.eval_batch_size = 32
 args.epochs = 5
 args.n_trials = 10
 args.load_alvenir_pretrained = False
@@ -98,13 +99,12 @@ def train_model(trial, learning_rate, max_length):
                 eval_score.epoch = epoch
                 eval_scores.append(eval_score)
 
-
                 wandb.log({"eval f1": eval_score.f_1})
                 wandb.log({"eval loss": eval_score.loss})
                 wandb.log({"accuracy": eval_score.accuracy})
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
-                if step >= 200 and eval_score.accuracy < 0.15:
+                if step >= 200:  # and eval_score.accuracy < 0.15:
                     last_10 = eval_scores[-10:]
                     max_acc = max(eval_scores[-10:], key=lambda x: x.accuracy)
                     if not max_acc.accuracy >= last_10[0].accuracy:
