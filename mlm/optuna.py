@@ -20,8 +20,8 @@ args.train_data = "train.jsonl"
 args.eval_data = "test.jsonl"
 args.evaluate_steps = 25
 args.logging_steps = 25
-args.train_batch_size = 32
-args.eval_batch_size = 32
+args.train_batch_size = 8
+args.eval_batch_size = 8
 args.epochs = 5
 args.n_trials = 10
 args.load_alvenir_pretrained = False
@@ -110,11 +110,11 @@ def train_model(trial, learning_rate, max_length):
                           f"eval loss: {eval_score.loss}\t"
                           f"eval acc: {eval_score.accuracy}\t"
                           f"eval f1: {eval_score.f_1}")
-                    print("Pruning trial")
-                    raise optuna.exceptions.TrialPruned()
-                    last_10 = eval_scores[-2:]
-                    max_acc = max(last_10, key=lambda x: x.accuracy)
-                    if not max_acc.accuracy >= last_10[0].accuracy:
+                    tenth_last = eval_scores[-10]
+                    last_nine = eval_scores[-9:]
+
+                    max_acc = max(last_nine, key=lambda x: x.accuracy)
+                    if max_acc.accuracy < tenth_last.accuracy:
                         print("Pruning trial")
                         raise optuna.exceptions.TrialPruned()
 
@@ -145,7 +145,6 @@ def objective(trial):
         reinit=True,
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-{max_length}",
     )
-
 
     f_1 = train_model(
         trial=trial,
