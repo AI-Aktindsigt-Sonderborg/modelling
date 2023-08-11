@@ -110,6 +110,8 @@ def train_model(trial, learning_rate, max_length):
                           f"eval loss: {eval_score.loss}\t"
                           f"eval acc: {eval_score.accuracy}\t"
                           f"eval f1: {eval_score.f_1}")
+                    print("Pruning trial")
+                    raise optuna.exceptions.TrialPruned()
                     last_10 = eval_scores[-2:]
                     max_acc = max(last_10, key=lambda x: x.accuracy)
                     if not max_acc.accuracy >= last_10[0].accuracy:
