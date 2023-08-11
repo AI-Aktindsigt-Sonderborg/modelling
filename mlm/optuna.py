@@ -19,9 +19,9 @@ args.replace_head = False
 args.train_data = "train.jsonl"
 args.eval_data = "test.jsonl"
 args.evaluate_steps = 25
-args.logging_steps = 250
-args.train_batch_size = 32
-args.eval_batch_size = 32
+args.logging_steps = 25
+args.train_batch_size = 8
+args.eval_batch_size = 8
 args.epochs = 5
 args.n_trials = 10
 args.load_alvenir_pretrained = False
@@ -105,9 +105,15 @@ def train_model(trial, learning_rate, max_length):
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
                 if step >= 200:  # and eval_score.accuracy < 0.15:
+                    print(f"\n"
+                          f"step: {eval_score.step}\t"
+                          f"eval loss: {eval_score.loss}\t"
+                          f"eval acc: {eval_score.accuracy}\t"
+                          f"eval f1: {eval_score.f_1}")
                     last_10 = eval_scores[-10:]
                     max_acc = max(eval_scores[-10:], key=lambda x: x.accuracy)
                     if not max_acc.accuracy >= last_10[0].accuracy:
+                        print("Pruning trial")
                         raise optuna.exceptions.TrialPruned()
 
             step += 1
@@ -127,7 +133,7 @@ def objective(trial):
     # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
     # lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     # max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    max_length = 8
+    max_length = trial.suggest_categorical("max_length", [2, 4, 8])
     #    delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
     # wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
@@ -137,6 +143,7 @@ def objective(trial):
         reinit=True,
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-{max_length}",
     )
+
 
     f_1 = train_model(
         trial=trial,
