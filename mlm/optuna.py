@@ -9,7 +9,7 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
 
 from mlm.modelling_utils.input_args import MLMArgParser
-from modelling_utils.mlm_modelling import MLMModelling
+from mlm.modelling_utils.mlm_modelling import MLMModelling
 from ner.modelling_utils.ner_modelling import NERModellingDP
 from shared.modelling_utils.helpers import create_data_loader
 from shared.utils.helpers import write_json_lines, append_json_lines
@@ -21,15 +21,15 @@ args.test = False
 args.train_data = "train.jsonl"
 args.eval_data = "validation.jsonl"
 # args.data_format = "bio"
-args.evaluate_steps = 400
-args.logging_steps = 400
-args.train_batch_size = 16
-args.eval_batch_size = 16
-args.epochs = 10
-args.n_trials = 20
+args.evaluate_steps = 1000
+args.logging_steps = 250
+args.train_batch_size = 32
+args.eval_batch_size = 32
+args.epochs = 5
+args.n_trials = 10
 args.load_alvenir_pretrained = False
 args.model_name = "base"
-
+args.differential_privacy = False
 
 model_name_to_print = (
     args.custom_model_name if args.custom_model_name else args.model_name
@@ -39,7 +39,7 @@ mlm_modelling = MLMModelling(args=args)
 
 
 def train_model(learning_rate, max_length):
-    model = ner_modelling.get_model()
+    model = mlm_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
         param.requires_grad = False
@@ -126,8 +126,9 @@ def objective(trial):
     # lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
     #    delta = trial.suggest_float("delta", 1e-6, 1e-2)
-    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
-    wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
+    learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
+    # wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
+    wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
