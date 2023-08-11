@@ -180,17 +180,27 @@ class MLMModelling(Modelling):
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
 
-                labels_flat = labels.flatten()
-                preds_flat = preds.flatten()
+                batch_labels = [
+                    [l for l in label if l != -100] for label in labels
+                ]
 
-                # We ignore tokens with value "-100" as these are padding tokens
-                # set by the tokenizer.
-                # See nn.CrossEntropyLoss(): ignore_index for more information
-                filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
-                            if xv != -100]
+                batch_preds = [
+                    [p for (p, l) in zip(prediction, label) if l != -100]
+                    for prediction, label in zip(preds, labels)
+                ]
 
-                batch_labels = np.array([x[0] for x in filtered]).astype(int)
-                batch_preds = np.array([x[1] for x in filtered]).astype(int)
+
+                # labels_flat = labels.flatten()
+                # preds_flat = preds.flatten()
+                #
+                # # We ignore tokens with value "-100" as these are padding tokens
+                # # set by the tokenizer.
+                # # See nn.CrossEntropyLoss(): ignore_index for more information
+                # filtered = [[xv, yv] for xv, yv in zip(labels_flat, preds_flat)
+                #             if xv != -100]
+                #
+                # batch_labels = np.array([x[0] for x in filtered]).astype(int)
+                # batch_preds = np.array([x[1] for x in filtered]).astype(int)
 
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)

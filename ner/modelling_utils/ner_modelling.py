@@ -119,22 +119,6 @@ class NERModelling(Modelling):
                 batch_labels = [
                     [self.id2label[l] for l in label if l != -100] for label in labels
                 ]
-                # print("-------printing labels!!!-------------")
-                # print(batch["input_ids"])
-                # print("-labels-")
-                # print(batch_labels[0])
-                # print("-original tags-")
-                # print(self.data.test[i]["tags"])
-                # print("label_ids")
-                # print([self.label2id[l] for l in batch_labels[0]])
-                # print("--original tag_ids--")
-                # print([self.label2id[l] for l in self.data.test[i]["tags"]])
-                # assert batch_labels[0] == self.data.test[i]["tags"]
-                # print("----------------")
-
-                # print("printing batch labels!!")
-                # print(batch_labels)
-                # print([self.label2id[l] for l in batch_labels])
 
                 batch_preds = [
                     [self.id2label[p] for (p, l) in zip(prediction, label) if l != -100]
@@ -144,27 +128,6 @@ class NERModelling(Modelling):
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
-
-        # To Søren: this block is only used for comparing different f1 scores
-        # Dont worry about it - seqeval not working for sonderborg NER classes
-        # all_metrics = seqeval.compute(
-        #     predictions=y_pred,
-        #     references=y_true,
-        #     scheme='IOB2')
-        #
-        # for k, v in all_metrics.items():
-        #     if isinstance(v, dict):
-        #         for j, u in v.items():
-        #             all_metrics[k][j] = float(u)
-        #     else:
-        #         all_metrics[k] = float(v)
-        # append_json_lines(output_dir=self.metrics_dir, data=all_metrics,
-        #             filename='seqeval_metrics')
-        # --------------------------------------------------------------------
-        # print("Printing id2label")
-        # print(self.id2label)
-        # print(model.config.id2label)
-        # print(model.config.label2id)
 
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
