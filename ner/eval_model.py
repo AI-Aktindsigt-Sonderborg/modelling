@@ -16,6 +16,7 @@ args = sc_parser.parser.parse_args()
 # For NER models: these should be located in below directory
 # args.custom_model_dir = "ner/models"
 args.evaluate_during_training = False
+args.replace_head = False
 # args.load_alvenir_pretrained = True
 args.differential_privacy = False
 args.test = True
