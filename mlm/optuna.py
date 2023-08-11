@@ -104,7 +104,7 @@ def train_model(trial, learning_rate, max_length):
                 wandb.log({"accuracy": eval_score.accuracy})
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
-                if step >= args.evaluate_steps:  # and eval_score.accuracy < 0.15:
+                if step >= int(10*args.evaluate_steps):  # and eval_score.accuracy < 0.15:
                     print(f"\n"
                           f"step: {eval_score.step}\t"
                           f"eval loss: {eval_score.loss}\t"
