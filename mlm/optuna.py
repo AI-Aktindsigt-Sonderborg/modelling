@@ -18,10 +18,10 @@ args.test = False
 args.replace_head = False
 args.train_data = "train.jsonl"
 args.eval_data = "test.jsonl"
-args.evaluate_steps = 25
-args.logging_steps = 25
-args.train_batch_size = 8
-args.eval_batch_size = 8
+args.evaluate_steps = 1000
+args.logging_steps = 500
+args.train_batch_size = 32
+args.eval_batch_size = 32
 args.epochs = 5
 args.n_trials = 10
 args.load_alvenir_pretrained = False
@@ -104,12 +104,7 @@ def train_model(trial, learning_rate, max_length):
                 wandb.log({"accuracy": eval_score.accuracy})
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
-                if step >= int(10*args.evaluate_steps):  # and eval_score.accuracy < 0.15:
-                    print(f"\n"
-                          f"step: {eval_score.step}\t"
-                          f"eval loss: {eval_score.loss}\t"
-                          f"eval acc: {eval_score.accuracy}\t"
-                          f"eval f1: {eval_score.f_1}")
+                if step >= int(5*args.evaluate_steps):  # and eval_score.accuracy < 0.15:
                     tenth_last = eval_scores[-10]
                     last_nine = eval_scores[-9:]
 
@@ -138,8 +133,7 @@ def objective(trial):
     # max_length = trial.suggest_categorical("max_length", [2, 4, 8])
     #    delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
-    # wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
-    wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
+
 
     wandb.init(
         reinit=True,
@@ -165,6 +159,8 @@ def objective(trial):
 
 
 if __name__ == "__main__":
+    wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
+    # wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
     study = optuna.create_study(direction="maximize")
     study.optimize(objective, n_trials=args.n_trials)
 
