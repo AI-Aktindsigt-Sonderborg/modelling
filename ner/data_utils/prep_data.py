@@ -187,6 +187,7 @@ class NERDataPreprocessing:
                 for obs in train:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
+
                 # val = train_val_split[1]
                 for obs in val:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])

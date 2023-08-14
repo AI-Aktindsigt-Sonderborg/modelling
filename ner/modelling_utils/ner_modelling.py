@@ -13,7 +13,7 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, DataCollatorForTokenClassification
+from transformers import AutoTokenizer, DataCollatorForTokenClassification, AutoModelForTokenClassification
 
 from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
@@ -57,7 +57,7 @@ class NERModelling(Modelling):
                 self.id2label,
                 self.label2id,
                 self.label2weight,
-            ) = get_label_list_old()
+            ) = get_label_list_dane()
             self.class_labels = ClassLabel(
                 num_classes=len(self.args.labels), names=self.args.labels
             )
@@ -172,7 +172,10 @@ class NERModelling(Modelling):
             labels_tokenized = []
 
             for i, label in enumerate(examples["tags"]):
+                label = [lab if lab in self.args.labels else "O" for lab in label]
+
                 label = [self.label2id[lab] for lab in label]
+
                 label_tokenized = self.tokenizer.tokenize(
                     " ".join(examples["tokens"][i])
                 )
