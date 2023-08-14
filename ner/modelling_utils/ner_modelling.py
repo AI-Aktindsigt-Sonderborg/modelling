@@ -13,7 +13,11 @@ from opacus.utils.batch_memory_manager import BatchMemoryManager
 from sklearn.metrics import accuracy_score, f1_score
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, DataCollatorForTokenClassification, AutoModelForTokenClassification
+from transformers import (
+    AutoTokenizer,
+    DataCollatorForTokenClassification,
+    AutoModelForTokenClassification,
+)
 
 from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
@@ -125,12 +129,18 @@ class NERModelling(Modelling):
                     for prediction, label in zip(preds, labels)
                 ]
 
+                #                print(batch_labels)
+                #               print("-----")
+                #              print(batch_preds)
+                #             print("\n")
+
                 y_true.extend(batch_labels)
                 y_pred.extend(batch_preds)
                 loss.append(batch_loss)
 
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
+
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average="macro")
@@ -172,7 +182,19 @@ class NERModelling(Modelling):
             labels_tokenized = []
 
             for i, label in enumerate(examples["tags"]):
-                label = [lab if lab in self.args.labels else "O" for lab in label]
+                #                label = [
+                #                   "B-MISC"
+                #                  if lab in ["B-KOMMUNE", "B-ADRESSE", "B-HELBRED", "B-TELEFONNUMMER"]
+                #                 else lab
+                #                for lab in label
+                #           ]
+
+                #          label = [
+                #             "I-MISC"
+                #            if lab in ["I-KOMMUNE", "I-ADRESSE", "I-HELBRED", "I-TELEFONNUMMER"]
+                #           else lab
+                #          for lab in label
+                #     ]
 
                 label = [self.label2id[lab] for lab in label]
 
