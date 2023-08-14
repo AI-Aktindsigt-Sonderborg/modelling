@@ -18,11 +18,11 @@ args.test = False
 args.replace_head = False
 args.train_data = "train.jsonl"
 args.eval_data = "validation.jsonl"
-args.evaluate_steps = 500
+args.evaluate_steps = 2000
 args.logging_steps = 500
-args.train_batch_size = 64
-args.eval_batch_size = 32
-args.epochs = 5
+args.train_batch_size = 16
+args.eval_batch_size = 16
+args.epochs = 3
 args.n_trials = 10
 args.load_alvenir_pretrained = False
 args.model_name = "base"
@@ -104,7 +104,9 @@ def train_model(trial, learning_rate, max_length):
                 wandb.log({"accuracy": eval_score.accuracy})
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
-                if step >= int(11*args.evaluate_steps):  # and eval_score.accuracy < 0.15:
+                if step >= int(
+                    11 * args.evaluate_steps
+                ):  # and eval_score.accuracy < 0.15:
                     tenth_last = eval_scores[-10]
                     last_nine = eval_scores[-9:]
 
@@ -133,7 +135,6 @@ def objective(trial):
     # max_length = trial.suggest_categorical("max_length", [2, 4, 8])
     #    delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
-
 
     wandb.init(
         reinit=True,
