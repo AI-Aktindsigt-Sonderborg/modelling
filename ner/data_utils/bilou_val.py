@@ -15,6 +15,7 @@ j = 0
 
 BILOU_ERROR_COUNT = 0
 total_entities = []
+total_labels = []
 for i, obs in enumerate(data_bilou):
     if prep_args.print_entity and prep_args.print_entity in obs["entities"]:
         print("----- Tokens -------")
@@ -37,6 +38,7 @@ for i, obs in enumerate(data_bilou):
 
     else:
         total_entities.extend(obs["entities"])
+        total_labels.extend(obs["tags"])
 
     for tag in obs["tags"]:
         if tag.count("-") > 1:
@@ -57,16 +59,24 @@ for i, obs in enumerate(data_bilou):
                 print("---sentence_anon---")
                 print(obs["sentence_anon"])
 
+
+
     # print(obs["tags"])
 
 
 total_entities.sort()
-grouped = [list(group) for key, group in groupby(total_entities)]
+total_labels.sort()
+grouped_entities = [list(group) for key, group in groupby(total_entities)]
+grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
-sorted_list = sorted(grouped, key=get_sublist_length, reverse=True)
+sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
+sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
-for group in sorted_list:
+for group in sorted_entities:
     print(f"Entitet: {group[0]} - antal: {len(group)}")
+
+for group in sorted_labels:
+    print(f"Label: {group[0]} - antal: {len(group)}")
 
 print(f"Total sentences: {len(data_bilou)}")
 print(f"Total entities: {len(total_entities)}")
