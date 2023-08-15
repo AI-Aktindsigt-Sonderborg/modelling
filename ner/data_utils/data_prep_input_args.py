@@ -136,3 +136,10 @@ class DataPrepArgParser:
             default=False,
             help='whether or not to add dane data to training set',
             metavar='<bool>')
+        self.parser.add_argument(
+            '--custom_data_dir', '-cdd',
+            type=str,
+            metavar='<str>',
+            default=None,
+            help="Print specific entity for data inspection.")
+

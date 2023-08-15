@@ -7,7 +7,14 @@ from shared.utils.helpers import read_json_lines, get_sublist_length
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
 
-data_bilou = read_json_lines(DATA_DIR, prep_args.bilou_input_file)
+data_dir = DATA_DIR
+if prep_args.custom_data_dir:
+    if prep_args.custom_data_dir == "prep":
+        data_dir = PREP_DATA_DIR
+    if prep_args.custom_data_dir == "data":
+        data_dir = DATA_DIR
+
+data_bilou = read_json_lines(data_dir, prep_args.bilou_input_file)
 ERROR_COUNT = 0
 ANNOTATION_ERRORS = 0
 ANNOTATION_COUNTER = 0
