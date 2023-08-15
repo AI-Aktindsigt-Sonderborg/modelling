@@ -56,14 +56,16 @@ def train_model(trial, learning_rate, max_length):
     )
 
     train_wrapped, train_loader = create_data_loader(
-        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.train),
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(
+            mlm_modelling.data.train),
         batch_size=args.train_batch_size,
         data_collator=mlm_modelling.data_collator,
     )
 
     mlm_modelling.args.max_length = max_length
     _, eval_loader = create_data_loader(
-        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.eval),
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(
+            mlm_modelling.data.eval),
         batch_size=mlm_modelling.args.eval_batch_size,
         data_collator=mlm_modelling.data_collator,
         shuffle=False,
@@ -72,7 +74,8 @@ def train_model(trial, learning_rate, max_length):
     model = model.train()
     step = 0
     eval_scores = []
-    for epoch in tqdm(range(mlm_modelling.args.epochs), desc="Epoch", unit="epoch"):
+    for epoch in tqdm(range(mlm_modelling.args.epochs), desc="Epoch",
+                      unit="epoch"):
         model = model.to(mlm_modelling.args.device)
 
         for batch in tqdm(
@@ -84,7 +87,8 @@ def train_model(trial, learning_rate, max_length):
 
             output = model(
                 input_ids=batch["input_ids"].to(mlm_modelling.args.device),
-                attention_mask=batch["attention_mask"].to(mlm_modelling.args.device),
+                attention_mask=batch["attention_mask"].to(
+                    mlm_modelling.args.device),
                 labels=batch["labels"].to(mlm_modelling.args.device),
             )
             loss = output.loss
@@ -94,7 +98,8 @@ def train_model(trial, learning_rate, max_length):
             optimizer.step()
 
             if step > 0 and (step % mlm_modelling.args.evaluate_steps == 0):
-                eval_score = mlm_modelling.evaluate(model=model, val_loader=eval_loader)
+                eval_score = mlm_modelling.evaluate(model=model,
+                                                    val_loader=eval_loader)
                 eval_score.step = step
                 eval_score.epoch = epoch
                 eval_scores.append(eval_score)
@@ -111,6 +116,12 @@ def train_model(trial, learning_rate, max_length):
                     last_nine = eval_scores[-9:]
 
                     max_acc = max(last_nine, key=lambda x: x.accuracy)
+
+                    if step >= int(
+                        2 * args.evaluate_steps) and eval_score.accuracy < 0.10:
+                        print("Pruning trial")
+                        raise optuna.exceptions.TrialPruned()
+
                     if max_acc.accuracy < tenth_last.accuracy:
                         print("Pruning trial")
                         raise optuna.exceptions.TrialPruned()
