@@ -81,9 +81,10 @@ sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
 for group in sorted_entities:
     print(f"Entitet: {group[0]} - antal: {len(group)}")
-
+print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - antal: {len(group)}")
-
+print()
 print(f"Total sentences: {len(data_bilou)}")
 print(f"Total entities: {len(total_entities)}")
+print(f"Total labels: {len(total_labels)}")
