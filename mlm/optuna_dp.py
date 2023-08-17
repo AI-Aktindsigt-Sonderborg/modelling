@@ -149,7 +149,7 @@ def objective(trial):
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
     delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
-    wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
+    wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,

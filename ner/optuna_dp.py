@@ -159,7 +159,7 @@ def objective(trial):
     # delta = trial.suggest_float("delta", 0.0005, 0.003)
     weight_decay = trial.suggest_float("weight_decay", 0.001, 0.009, log=True)
     learning_rate = trial.suggest_float("learning_rate", 0.0001, 0.999, log=True)
-    wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
+    wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
