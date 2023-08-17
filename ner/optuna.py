@@ -4,8 +4,9 @@ import dataclasses
 import optuna
 import torch
 import wandb
-from opacus import PrivacyEngine
-from opacus.utils.batch_memory_manager import BatchMemoryManager
+
+# from opacus import PrivacyEngine
+# from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
 
 from ner.modelling_utils.input_args import NERArgParser
@@ -20,14 +21,16 @@ args.test = False
 args.train_data = "bio_train1.jsonl"
 args.eval_data = "bio_val1.jsonl"
 args.data_format = "bio"
-args.evaluate_steps = 200
-args.logging_steps = 200
+args.evaluate_steps = 300
+args.logging_steps = 300
+# args.save_steps = 300
 args.train_batch_size = 64
 args.eval_batch_size = 64
-args.epochs = 6
+args.epochs = 10
 args.n_trials = 15
 args.load_alvenir_pretrained = True
 args.model_name = "akt-mlm"
+args.differential_privacy = False
 # args.model_name = "base"
 
 
@@ -51,8 +54,8 @@ ner_modelling = NERModelling(args=args)
 def train_model(trial, learning_rate, max_length, weight_decay):
     model = ner_modelling.get_model()
 
-    for param in model.bert.embeddings.parameters():
-        param.requires_grad = False
+    #    for param in model.bert.embeddings.parameters():
+    #   param.requires_grad = False
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -128,7 +131,7 @@ def train_model(trial, learning_rate, max_length, weight_decay):
                     max_acc = max(last_nine, key=lambda x: x.accuracy)
 
                     if (
-                        step >= int(2 * args.evaluate_steps)
+                        step >= int(5 * args.evaluate_steps)
                         and eval_score.accuracy < 0.10
                     ):
                         print("Pruning trial")
@@ -151,8 +154,8 @@ def train_model(trial, learning_rate, max_length, weight_decay):
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    max_length = trial.suggest_categorical("max_length", [64, 128])
-    learning_rate = trial.suggest_float("learning_rate", 0.00001, 0.0009, log=True)
+    max_length = trial.suggest_categorical("max_length", [64, 128, 256])
+    learning_rate = trial.suggest_float("learning_rate", 0.00004, 0.0006, log=True)
     weight_decay = trial.suggest_float("weight_decay", 0.0001, 0.999, log=True)
 
     wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
