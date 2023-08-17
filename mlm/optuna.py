@@ -109,6 +109,7 @@ def train_model(trial, learning_rate, max_length):
                 wandb.log({"accuracy": eval_score.accuracy})
                 wandb.log({"step": eval_score.step})
                 wandb.log({"learning rate": learning_rate})
+
                 if step >= int(
                     11 * args.evaluate_steps
                 ):  # and eval_score.accuracy < 0.15:
@@ -138,13 +139,8 @@ def train_model(trial, learning_rate, max_length):
     return max_f1.f_1
 
 
-# e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
-    # lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    # max_length = trial.suggest_categorical("max_length", [2, 4, 8])
-    #    delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-3, log=True)
 
     wandb.init(
@@ -155,9 +151,6 @@ def objective(trial):
     f_1 = train_model(
         trial=trial,
         learning_rate=learning_rate,
-        # epsilon=epsilon,
-        # delta=delta,
-        # lot_size=lot_size,
         max_length=max_length,
     )
 
