@@ -17,18 +17,18 @@ ner_parser = NERArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
-args.train_data = "bio_train.jsonl"
-args.eval_data = "bio_val.jsonl"
+args.train_data = "bio_train1.jsonl"
+args.eval_data = "bio_val1.jsonl"
 args.data_format = "bio"
 args.evaluate_steps = 400
 args.logging_steps = 400
 args.train_batch_size = 16
 args.eval_batch_size = 16
-args.epochs = 10
-args.n_trials = 20
-args.load_alvenir_pretrained = False
-args.model_name = "base"
-
+args.epochs = 2
+args.n_trials = 15
+args.load_alvenir_pretrained = True
+args.model_name = "akt-mlm"
+# args.model_name = "base"
 
 args.entities = [
     "PERSON",
@@ -47,7 +47,7 @@ model_name_to_print = (
 ner_modelling = NERModellingDP(args=args)
 
 
-def train_model(learning_rate, epsilon, delta, lot_size, max_length):
+def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_decay):
     model = ner_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
@@ -56,7 +56,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=ner_modelling.args.weight_decay,
+        weight_decay=weight_decay,
     )
 
     ner_modelling.load_data()
@@ -153,26 +153,27 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
+    # epsilon = trial.suggest_float("epsilon", 1.0, 8.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    delta = trial.suggest_float("delta", 1e-6, 1e-2)
-    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
+    # delta = trial.suggest_float("delta", 0.0005, 0.003)
+    weight_decay = trial.suggest_float("weight_decay", 0.001, 0.009, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 0.0001, 0.999, log=True)
     wandb.login(key="388da466a818b5fcfcc2e6c5365e971daa713566")
 
     wandb.init(
         reinit=True,
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
-        f"{round(epsilon, 2)}"
-        f"-{round(delta, 5)}-{lot_size}-{max_length}",
+        f"{round(weight_decay, 5)}-{lot_size}-{max_length}",
     )
 
     f_1 = train_model(
         learning_rate=learning_rate,
-        epsilon=epsilon,
-        delta=delta,
+        epsilon=8,
+        delta=0.002,
         lot_size=lot_size,
         max_length=max_length,
+        weight_decay=weight_decay,
     )
 
     trial.report(f_1, step=10)

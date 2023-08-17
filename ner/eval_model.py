@@ -1,12 +1,14 @@
 # to be created
 
 from textwrap import wrap
+from ner.local_constants import PREP_DATA_DIR
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
 from shared.modelling_utils.helpers import create_data_loader
 
 # from ner.data_utils.get_dataset import tokenize_and_align_labels_for_dataset
 from shared.data_utils.helpers import DatasetWrapper
+from shared.utils.helpers import read_json_lines, write_json_lines
 
 sc_parser = NERArgParser()
 
@@ -14,20 +16,32 @@ args = sc_parser.parser.parse_args()
 # FixMe: do base evaluation with scandiner vs Alvenir
 # args.model_name = 'babba'
 # For NER models: these should be located in below directory
-# args.custom_model_dir = "ner/models"
+args.custom_model_dir = "ner/models"
 args.data_format = "bio"
-# args.load_alvenir_pretrained = False
+args.load_alvenir_pretrained = True
 args.evaluate_during_training = False
 args.replace_head = False
 args.differential_privacy = False
 args.test = True
-# args.eval_batch_size = 1
+args.eval_batch_size = 1
 args.normalize_conf = "true"
 args.max_length = 512
 # args.test_data = "bilou_val.jsonl"
 # args.concat_bilu = True
 
+# data = read_json_lines(PREP_DATA_DIR, "bio_test_1508")
+
+# for obs in data:
+#   entity = obs["entities"][0]
+#   obs["tags"] = [tag if tag[2:] == entity else "O" for tag in obs["tags"]]
+
+# write_json_lines(out_dir=PREP_DATA_DIR, filename="single_entity_test", data=data)
+
+
 modelling = NERModelling(args)
+print(modelling.label2id)
+
+print(modelling.id2label)
 
 modelling.load_data(train=False, test=args.test)
 
@@ -46,12 +60,12 @@ model.config.id2label = modelling.id2label
 eval_scores = modelling.evaluate(model=model, val_loader=test_loader, conf_plot=True)
 
 print(eval_scores)
-print("len test_loader")
-print(len(test_loader))
+# print("len test_loader")
+# print(len(test_loader))
 
-print("len dataset")
-print(len(modelling.data.test))
+# print("len dataset")
+# print(len(modelling.data.test))
 
-print(model.config.label2id)
+# print(model.config.label2id)
 
-print(model.config.id2label)
+# print(model.config.id2label)
