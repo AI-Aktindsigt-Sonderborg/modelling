@@ -20,16 +20,15 @@ args.test = False
 args.train_data = "bio_train1.jsonl"
 args.eval_data = "bio_val1.jsonl"
 args.data_format = "bio"
-args.evaluate_steps = 400
-args.logging_steps = 400
-args.train_batch_size = 32
-args.eval_batch_size = 32
+args.evaluate_steps = 200
+args.logging_steps = 200
+args.train_batch_size = 64
+args.eval_batch_size = 64
 args.epochs = 6
 args.n_trials = 15
 args.load_alvenir_pretrained = True
 args.model_name = "akt-mlm"
 # args.model_name = "base"
-
 
 
 args.entities = [
@@ -100,9 +99,7 @@ def train_model(trial, learning_rate, max_length, weight_decay):
 
             output = model(
                 input_ids=batch["input_ids"].to(ner_modelling.args.device),
-                attention_mask=batch["attention_mask"].to(
-                    ner_modelling.args.device
-                ),
+                attention_mask=batch["attention_mask"].to(ner_modelling.args.device),
                 labels=batch["labels"].to(ner_modelling.args.device),
             )
             loss = output.loss
@@ -112,9 +109,7 @@ def train_model(trial, learning_rate, max_length, weight_decay):
             optimizer.step()
 
             if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
-                eval_score = ner_modelling.evaluate(
-                    model=model, val_loader=eval_loader
-                )
+                eval_score = ner_modelling.evaluate(model=model, val_loader=eval_loader)
                 eval_score.step = step
                 eval_score.epoch = epoch
                 eval_scores.append(eval_score)
@@ -132,8 +127,10 @@ def train_model(trial, learning_rate, max_length, weight_decay):
 
                     max_acc = max(last_nine, key=lambda x: x.accuracy)
 
-                    if step >= int(
-                        2 * args.evaluate_steps) and eval_score.accuracy < 0.10:
+                    if (
+                        step >= int(2 * args.evaluate_steps)
+                        and eval_score.accuracy < 0.10
+                    ):
                         print("Pruning trial")
                         raise optuna.exceptions.TrialPruned()
 
@@ -154,7 +151,6 @@ def train_model(trial, learning_rate, max_length, weight_decay):
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-
     max_length = trial.suggest_categorical("max_length", [64, 128])
     learning_rate = trial.suggest_float("learning_rate", 0.00001, 0.0009, log=True)
     weight_decay = trial.suggest_float("weight_decay", 0.0001, 0.999, log=True)
@@ -171,7 +167,7 @@ def objective(trial):
         trial=trial,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
-        max_length=max_length
+        max_length=max_length,
     )
 
     trial.report(f_1, step=10)
