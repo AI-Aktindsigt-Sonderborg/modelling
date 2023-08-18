@@ -69,6 +69,7 @@ def plot_confusion_matrix(
     normalize: str = "true",
     save_fig: bool = True,
     concat_bilou: bool = False,
+    eval_single: bool = False
 ):
     """Function is self-explanatory"""
 
@@ -111,6 +112,8 @@ def plot_confusion_matrix(
         filepath = os.path.join(plots_dir, f'conf_plot_{model_name.replace("/", "_")}')
         if concat_bilou:
             filepath += "-concat_bilou"
+        if eval_single:
+            filepath += "-single"
         plt.savefig(filepath)
     else:
         plt.show()

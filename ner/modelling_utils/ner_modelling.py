@@ -138,26 +138,10 @@ class NERModelling(Modelling):
                         single_preds = [p for (p, l) in
                                         zip(batch_preds[0], batch_labels[0])
                                         if l[2:] == entity_to_eval]
-                        print("printing")
-                        print(single_labels)
-                        print(single_preds)
-
-                        # entity_to_eval = self.data.test[i]["entities"][0]
-                        # single_labels = [
-                        #     [l for l in label if l[2:] == entity_to_eval] for
-                        #     label in batch_labels[0]
-                        # ]
-                        # single_preds = [p for (p, l) in
-                        #                 zip(batch_preds[0], batch_labels[0]) if
-                        #                 l[2:] == entity_to_eval]
-                        #
+                        # print("printing")
                         # print(single_labels)
                         # print(single_preds)
 
-                #                print(batch_labels)
-                #               print("-----")
-                #              print(batch_preds)
-                #             print("\n")
                         y_true.extend([single_labels])
                         y_pred.extend([single_preds])
                         loss.append(batch_loss)
@@ -192,6 +176,7 @@ class NERModelling(Modelling):
                 plots_dir=PLOTS_DIR,
                 concat_bilou=self.args.concat_bilou,
                 normalize=self.args.normalize_conf,
+                eval_single=self.args.eval_single
             )
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=f_1_none)
