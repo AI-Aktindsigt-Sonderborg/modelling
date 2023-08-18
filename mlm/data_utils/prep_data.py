@@ -434,7 +434,6 @@ if __name__ == '__main__':
     prep_args = prep_parser.parser.parse_args()
     data_preprocessor = RawDataPreprocessing(args=prep_args)
     # category_mapping = read_json(filepath=os.path.join(METADATA_DIR, "ss_annotation_categories.json"))
-    print()
     # data_preprocessor.run()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()

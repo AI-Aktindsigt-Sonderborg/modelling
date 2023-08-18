@@ -129,14 +129,42 @@ class NERModelling(Modelling):
                     for prediction, label in zip(preds, labels)
                 ]
 
+                if self.args.eval_single and self.args.eval_batch_size == 1:
+                    if self.data.test[i]["entities"]:
+                        entity_to_eval = self.data.test[i]["entities"][0]
+                        single_labels = [l for l in batch_labels[0] if
+                                         l[2:] == entity_to_eval]
+
+                        single_preds = [p for (p, l) in
+                                        zip(batch_preds[0], batch_labels[0])
+                                        if l[2:] == entity_to_eval]
+                        print("printing")
+                        print(single_labels)
+                        print(single_preds)
+
+                        # entity_to_eval = self.data.test[i]["entities"][0]
+                        # single_labels = [
+                        #     [l for l in label if l[2:] == entity_to_eval] for
+                        #     label in batch_labels[0]
+                        # ]
+                        # single_preds = [p for (p, l) in
+                        #                 zip(batch_preds[0], batch_labels[0]) if
+                        #                 l[2:] == entity_to_eval]
+                        #
+                        # print(single_labels)
+                        # print(single_preds)
+
                 #                print(batch_labels)
                 #               print("-----")
                 #              print(batch_preds)
                 #             print("\n")
-
-                y_true.extend(batch_labels)
-                y_pred.extend(batch_preds)
-                loss.append(batch_loss)
+                        y_true.extend([single_labels])
+                        y_pred.extend([single_preds])
+                        loss.append(batch_loss)
+                else:
+                    y_true.extend(batch_labels)
+                    y_pred.extend(batch_preds)
+                    loss.append(batch_loss)
 
         y_pred = [item for sublist in y_pred for item in sublist]
         y_true = [item for sublist in y_true for item in sublist]
