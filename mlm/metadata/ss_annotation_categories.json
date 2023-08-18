@@ -5,6 +5,12 @@
         "description": "Vælg en kategori",
         "sort_order": 0
     },
+        {
+        "guid": null,
+        "tag_name": "unknown",
+        "description": "Vælg en kategori",
+        "sort_order": 0
+    },
     {
         "guid": "5237043d-6320-4a56-8b3c-b02238358714",
         "tag_name": "unknown",
