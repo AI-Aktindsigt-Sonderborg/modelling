@@ -38,18 +38,21 @@ def create_sentences_from_one_document(
 
             if len(sentence.split(" ")) >= 5:
                 total_sentence += 1
+                try:
+                    output_data.append(
+                        {
+                            "text": sentence,
+                            "file_no": file_number,
+                            "doc_id": input_data["document_id"],
+                            "page_no": page_num,
+                            "sentence_no": i,
+                            "origin_line_no": data_number + 1,
+                            "label": label_mapping[input_data['text_category_guid']]
+                        }
+                    )
+                except Exception:
+                    print(input_data)
 
-                output_data.append(
-                    {
-                        "text": sentence,
-                        "file_no": file_number,
-                        "doc_id": input_data["document_id"],
-                        "page_no": page_num,
-                        "sentence_no": i,
-                        "origin_line_no": data_number + 1,
-                        "label": label_mapping[input_data['text_category_guid']]
-                    }
-                )
 
     return output_data, [
         total_sentence,
