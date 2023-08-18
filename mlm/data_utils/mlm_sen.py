@@ -52,6 +52,7 @@ def create_sentences_from_one_document(
                     )
                 except Exception:
                     print(input_data)
+                    sys.exit(0)
 
 
     return output_data, [
