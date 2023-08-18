@@ -100,3 +100,9 @@ class DataPrepArgParser:
                  'If doing mlm, very important to check whether classified data '
                  'is lowercased',
             metavar='<bool>')
+        self.parser.add_argument(
+            '--raw_file',
+            type=str,
+            metavar='<str>',
+            default='raw1',
+            help="raw file name")

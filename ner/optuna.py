@@ -54,8 +54,8 @@ ner_modelling = NERModelling(args=args)
 def train_model(trial, learning_rate, max_length, weight_decay):
     model = ner_modelling.get_model()
 
-    #    for param in model.bert.embeddings.parameters():
-    #   param.requires_grad = False
+    for param in model.bert.embeddings.parameters():
+        param.requires_grad = False
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
