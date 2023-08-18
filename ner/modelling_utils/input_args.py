@@ -94,3 +94,10 @@ class NERArgParser(ModellingArgParser):
             default="bilou",
             help="whether to use BILOU or BIO format - input must be either 'bilou' or 'bio'",
             metavar='<str>')
+        ner_params.add_argument(
+            "--eval_single",
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=False,
+            help="Whether to only evaluate one entity per sentence")
+

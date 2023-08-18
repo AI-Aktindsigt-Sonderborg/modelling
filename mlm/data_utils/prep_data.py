@@ -14,14 +14,14 @@ from tqdm import tqdm
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
 from mlm.data_utils.helpers import split_sentences
 from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, \
-    SCRAPED_DATA_DIR, CONF_DATA_DIR
+    SCRAPED_DATA_DIR, CONF_DATA_DIR, METADATA_DIR
 
 
 from sc.local_constants import CLASS_DATA_DIR
 from shared.data_utils.helpers import score_gpt2, load_model_for_ppl, \
     find_letters_and_word_count
 from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
-    write_text_lines
+    write_text_lines, read_json
 from shared.utils.helpers import count_num_lines
 
 DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
@@ -433,6 +433,8 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     data_preprocessor = RawDataPreprocessing(args=prep_args)
+    # category_mapping = read_json(filepath=os.path.join(METADATA_DIR, "ss_annotation_categories.json"))
+    print()
     # data_preprocessor.run()
     # data_preprocessor.extract_danish_and_save_from_raw()
     # data_preprocessor.create_unique_sentences()

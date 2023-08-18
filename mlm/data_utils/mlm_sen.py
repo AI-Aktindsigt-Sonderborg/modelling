@@ -15,14 +15,14 @@ from ner.data_utils.helpers import (
     fix_skewed_indices,
     handle_wrong_annotation_end_letter,
 )
-from mlm.local_constants import DATA_DIR, CONF_DATA_DIR
+from mlm.local_constants import DATA_DIR, CONF_DATA_DIR, METADATA_DIR
 from shared.utils.helpers import read_json, read_json_lines, write_json_lines
 
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 
 def create_sentences_from_one_document(
-    input_data: dict, data_number: int, file_number: int
+    input_data: dict, data_number: int, file_number: int, label_mapping: List[dict]
 ):
     total_sentence: int = 0
     not_danish_counter: int = 0
@@ -39,18 +39,6 @@ def create_sentences_from_one_document(
             if len(sentence.split(" ")) >= 5:
                 total_sentence += 1
 
-                #             for pattern, replacement in DataPrepConstants.tag_replacements.items():
-                #                 sentence = re.sub(pattern, replacement, sentence)
-                # is_danish, language_codes = filter_language(
-                #                         string=sentence, approved_languages=["da", "no"]
-                #                     )
-                #                 if not is_danish:
-                #                     not_danish_counter += 1
-                #                     print("---")
-                #                     print(language_codes)
-                #                     print("-")
-                #                     print(sentence)
-                #                     print("---\n")
                 output_data.append(
                     {
                         "text": sentence,
@@ -59,6 +47,7 @@ def create_sentences_from_one_document(
                         "page_no": page_num,
                         "sentence_no": i,
                         "origin_line_no": data_number + 1,
+                        "label": label_mapping[input_data['text_category_guid']]
                     }
                 )
 
@@ -71,6 +60,12 @@ def create_sentences_from_one_document(
 if __name__ == "__main__":
     total_sentences: int = 0
     total_not_danish_counter: int = 0
+    category_mapping = read_json(filepath=os.path.join(METADATA_DIR, "ss_annotation_categories.json"))
+
+    label_mapping = {}
+
+    for x in category_mapping:
+        label_mapping[x["guid"]] = x["tag_name"]
 
     file_list = sorted(
         [
@@ -88,18 +83,15 @@ if __name__ == "__main__":
         raw_data = read_json_lines(input_dir=CONF_DATA_DIR, filename=file)
 
         for i, obs in enumerate(raw_data):
-            # print("---------")
-            # print(file)
-            # print(i)
-            # print(obs["pdf_text"][0])
             if obs["pdf_text"]:
                 single_obs_data, errors = create_sentences_from_one_document(
-                    input_data=obs, data_number=i, file_number=j
+                    input_data=obs, data_number=i, file_number=j, label_mapping=label_mapping
                 )
                 total_sentences += errors[0]
                 total_not_danish_counter += errors[1]
 
                 out_data.extend(single_obs_data)
+
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=out_data, filename="all_sentences")
 
