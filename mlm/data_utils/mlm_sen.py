@@ -110,12 +110,12 @@ if __name__ == "__main__":
     for text, group in grouped_data.items():
         # print(group)
         # print(f"sentence: {text}")
-        if len(group) > 1:
-            print(f"sentence: {text}")
-            for label in group:
-                # print(f"  {label}")
-                print(f"  {label['label']}")
-        else:
+        # if len(group) > 1:
+        #     # print(f"sentence: {text}")
+        #     for label in group:
+        #         # print(f"  {label}")
+        #         # print(f"  {label['label']}")
+        if len(group) == 1:
             unique1.append({"text": text, "label": group[0]['label']})
 
 
