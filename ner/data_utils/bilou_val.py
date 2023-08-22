@@ -45,7 +45,7 @@ for i, obs in enumerate(data_bilou):
             )
 
     else:
-        first_entity.extend(obs["entities"][0])
+        first_entity.append(obs["entities"][0])
         total_entities.extend(obs["entities"])
         total_labels.extend(obs["tags"])
 
