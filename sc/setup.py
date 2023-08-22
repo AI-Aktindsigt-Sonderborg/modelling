@@ -3,9 +3,9 @@ Script to create relevant directories necessary for data and training
 """
 import os
 
-from sc.local_constants import CLASS_DATA_DIR
+from sc.local_constants import CLASS_DATA_DIR, CONF_DATA_DIR
 
-DIRS_TO_CREATE = [CLASS_DATA_DIR,
+DIRS_TO_CREATE = [CLASS_DATA_DIR, CONF_DATA_DIR,
                   os.path.join(CLASS_DATA_DIR, 'raw'),
                   os.path.join(CLASS_DATA_DIR, 'processed')]
 
