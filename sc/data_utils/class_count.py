@@ -29,7 +29,7 @@ for i, obs in enumerate(data):
 label_count = Counter(total_labels)
 
 print()
-for count, items in label_count:
+for items, count in label_count.items():
     print(f"Entity: {items} - sentence count: {count}")
 
 print()
