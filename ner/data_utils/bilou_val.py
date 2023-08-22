@@ -94,8 +94,9 @@ print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - antal: {len(group)}")
 print()
-for count, items in first_entity_count:
-    print(f"Entity: {items} -  antal sætninger: {count}")
+for count, items in grouped_first_entity:
+    item_list = [item[0] for item in items]
+    print(f"Entity: {item_list} -  antal sætninger: {count}")
 
 # for group in grouped_first_entity:
 #     print(f"Sentences with label: {group[0]} - antal: {len(group)}")
