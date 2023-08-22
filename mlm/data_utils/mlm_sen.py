@@ -134,18 +134,21 @@ if __name__ == "__main__":
 
     sc_label_set = [x['tag_name'] for x in category_mapping if not x['tag_name'] == 'unknown']
     sc_grouped_data = ClassifiedScrapePreprocessing.group_data_by_class(unique1, label_set=sc_label_set)
-    sc_grouped_data = [x for x in sc_grouped_data if len(x) > 0]
-
+    sc_grouped_data_large = [x for x in sc_grouped_data if len(x) >= prep_args.sc_class_size]
+    sc_grouped_data_small = [x for x in sc_grouped_data if len(x) < prep_args.sc_class_size]
 
     mlm_sc_split = [
         train_test_split(x, test_size=prep_args.sc_class_size, random_state=1) for x
         in
-        sc_grouped_data]
+        sc_grouped_data_large]
     mlm_data = list(
         itertools.chain.from_iterable([x[0] for x in mlm_sc_split]))
     sc_data = list(
         itertools.chain.from_iterable([x[1] for x in mlm_sc_split]))
+    sc_data_small = list(
+        itertools.chain.from_iterable([x for x in sc_grouped_data_small]))
 
+    sc_data.extend(sc_data_small)
     mlm_data.extend(mlm_unknown_data)
 
     assert len(unique1) == (len(mlm_data) + len(sc_data))
