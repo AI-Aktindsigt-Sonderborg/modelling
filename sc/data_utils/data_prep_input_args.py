@@ -94,3 +94,9 @@ class DataPrepArgParser:
             metavar='<int>',
             default=1400,
             help="Number of sentences within each class used for SequenceClassification.")
+        self.parser.add_argument(
+            '--custom_data_dir', '-cdd',
+            type=str,
+            metavar='<str>',
+            default=None,
+            help="if data is located in data subfolder")
