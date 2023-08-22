@@ -71,7 +71,7 @@ for i, obs in enumerate(data_bilou):
 
 
     # print(obs["tags"])
-
+print(first_entity)
 total_entities.sort()
 total_labels.sort()
 # first_entity.sort()
