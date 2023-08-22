@@ -3,7 +3,7 @@ from itertools import groupby
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
 from ner.local_constants import DATA_DIR, PREP_DATA_DIR
 from shared.utils.helpers import read_json_lines, get_sublist_length
-
+from collections import Counter
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
 
@@ -72,20 +72,19 @@ for i, obs in enumerate(data_bilou):
 
     # print(obs["tags"])
 
-print(first_entity)
 total_entities.sort()
 total_labels.sort()
-first_entity.sort()
-print(first_entity)
+# first_entity.sort()
+first_entity_count = Counter(first_entity)
 
-grouped_first_entity = [group for group in groupby(first_entity)]
-print(grouped_first_entity)
+
+# grouped_first_entity = [group for group in groupby(first_entity)]
+grouped_first_entity = groupby(sorted(first_entity_count.items(), key=lambda x: x[1], reverse=True), key=lambda x: x[1])
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
 
-sorted_first_entity = sorted(grouped_first_entity, key=get_sublist_length, reverse=True)
-print(sorted_first_entity)
+# sorted_first_entity = sorted(grouped_first_entity, key=get_sublist_length, reverse=True)
 sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
 sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
@@ -95,8 +94,11 @@ print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - antal: {len(group)}")
 print()
-for group in sorted_first_entity:
-    print(f"Sentences with label: {group[0]} - antal: {len(group)}")
+for count, items in first_entity_count:
+    print(f"Entity: {items} -  antal sætninger: {count}")
+
+# for group in grouped_first_entity:
+#     print(f"Sentences with label: {group[0]} - antal: {len(group)}")
 
 print()
 print(f"Total sentences: {len(data_bilou)}")
