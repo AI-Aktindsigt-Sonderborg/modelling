@@ -72,16 +72,20 @@ for i, obs in enumerate(data_bilou):
 
     # print(obs["tags"])
 
-
+print(first_entity)
 total_entities.sort()
 total_labels.sort()
 first_entity.sort()
+print(first_entity)
 
 grouped_first_entity = [group for group in groupby(first_entity)]
+print(grouped_first_entity)
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
+
 sorted_first_entity = sorted(grouped_first_entity, key=get_sublist_length, reverse=True)
+print(sorted_first_entity)
 sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
 sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
