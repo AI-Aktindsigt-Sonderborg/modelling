@@ -1,4 +1,5 @@
 # pylint: disable=line-too-long
+import itertools
 import os
 import re
 import sys
@@ -6,8 +7,9 @@ import traceback
 from typing import List
 from collections import Counter
 from itertools import groupby
-
+from mlm.data_utils.data_prep_input_args import DataPrepArgParser
 import nltk
+from sklearn.model_selection import train_test_split
 
 from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.data_utils.helpers import (
@@ -18,7 +20,9 @@ from ner.data_utils.helpers import (
     handle_wrong_annotation_end_letter,
 )
 from mlm.local_constants import DATA_DIR, CONF_DATA_DIR, METADATA_DIR
+from sc.local_constants import CONF_DATA_DIR as SC_CONF_DATA_DIR
 from shared.utils.helpers import read_json, read_json_lines, write_json_lines
+from sc.data_utils.prep_scrape import ClassifiedScrapePreprocessing
 
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
@@ -62,7 +66,11 @@ def create_sentences_from_one_document(
     ]
 
 
+
 if __name__ == "__main__":
+    prep_parser = DataPrepArgParser()
+    prep_args = prep_parser.parser.parse_args()
+
     total_sentences: int = 0
     total_not_danish_counter: int = 0
     category_mapping = read_json(filepath=os.path.join(METADATA_DIR, "ss_annotation_categories.json"))
@@ -83,7 +91,6 @@ if __name__ == "__main__":
 
     out_data: List[dict] = []
     for j, file in enumerate(file_list):
-        print(file)
         print(os.path.join(CONF_DATA_DIR, file))
         raw_data = read_json_lines(input_dir=CONF_DATA_DIR, filename=file)
 
@@ -121,16 +128,40 @@ if __name__ == "__main__":
 
     unique = list(set([x["text"] for x in out_data]))
 
-
-    write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
-    write_json_lines(out_dir=CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
-
     label_count = Counter([x['label'] for x in unique1])
 
-    print(f"label count: {label_count}")
+    mlm_unknown_data = [x for x in unique1 if x['label'] == 'unknown']
 
+    sc_label_set = [x['tag_name'] for x in category_mapping if not x['tag_name'] == 'unknown']
+    sc_grouped_data = ClassifiedScrapePreprocessing.group_data_by_class(unique1, label_set=sc_label_set)
+    sc_grouped_data = [x for x in sc_grouped_data if len(x) > 0]
+
+
+    mlm_sc_split = [
+        train_test_split(x, test_size=prep_args.sc_class_size, random_state=1) for x
+        in
+        sc_grouped_data]
+    mlm_data = list(
+        itertools.chain.from_iterable([x[0] for x in mlm_sc_split]))
+    sc_data = list(
+        itertools.chain.from_iterable([x[1] for x in mlm_sc_split]))
+
+    mlm_data.extend(mlm_unknown_data)
+
+    assert len(unique1) == (len(mlm_data) + len(sc_data))
+    write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
+    write_json_lines(out_dir=CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
+    write_json_lines(out_dir=SC_CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
+
+    write_json_lines(out_dir=CONF_DATA_DIR, data=mlm_data,
+                     filename="unique_sentences_mlm")
+    write_json_lines(out_dir=SC_CONF_DATA_DIR, data=sc_data,
+                     filename="unique_sentences_sc")
+
+    print(f"label count: {label_count}")
     print(f"sentences not danish: {total_not_danish_counter}")
     print(f"total sentences: {total_sentences}")
     print(f"total unique sentences: {len(unique)}")
     print(f"len unique sentences with label: {len(unique1)}")
+    print(f"len unique sentences with label: {(len(mlm_data) + len(sc_data))}")
 

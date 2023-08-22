@@ -106,3 +106,9 @@ class DataPrepArgParser:
             metavar='<str>',
             default='raw1',
             help="raw file name")
+        self.parser.add_argument(
+            '--sc_class_size',
+            type=int,
+            metavar='<int>',
+            default=1400,
+            help="Number of sentences within each class used for SequenceClassification.")

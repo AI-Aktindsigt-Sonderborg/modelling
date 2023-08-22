@@ -84,13 +84,15 @@ class ClassifiedScrapePreprocessing:
                                filename=self.args.classified_scrape_file)
 
     @staticmethod
-    def group_data_by_class(list_data: List[dict]):
+    def group_data_by_class(list_data: List[dict], label_set: List[str] = None):
         """
         Group data by class
         :param data: list of dictionarys of sentences
         :return: list of lists of dicts
         """
-        label_set = {x['label'] for x in list_data}
+        if not label_set:
+            label_set = {x['label'] for x in list_data}
+
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
 
