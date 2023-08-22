@@ -4,6 +4,7 @@ import re
 import sys
 import traceback
 from typing import List
+from collections import Counter
 from itertools import groupby
 
 import nltk
@@ -115,15 +116,21 @@ if __name__ == "__main__":
                 # print(f"  {label}")
                 print(f"  {label['label']}")
         else:
-            unique1.append({"text": text})
+            unique1.append({"text": text, "label": group[0]['label']})
 
-    print(f"len unique1: {len(unique1)}")
+
     unique = list(set([x["text"] for x in out_data]))
-    print(f"len unique: {len(unique)}")
 
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
+    write_json_lines(out_dir=CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
+
+    label_count = Counter([x['label'] for x in unique1])
+
+    print(f"label count: {label_count}")
 
     print(f"sentences not danish: {total_not_danish_counter}")
     print(f"total sentences: {total_sentences}")
-    print(f"total sentences: {len(unique)}")
+    print(f"total unique sentences: {len(unique)}")
+    print(f"len unique sentences with label: {len(unique1)}")
+
