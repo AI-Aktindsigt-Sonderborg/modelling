@@ -106,12 +106,13 @@ if __name__ == "__main__":
 
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=out_data, filename="all_sentences")
+    write_json_lines(out_dir=SC_CONF_DATA_DIR, data=out_data, filename="all_sentences")
 
     out_data.sort(key=lambda x: x['text'])
-    out_data2 = [{"text": x["text"], "label": x["label"]} for x in out_data]
-    out_data2.sort(key=lambda x: x['text'])
+    # out_data2 = [{"text": x["text"], "label": x["label"]} for x in out_data]
+    # out_data2.sort(key=lambda x: x['text'])
 
-    grouped_data = {key: list(group) for key, group in groupby(out_data2, key=lambda x: x['text'])}
+    grouped_data = {key: list(group) for key, group in groupby(out_data, key=lambda x: x['text'])}
 
     unique1 = []
     for text, group in grouped_data.items():
