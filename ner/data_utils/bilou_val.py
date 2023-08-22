@@ -76,10 +76,10 @@ total_entities.sort()
 total_labels.sort()
 # first_entity.sort()
 first_entity_count = Counter(first_entity)
-print(first_entity_count)
+# print(first_entity_count)
 
 # grouped_first_entity = [group for group in groupby(first_entity)]
-grouped_first_entity = groupby(sorted(first_entity_count.items(), key=lambda x: x[1], reverse=True), key=lambda x: x[1])
+# grouped_first_entity = groupby(sorted(first_entity_count.items(), key=lambda x: x[1], reverse=True), key=lambda x: x[1])
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
@@ -94,9 +94,8 @@ print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - count: {len(group)}")
 print()
-for count, items in grouped_first_entity:
-    item_list = [item[0] for item in items]
-    print(f"Entity: {item_list} - sentence count: {count}")
+for count, items in first_entity_count:
+    print(f"Entity: {items} - sentence count: {count}")
 
 # for group in grouped_first_entity:
 #     print(f"Sentences with label: {group[0]} - antal: {len(group)}")
