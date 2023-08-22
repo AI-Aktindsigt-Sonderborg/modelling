@@ -23,6 +23,7 @@ j = 0
 BILOU_ERROR_COUNT = 0
 total_entities = []
 total_labels = []
+first_entity = []
 for i, obs in enumerate(data_bilou):
     if prep_args.print_entity and prep_args.print_entity in obs["entities"]:
         print("----- Tokens -------")
@@ -44,6 +45,7 @@ for i, obs in enumerate(data_bilou):
             )
 
     else:
+        first_entity.extend(obs["entities"][0])
         total_entities.extend(obs["entities"])
         total_labels.extend(obs["tags"])
 
@@ -73,9 +75,13 @@ for i, obs in enumerate(data_bilou):
 
 total_entities.sort()
 total_labels.sort()
+first_entity.sort()
+
+grouped_first_entity = [group for group in groupby(first_entity)]
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
+sorted_first_entity = sorted(grouped_first_entity, key=get_sublist_length, reverse=True)
 sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
 sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
@@ -85,6 +91,11 @@ print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - antal: {len(group)}")
 print()
+for group in sorted_first_entity:
+    print(f"Sentences with label: {group[0]} - antal: {len(group)}")
+
+print()
 print(f"Total sentences: {len(data_bilou)}")
 print(f"Total entities: {len(total_entities)}")
 print(f"Total labels: {len(total_labels)}")
+
