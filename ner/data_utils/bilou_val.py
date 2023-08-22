@@ -70,16 +70,11 @@ for i, obs in enumerate(data_bilou):
 
 
 
-    # print(obs["tags"])
-print(first_entity)
 total_entities.sort()
 total_labels.sort()
-# first_entity.sort()
-first_entity_count = Counter(first_entity)
-# print(first_entity_count)
 
-# grouped_first_entity = [group for group in groupby(first_entity)]
-# grouped_first_entity = groupby(sorted(first_entity_count.items(), key=lambda x: x[1], reverse=True), key=lambda x: x[1])
+first_entity_count = Counter(first_entity)
+
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
@@ -96,9 +91,6 @@ for group in sorted_labels:
 print()
 for count, items in first_entity_count:
     print(f"Entity: {items} - sentence count: {count}")
-
-# for group in grouped_first_entity:
-#     print(f"Sentences with label: {group[0]} - antal: {len(group)}")
 
 print()
 print(f"Total sentences: {len(data_bilou)}")

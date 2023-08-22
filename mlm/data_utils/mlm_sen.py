@@ -4,6 +4,7 @@ import re
 import sys
 import traceback
 from typing import List
+from itertools import groupby
 
 import nltk
 
@@ -52,7 +53,6 @@ def create_sentences_from_one_document(
                     )
                 except Exception:
                     print(input_data)
-                    sys.exit(0)
 
 
     return output_data, [
@@ -99,9 +99,28 @@ if __name__ == "__main__":
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=out_data, filename="all_sentences")
 
-    unique = list(set([x["text"] for x in out_data]))
+    out_data.sort(key=lambda x: x['text'])
+    out_data2 = [{"text": x["text"], "label": x["label"]} for x in out_data]
+    out_data2.sort(key=lambda x: x['text'])
 
-    unique = [{"text": x} for x in unique]
+    grouped_data = {key: list(group) for key, group in groupby(out_data2, key=lambda x: x['text'])}
+
+    unique1 = []
+    for text, group in grouped_data.items():
+        # print(group)
+        # print(f"sentence: {text}")
+        if len(group) > 1:
+            print(f"sentence: {text}")
+            for label in group:
+                # print(f"  {label}")
+                print(f"  {label['label']}")
+        else:
+            unique1.append({"text": text})
+
+    print(f"len unique1: {len(unique1)}")
+    unique = list(set([x["text"] for x in out_data]))
+    print(f"len unique: {len(unique)}")
+
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
 
