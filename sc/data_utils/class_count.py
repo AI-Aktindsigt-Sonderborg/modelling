@@ -43,7 +43,7 @@ print()
 grouped = df.groupby(['label', 'test'])
 for (label, test), group_data in grouped:
     print(f"Label: {label}, Test: {test}")
-    print(group_data)
+    print(len(group_data))
     print("--------------------")
 
 print()
