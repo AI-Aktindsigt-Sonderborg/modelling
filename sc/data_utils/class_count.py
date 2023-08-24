@@ -33,7 +33,7 @@ for items, count in label_count.items():
     print(f"Entity: {items} - sentence count: {count}")
 
 print()
-for items, count in label_count.items():
+for items, count in data_type_count.items():
     print(f"Entity: {items} - sentence count: {count}")
 
 print()
