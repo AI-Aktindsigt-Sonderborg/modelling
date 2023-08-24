@@ -1,3 +1,4 @@
+import warnings
 from collections import Counter
 
 import pandas as pd
@@ -8,6 +9,8 @@ from shared.utils.helpers import read_json_lines
 
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 data_dir = DATA_DIR
 if prep_args.custom_data_dir:
@@ -45,9 +48,11 @@ for label, group_label in grouped:
     grouped_test = group_label.groupby(['test'], dropna=False)
     print(f"Label: {label} - {len(group_label)}")
     for test, group_test in grouped_test:
-        print(f"Label: {test} - {len(group_test)}")
+        print(f"Test: {test} - {len(group_test)}")
     print("--------------------")
 
 print()
 print(f"Total sentences: {len(data)}")
 print(f"Total labels: {len(total_labels)}")
+
+warnings.resetwarnings()
