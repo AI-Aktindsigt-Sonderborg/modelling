@@ -1,5 +1,7 @@
 from collections import Counter
 
+import pandas as pd
+
 from sc.data_utils.data_prep_input_args import DataPrepArgParser
 from sc.local_constants import DATA_DIR, CONF_DATA_DIR, PREP_DATA_DIR
 from shared.utils.helpers import read_json_lines
@@ -35,6 +37,14 @@ for items, count in label_count.items():
 print()
 for items, count in data_type_count.items():
     print(f"Entity: {items} - sentence count: {count}")
+
+df = pd.DataFrame(data)
+
+grouped = df.groupby(['label', 'test'])
+for (label, test), group_data in grouped:
+    print(f"Label: {label}, Test: {test}")
+    print(group_data)
+    print("--------------------")
 
 print()
 print(f"Total sentences: {len(data)}")
