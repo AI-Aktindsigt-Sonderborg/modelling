@@ -22,11 +22,15 @@ ANNOTATION_ERRORS = 0
 ANNOTATION_COUNTER = 0
 j = 0
 
-total_labels = []
-for i, obs in enumerate(data):
-    total_labels.append(obs['label'])
-
+total_labels = [obs['label'] for obs in data]
 label_count = Counter(total_labels)
+
+data_types = [x['test'] for x in data]
+data_type_count = Counter(data_types)
+
+print()
+for items, count in label_count.items():
+    print(f"Entity: {items} - sentence count: {count}")
 
 print()
 for items, count in label_count.items():
