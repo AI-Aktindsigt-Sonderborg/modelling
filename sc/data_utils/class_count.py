@@ -40,10 +40,12 @@ for items, count in data_type_count.items():
 
 df = pd.DataFrame(data)
 print()
-grouped = df.groupby(['label', 'test'])
-for (label, test), group_data in grouped:
-    print(f"Label: {label}, Test: {test}")
-    print(len(group_data))
+grouped = df.groupby(['label'], dropna=False)
+for label, group_label in grouped:
+    grouped_test = df.groupby(['label'], dropna=False)
+    print(f"Label: {label} - {len(group_label)}")
+    for test, group_test in grouped_test:
+        print(f"Label: {test} - {len(group_test)}")
     print("--------------------")
 
 print()
