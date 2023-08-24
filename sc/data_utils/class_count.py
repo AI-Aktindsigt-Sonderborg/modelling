@@ -42,7 +42,7 @@ df = pd.DataFrame(data)
 print()
 grouped = df.groupby(['label'], dropna=False)
 for label, group_label in grouped:
-    grouped_test = df.groupby(['test'], dropna=False)
+    grouped_test = group_label.groupby(['test'], dropna=False)
     print(f"Label: {label} - {len(group_label)}")
     for test, group_test in grouped_test:
         print(f"Label: {test} - {len(group_test)}")
