@@ -163,9 +163,9 @@ if __name__ == "__main__":
     write_json_lines(out_dir=SC_CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label1")
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=mlm_data,
-                     filename="unique_sentences_mlm")
+                     filename="unique_sentences_mlm1")
     write_json_lines(out_dir=SC_CONF_DATA_DIR, data=sc_data,
-                     filename="unique_sentences_sc")
+                     filename="unique_sentences_sc1")
 
     print(f"label count: {label_count}")
     print(f"sentences not danish: {total_not_danish_counter}")
