@@ -74,7 +74,7 @@ total_entities.sort()
 total_labels.sort()
 
 first_entity_count = Counter(first_entity)
-
+print(first_entity_count)
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
