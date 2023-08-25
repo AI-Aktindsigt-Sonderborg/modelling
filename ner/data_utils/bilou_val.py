@@ -89,8 +89,8 @@ print()
 for group in sorted_labels:
     print(f"Label: {group[0]} - count: {len(group)}")
 print()
-for count, items in first_entity_count:
-    print(f"Entity: {items} - sentence count: {count}")
+# for count, items in first_entity_count:
+#     print(f"Entity: {items} - sentence count: {count}")
 
 print()
 print(f"Total sentences: {len(data_bilou)}")
