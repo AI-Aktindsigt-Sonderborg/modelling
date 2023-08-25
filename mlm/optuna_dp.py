@@ -7,14 +7,14 @@ import wandb
 from opacus import PrivacyEngine
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
-from modelling_utils.mlm_modelling import MLMModellingDP
+from mlm.modelling_utils.mlm_modelling import MLMModellingDP
 
-from ner.modelling_utils.input_args import NERArgParser
+from mlm.modelling_utils.input_args import MLMArgParser
 from ner.modelling_utils.ner_modelling import NERModellingDP
 from shared.modelling_utils.helpers import create_data_loader
 from shared.utils.helpers import write_json_lines, append_json_lines
 
-ner_parser = NERArgParser()
+ner_parser = MLMArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
