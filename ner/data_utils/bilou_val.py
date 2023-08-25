@@ -83,6 +83,7 @@ grouped_labels = [list(group) for key, group in groupby(total_labels)]
 sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
 sorted_labels = sorted(grouped_labels, key=get_sublist_length, reverse=True)
 
+print()
 for group in sorted_entities:
     print(f"Entitet: {group[0]} - count: {len(group)}")
 print()
