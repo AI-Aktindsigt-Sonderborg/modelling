@@ -74,7 +74,7 @@ total_entities.sort()
 total_labels.sort()
 
 first_entity_count = Counter(first_entity)
-print(first_entity_count)
+
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
 
@@ -91,6 +91,8 @@ for group in sorted_labels:
 print()
 # for count, items in first_entity_count:
 #     print(f"Entity: {items} - sentence count: {count}")
+print("N sentences containing entity")
+print(first_entity_count)
 
 print()
 print(f"Total sentences: {len(data_bilou)}")
