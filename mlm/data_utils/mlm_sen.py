@@ -41,6 +41,11 @@ def create_sentences_from_one_document(
         for i, sentence in enumerate(splitted_sentences):
             if len(sentence) == 0 or sentence.isspace():
                 continue
+            matches = re.findall(r"\(cid:[0-9]+\)", sentence,
+                                  re.IGNORECASE)  # Use re.IGNORECASE for case-insensitive matching
+
+            if matches:
+                continue
 
             if len(sentence.split(" ")) >= 5:
                 total_sentence += 1
@@ -153,9 +158,9 @@ if __name__ == "__main__":
     mlm_data.extend(mlm_unknown_data)
 
     assert len(unique1) == (len(mlm_data) + len(sc_data))
-    write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences")
-    write_json_lines(out_dir=CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
-    write_json_lines(out_dir=SC_CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label")
+    write_json_lines(out_dir=CONF_DATA_DIR, data=unique, filename="unique_sentences1")
+    write_json_lines(out_dir=CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label1")
+    write_json_lines(out_dir=SC_CONF_DATA_DIR, data=unique1, filename="unique_sentences_with_label1")
 
     write_json_lines(out_dir=CONF_DATA_DIR, data=mlm_data,
                      filename="unique_sentences_mlm")
