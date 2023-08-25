@@ -65,9 +65,9 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
     )
     mlm_modelling.args.max_length = max_length
     _, eval_loader = create_data_loader(
-        data_wrapped=mlm_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
-        batch_size=ner_modelling.args.eval_batch_size,
-        data_collator=ner_modelling.data_collator,
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.eval),
+        batch_size=mlm_modelling.args.eval_batch_size,
+        data_collator=mlm_modelling.data_collator,
         shuffle=False,
     )
 
@@ -79,38 +79,38 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
         module=model,
         optimizer=optimizer,
         data_loader=train_loader,
-        epochs=ner_modelling.args.epochs,
+        epochs=mlm_modelling.args.epochs,
         target_epsilon=epsilon,
         target_delta=delta,
-        max_grad_norm=ner_modelling.args.max_grad_norm,
+        max_grad_norm=mlm_modelling.args.max_grad_norm,
         # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
         grad_sample_mode="hooks",
     )
 
     step = 0
     eval_scores = []
-    for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch", unit="epoch"):
-        model = model.to(ner_modelling.args.device)
+    for epoch in tqdm(range(mlm_modelling.args.epochs), desc="Epoch", unit="epoch"):
+        model = model.to(mlm_modelling.args.device)
         train_losses = []
         lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,
-            max_physical_batch_size=ner_modelling.args.train_batch_size,
+            max_physical_batch_size=mlm_modelling.args.train_batch_size,
             optimizer=optimizer,
         ) as memory_safe_data_loader:
             for batch in tqdm(
                 memory_safe_data_loader,
-                desc=f"Epoch {epoch} of {ner_modelling.args.epochs}",
+                desc=f"Epoch {epoch} of {mlm_modelling.args.epochs}",
                 unit="batch",
             ):
                 model.train()
 
                 output = model(
-                    input_ids=batch["input_ids"].to(ner_modelling.args.device),
+                    input_ids=batch["input_ids"].to(mlm_modelling.args.device),
                     attention_mask=batch["attention_mask"].to(
-                        ner_modelling.args.device
+                        mlm_modelling.args.device
                     ),
-                    labels=batch["labels"].to(ner_modelling.args.device),
+                    labels=batch["labels"].to(mlm_modelling.args.device),
                 )
                 loss = output.loss
 
@@ -118,8 +118,8 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
                 loss.backward()
                 optimizer.step()
 
-                if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
-                    eval_score = ner_modelling.evaluate(
+                if step > 0 and (step % mlm_modelling.args.evaluate_steps == 0):
+                    eval_score = mlm_modelling.evaluate(
                         model=model, val_loader=eval_loader
                     )
                     eval_score.step = step
@@ -144,24 +144,22 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
+    # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    delta = trial.suggest_float("delta", 1e-6, 1e-2)
+    # delta = trial.suggest_float("delta", 1e-6, 1e-2)
     learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
     wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
-        name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
-        f"{round(epsilon, 2)}"
-        f"-{round(delta, 5)}-{lot_size}-{max_length}",
+        name=f"DP-lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-{lot_size}-{max_length}",
     )
 
     f_1 = train_model(
         learning_rate=learning_rate,
-        epsilon=epsilon,
-        delta=delta,
+        epsilon=8,
+        delta=0.002,
         lot_size=lot_size,
         max_length=max_length,
     )
