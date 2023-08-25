@@ -25,11 +25,11 @@ args.evaluate_steps = 400
 args.logging_steps = 400
 args.train_batch_size = 16
 args.eval_batch_size = 16
-args.epochs = 10
-args.n_trials = 20
+args.epochs = 3
+args.n_trials = 10
 args.load_alvenir_pretrained = False
 args.model_name = "base"
-
+args.differential_privacy = True
 
 model_name_to_print = (
     args.custom_model_name if args.custom_model_name else args.model_name
@@ -39,7 +39,7 @@ mlm_modelling = MLMModellingDP(args=args)
 
 
 def train_model(learning_rate, epsilon, delta, lot_size, max_length):
-    model = ner_modelling.get_model()
+    model = mlm_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
         param.requires_grad = False
@@ -47,25 +47,25 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=ner_modelling.args.weight_decay,
+        weight_decay=mlm_modelling.args.weight_decay,
     )
 
-    ner_modelling.load_data()
+    mlm_modelling.load_data()
 
-    ner_modelling.save_config(
-        output_dir=ner_modelling.output_dir,
-        metrics_dir=ner_modelling.metrics_dir,
-        args=ner_modelling.args,
+    mlm_modelling.save_config(
+        output_dir=mlm_modelling.output_dir,
+        metrics_dir=mlm_modelling.metrics_dir,
+        args=mlm_modelling.args,
     )
 
     train_wrapped, train_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.train),
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.train),
         batch_size=lot_size,
-        data_collator=ner_modelling.data_collator,
+        data_collator=mlm_modelling.data_collator,
     )
-    ner_modelling.args.max_length = max_length
+    mlm_modelling.args.max_length = max_length
     _, eval_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
         batch_size=ner_modelling.args.eval_batch_size,
         data_collator=ner_modelling.data_collator,
         shuffle=False,
@@ -134,7 +134,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
     append_json_lines(
-        output_dir=ner_modelling.metrics_dir,
+        output_dir=mlm_modelling.metrics_dir,
         data=dataclasses.asdict(max_f1),
         filename="best_f1",
     )

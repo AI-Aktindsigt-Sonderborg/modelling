@@ -24,7 +24,7 @@ from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
     write_text_lines, read_json
 from shared.utils.helpers import count_num_lines
 
-DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences.jsonl'
+DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences_mlm1.jsonl'
 
 
 class RawDataPreprocessing:
