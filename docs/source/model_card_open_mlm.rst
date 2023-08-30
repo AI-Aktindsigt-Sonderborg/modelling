@@ -35,5 +35,5 @@ Eksempel
 	:linenos:
 
 	# Python code here
-	def test(a: bool = False):
+	def test(a: bool = True):
    		print("hello")
