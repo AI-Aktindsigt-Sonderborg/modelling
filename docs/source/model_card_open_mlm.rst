@@ -16,7 +16,7 @@ Datasæt
 -------
 Modellen er trænet på 2672566 unikke sætninger og valideret på 54543 sætninger.
 Den rå html tekst skrapet fra de **N antal** kommuner og **M antal** KL områder (**Mangler databeskrivelse her fra Aktio**) er blevet filtreret,
-opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt - se :class:`.RawScrapePreprocessing` for
+opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt - se class:`.RawScrapePreprocessing` for
 for beskrivelse af koden benyttet til præprocessering af det skrabede data.
 Se :ref:`data-home` for en beskrivelse af datasættet.
 

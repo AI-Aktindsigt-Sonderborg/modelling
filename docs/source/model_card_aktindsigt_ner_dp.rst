@@ -12,26 +12,22 @@ Brug
 ----
 Modellen er finetunet til Named Entity Recognition (NER) og er trænet til at forudsige følgende kategorier:
 
-
-.. table::
-
-   +---------+----------+
-   | Header 1| Header 2 |
-   +=========+==========+
-   | Row 1,1 | Row 1,2  |
-   +---------+----------+
-   | Row 2,1 | Row 2,2  |
-   +---------+----------+
-
-
 .. table::
 
    +--------------+--------------+------------------------------------------------------------------------------------------------------+
    | Label        | Navn         | Beskrivelse                                                                                          |
    +==============+==============+======================================================================================================+
-   | PERSON       | Person       | Navn på en person bestående af et ord, kan være fornavn eller efternavn (fx *Kasper* eller *Hansen*) |
+   | PERSON       | Person       | Navn på en person (fx *Kasper Hansen* eller *Birgitte*)                                              |
    +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | ORGANISATION | Organisation | Navn på en organisation                                                                              | 
+   | ORGANISATION | Organisation | Navn på en organisation (fx *Alvenir Aps* eller *Aktio*)                                             | 
+   +--------------+--------------+------------------------------------------------------------------------------------------------------+
+   | LOKATION     | Lokation     | Navn på en lokation (fx *Danmark* eller *Fælledparken*)                                              | 
+   +--------------+--------------+------------------------------------------------------------------------------------------------------+
+   | HELBRED      | Helbred      | Ord relaterede til helbred (fx *hovedpine* eller *OCD*)                                              | 
+   +--------------+--------------+------------------------------------------------------------------------------------------------------+
+   | KOMMUNE      | Kommune      | Navn på en kommune (fx *Sønderborg Kommune*)                                                         | 
+   +--------------+--------------+------------------------------------------------------------------------------------------------------+
+   | TELEFONNUMMER| Telefonnummer| Telefonnummer (fx *11 22 33 69*, *11223344* eller *1122 3344*)                                       | 
    +--------------+--------------+------------------------------------------------------------------------------------------------------+
 
 
