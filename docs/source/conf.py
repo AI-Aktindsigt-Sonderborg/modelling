@@ -14,6 +14,7 @@
 #
 import os
 import sys
+
 # import sphinxgallery
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('../../example_scripts'))
@@ -28,6 +29,7 @@ release = '0.1'
 
 extensions = ['recommonmark',
               'sphinx_rtd_theme',
+              'sphinx.ext.mathjax',
               # 'sphinx.ext.napoleon',
               'sphinx.ext.autodoc',
               'sphinx.ext.autosummary',

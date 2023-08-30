@@ -1,10 +1,10 @@
-.. _model-card-open-mlm:
+.. _model-card-aktindsigt-ner-dp:
 
-Tværkommunal sprogmodel (Del 1)
-===============================
+Assisteret Anonymisering af Personhenførbar Data på Aktindsigter (AAPDA)
+========================================================================
 Beskrivelse
 -----------
-Den første del af den tværkommunale sprogmodel modellen er en generel bert-base videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
+MLM modellen er en generel bert-base videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
 Modellen er trænet på 2672566 sætninger genereret på baggrund af data skrapet fra hovedparten af alle danske kommuner.
 
 Brug

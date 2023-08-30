@@ -1,5 +1,7 @@
-Semantisk søgemodel
-===================
+.. _model-card-open-sc:
+
+Tværkommunal sprogmodel (Del 2)
+===============================
 Beskrivelse
 -----------
 Den semantiske søgemodel er en finetunet version af vores :doc:`model_card_open_mlm` til at klassificere et givet KL område baseret på en input sætning.
