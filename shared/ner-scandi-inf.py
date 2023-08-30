@@ -8,7 +8,7 @@ ner = pipeline(task='ner',
 
 sentence = 'Kasper Schjødt-Hansen er medarbejder i virksomheden Alvenir Aps og har ofte ekstrem hovedpine.' \
            ' Han bor på Blegdamsvej 85, 2100 København Ø som ligger i københavns kommune.' \
-           'Hans tlf nummer er 12345560 og han er fra Danmark.'
+           ' Hans tlf nummer er 12345560 og han er fra Danmark.'
 
 
 
