@@ -7,7 +7,7 @@ ner = pipeline(task='ner',
                aggregation_strategy='first')
 
 sentence = 'Kasper Schjødt-Hansen er medarbejder i virksomheden Alvenir Aps og har ofte ekstrem hovedpine.' \
-           ' Han bor på Blegdamsvej 85, 2100 København Ø som ligger i københavns kommune.' \
+           ' Han bor på Blegdamsvej 85, 2100 København Ø som ligger i Københavns Kommune.' \
            ' Hans tlf nummer er 12345560 og han er fra Danmark.'
 
 
