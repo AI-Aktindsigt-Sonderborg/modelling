@@ -82,3 +82,22 @@ class NERArgParser(ModellingArgParser):
             metavar='<bool>',
             default=False,
             help="Whether to compute one single f1_score per entity")
+        ner_params.add_argument(
+            "-nc", "--normalize_conf",
+            type=str,
+            default=None,
+            help="whether to normalize conf_plot",
+            metavar='<str>')
+        ner_params.add_argument(
+            "-df", "--data_format",
+            type=str,
+            default="bilou",
+            help="whether to use BILOU or BIO format - input must be either 'bilou' or 'bio'",
+            metavar='<str>')
+        ner_params.add_argument(
+            "--eval_single",
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=False,
+            help="Whether to only evaluate one entity per sentence")
+

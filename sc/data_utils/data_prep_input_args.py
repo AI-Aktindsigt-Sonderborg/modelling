@@ -19,36 +19,13 @@ class DataPrepArgParser:
     :param str --classified_scrape_file: Name of classified scrape file (default: classified_scrape)
     :param str --data_type: 'unlabelled' or 'labelled' (default: unlabelled)
     :param bool --lower_case: Whether to lower case all sentences. If doing mlm,
-        very important to check whether classified data is lowercased (default: False)
+    very important to check whether classified data is lowercased (default: False)
     """
 
     def __init__(self):
         self.parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        self.parser.add_argument(
-            '--create_bilou',
-            type=lambda x: bool(strtobool(x)),
-            metavar='<bool>',
-            default=False,
-            help="Whether to create bilou or use existing")
-        self.parser.add_argument(
-            '-oif', '--origin_input_file',
-            type=str,
-            metavar='<str>',
-            default='origin',
-            help="original 'raw file' input name")
-        self.parser.add_argument(
-            '-bif', '--bilou_input_file',
-            type=str,
-            metavar='<str>',
-            default='bilou',
-            help="bilou input file name")
-        self.parser.add_argument(
-            '-bf', '--bilou_filtered',
-            type=str,
-            metavar='<str>',
-            default='bilou_PLAHOKT',
-            help="filtered bilou file name")
+
         self.parser.add_argument(
             '--danish_threshold',
             type=float,
@@ -65,7 +42,7 @@ class DataPrepArgParser:
         self.parser.add_argument(
             '--split',
             type=float,
-            default=0.95, metavar='<float>',
+            default=0.98, metavar='<float>',
             help='training set size between 0 and 1')
         self.parser.add_argument(
             '--add_ppl',
@@ -83,63 +60,43 @@ class DataPrepArgParser:
             '--train_outfile',
             type=str,
             metavar='<str>',
-            default='bilou_train',
+            default='train',
             help="Name of final training data file fx 'train'")
         self.parser.add_argument(
             '--val_outfile',
             type=str,
             metavar='<str>',
-            default='bilou_val',
+            default='validation',
             help="Name of final validation data file fx 'validation'")
         self.parser.add_argument(
             '--test_outfile',
             type=str,
             metavar='<str>',
-            default='bilou_test',
+            default='test',
             help="Name of final test data file fx 'test'")
         self.parser.add_argument(
-            '-stnt', '--split_train_n_times',
-            type=int,
-            metavar='<int>',
-            default=0,
-            help="Split train set n times into n+1 training sets")
+            '--data_type',
+            type=str,
+            metavar='<str>',
+            default='unlabelled',
+            help="Type of data: 'unlabelled' or 'labelled'")
         self.parser.add_argument(
             '--lower_case',
             type=lambda x: bool(strtobool(x)),
             default=False,
             help='whether or not to lower case all sentences. '
-                 'If doing mlm, very important to check whether mlm model is trained with lower case ',
+                 'If doing mlm, very important to check whether classified data '
+                 'is lowercased',
             metavar='<bool>')
         self.parser.add_argument(
-            "--entities",
-            type=str,
-            nargs='*',
-            default=["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION",
-                     "KOMMUNE", "TELEFONNUMMER"],
-            metavar='<str>',
-            help="define eval metrics to evaluate best model")
-        self.parser.add_argument(
-            '--print_entity',
-            type=str,
-            metavar='<str>',
-            default=None,
-            help="Print specific entity for data inspection.")
-        self.parser.add_argument(
-            '--test_size',
+            '--sc_class_size',
             type=int,
             metavar='<int>',
-            default=25,
-            help="Number of sentences containing each class (entity).")
-        self.parser.add_argument(
-            '--add_dane',
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            help='whether or not to add dane data to training set',
-            metavar='<bool>')
+            default=1400,
+            help="Number of sentences within each class used for SequenceClassification.")
         self.parser.add_argument(
             '--custom_data_dir', '-cdd',
             type=str,
             metavar='<str>',
             default=None,
-            help="Print specific entity for data inspection.")
-
+            help="if data is located in data subfolder")

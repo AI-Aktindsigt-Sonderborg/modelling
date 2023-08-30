@@ -243,7 +243,7 @@ class ModellingArgParser:
         training_params.add_argument(
             "--n_trials",
             type=int,
-            default=10,
+            default=None,
             metavar='<int>',
             help="Number of trials to run when hp optimizing")
 
@@ -282,6 +282,13 @@ class ModellingArgParser:
             "-lrsd", "--lr_start_decay", type=int, default=46000,
             metavar='<int>',
             help="after which step to start decaying learning rate")
+        lr_params.add_argument(
+            "--static_lr",
+            type=lambda x: bool(strtobool(x)),
+            default=False,
+            metavar='<int>',
+            help="after which step to start decaying learning rate")
+
 
     def add_eval_params(self):
         """

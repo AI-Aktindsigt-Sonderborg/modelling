@@ -8,6 +8,7 @@ PLOTS_DIR = os.path.join(SC_ROOT, 'plots')
 RESULTS_DIR = os.path.join(SC_ROOT, 'results')
 METADATA_DIR = os.path.join(SC_ROOT, 'metadata')
 PREP_DATA_DIR = os.path.join(DATA_DIR, 'preprocessed_data')
+CONF_DATA_DIR = os.path.join(DATA_DIR, 'conf_data')
 
 # specific to SC
 # SCRAPED_DATA_DIR = os.path.join(DATA_DIR, 'scraped_data')

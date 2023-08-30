@@ -100,3 +100,15 @@ class DataPrepArgParser:
                  'If doing mlm, very important to check whether classified data '
                  'is lowercased',
             metavar='<bool>')
+        self.parser.add_argument(
+            '--raw_file',
+            type=str,
+            metavar='<str>',
+            default='raw1',
+            help="raw file name")
+        self.parser.add_argument(
+            '--sc_class_size',
+            type=int,
+            metavar='<int>',
+            default=1400,
+            help="Number of sentences within each class used for SequenceClassification.")

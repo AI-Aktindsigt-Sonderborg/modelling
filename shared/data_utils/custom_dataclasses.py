@@ -15,6 +15,7 @@ class EmbeddingOutput:
     decoded_text: str = None
     embedding: np.array = None
 
+
 @dataclass
 class NEROutput:
     sentence: str = None
@@ -62,22 +63,6 @@ class DataType(Enum):
     TRAIN = 'train.json'
     VAL = 'validation.json'
     TEST = 'test.json'
-
-
-# class HFModel(Enum):
-#     red = 1
-#     blue = 2
-#     green = 3
-#
-#     def __str__(self):
-#         return self.name
-#
-#     @staticmethod
-#     def from_string(s):
-#         try:
-#             return HFModel[s]
-#         except KeyError:
-#             raise ValueError()
 
 
 class LoadModelType(Enum):

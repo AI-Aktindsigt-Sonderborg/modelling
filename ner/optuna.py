@@ -4,12 +4,13 @@ import dataclasses
 import optuna
 import torch
 import wandb
-from opacus import PrivacyEngine
-from opacus.utils.batch_memory_manager import BatchMemoryManager
+
+# from opacus import PrivacyEngine
+# from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
 
 from ner.modelling_utils.input_args import NERArgParser
-from ner.modelling_utils.ner_modelling import NERModellingDP
+from ner.modelling_utils.ner_modelling import NERModelling
 from shared.modelling_utils.helpers import create_data_loader
 from shared.utils.helpers import write_json_lines, append_json_lines
 
@@ -20,15 +21,18 @@ args.test = False
 args.train_data = "bio_train1.jsonl"
 args.eval_data = "bio_val1.jsonl"
 args.data_format = "bio"
-args.evaluate_steps = 400
-args.logging_steps = 400
-args.train_batch_size = 16
-args.eval_batch_size = 16
-args.epochs = 2
+args.evaluate_steps = 300
+args.logging_steps = 300
+# args.save_steps = 300
+args.train_batch_size = 64
+args.eval_batch_size = 64
+args.epochs = 10
 args.n_trials = 15
 args.load_alvenir_pretrained = True
 args.model_name = "akt-mlm"
+args.differential_privacy = False
 # args.model_name = "base"
+
 
 args.entities = [
     "PERSON",
@@ -44,10 +48,10 @@ model_name_to_print = (
     args.custom_model_name if args.custom_model_name else args.model_name
 )
 
-ner_modelling = NERModellingDP(args=args)
+ner_modelling = NERModelling(args=args)
 
 
-def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_decay):
+def train_model(trial, learning_rate, max_length, weight_decay):
     model = ner_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
@@ -69,7 +73,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
 
     train_wrapped, train_loader = create_data_loader(
         data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.train),
-        batch_size=lot_size,
+        batch_size=args.train_batch_size,
         data_collator=ner_modelling.data_collator,
     )
     ner_modelling.args.max_length = max_length
@@ -80,21 +84,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
         shuffle=False,
     )
 
-    privacy_engine = PrivacyEngine()
-
     model = model.train()
-
-    model, optimizer, train_loader = privacy_engine.make_private_with_epsilon(
-        module=model,
-        optimizer=optimizer,
-        data_loader=train_loader,
-        epochs=ner_modelling.args.epochs,
-        target_epsilon=epsilon,
-        target_delta=delta,
-        max_grad_norm=ner_modelling.args.max_grad_norm,
-        # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-        grad_sample_mode="hooks",
-    )
 
     step = 0
     eval_scores = []
@@ -102,45 +92,56 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
         model = model.to(ner_modelling.args.device)
         train_losses = []
         lrs = []
-        with BatchMemoryManager(
-            data_loader=train_loader,
-            max_physical_batch_size=ner_modelling.args.train_batch_size,
-            optimizer=optimizer,
-        ) as memory_safe_data_loader:
-            for batch in tqdm(
-                memory_safe_data_loader,
-                desc=f"Epoch {epoch} of {ner_modelling.args.epochs}",
-                unit="batch",
-            ):
-                model.train()
 
-                output = model(
-                    input_ids=batch["input_ids"].to(ner_modelling.args.device),
-                    attention_mask=batch["attention_mask"].to(
-                        ner_modelling.args.device
-                    ),
-                    labels=batch["labels"].to(ner_modelling.args.device),
-                )
-                loss = output.loss
+        for batch in tqdm(
+            train_loader,
+            desc=f"Epoch {epoch} of {ner_modelling.args.epochs}",
+            unit="batch",
+        ):
+            model.train()
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+            output = model(
+                input_ids=batch["input_ids"].to(ner_modelling.args.device),
+                attention_mask=batch["attention_mask"].to(ner_modelling.args.device),
+                labels=batch["labels"].to(ner_modelling.args.device),
+            )
+            loss = output.loss
 
-                if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
-                    eval_score = ner_modelling.evaluate(
-                        model=model, val_loader=eval_loader
-                    )
-                    eval_score.step = step
-                    eval_score.epoch = epoch
-                    eval_scores.append(eval_score)
-                    wandb.log({"eval f1": eval_score.f_1})
-                    wandb.log({"eval loss": eval_score.loss})
-                    wandb.log({"accuracy": eval_score.accuracy})
-                    wandb.log({"step": eval_score.step})
-                    wandb.log({"learning rate": learning_rate})
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-                step += 1
+            if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
+                eval_score = ner_modelling.evaluate(model=model, val_loader=eval_loader)
+                eval_score.step = step
+                eval_score.epoch = epoch
+                eval_scores.append(eval_score)
+                wandb.log({"eval f1": eval_score.f_1})
+                wandb.log({"eval loss": eval_score.loss})
+                wandb.log({"accuracy": eval_score.accuracy})
+                wandb.log({"step": eval_score.step})
+                wandb.log({"learning rate": learning_rate})
+
+                if step >= int(
+                    11 * args.evaluate_steps
+                ):  # and eval_score.accuracy < 0.15:
+                    tenth_last = eval_scores[-10]
+                    last_nine = eval_scores[-9:]
+
+                    max_acc = max(last_nine, key=lambda x: x.accuracy)
+
+                    if (
+                        step >= int(5 * args.evaluate_steps)
+                        and eval_score.accuracy < 0.10
+                    ):
+                        print("Pruning trial")
+                        raise optuna.exceptions.TrialPruned()
+
+                    if max_acc.accuracy < tenth_last.accuracy:
+                        print("Pruning trial")
+                        raise optuna.exceptions.TrialPruned()
+            step += 1
+
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
     append_json_lines(
         output_dir=ner_modelling.metrics_dir,
@@ -153,27 +154,23 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    # epsilon = trial.suggest_float("epsilon", 1.0, 8.0)
-    lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    # delta = trial.suggest_float("delta", 0.0005, 0.003)
-    weight_decay = trial.suggest_float("weight_decay", 0.001, 0.009, log=True)
-    learning_rate = trial.suggest_float("learning_rate", 0.0001, 0.999, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 0.00004, 0.0006, log=True)
+    weight_decay = trial.suggest_float("weight_decay", 0.0001, 0.999, log=True)
+
     wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
-        f"{round(weight_decay, 5)}-{lot_size}-{max_length}",
+        f"{round(weight_decay, 5)}-{max_length}",
     )
 
     f_1 = train_model(
+        trial=trial,
         learning_rate=learning_rate,
-        epsilon=8,
-        delta=0.002,
-        lot_size=lot_size,
-        max_length=max_length,
         weight_decay=weight_decay,
+        max_length=max_length,
     )
 
     trial.report(f_1, step=10)

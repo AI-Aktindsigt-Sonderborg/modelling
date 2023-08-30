@@ -15,6 +15,6 @@ if len(args) > 2:
 
 for i, x in enumerate(bilou_filtered):
     print(f"------------------{i}-------------------")
-    print(x['words'])
+    print(x['tokens'])
     print(x['tags'])
     print("-------------------------------------")

@@ -7,48 +7,39 @@ import wandb
 from opacus import PrivacyEngine
 from opacus.utils.batch_memory_manager import BatchMemoryManager
 from tqdm import tqdm
+from mlm.modelling_utils.mlm_modelling import MLMModellingDP
 
-from ner.modelling_utils.input_args import NERArgParser
+from mlm.modelling_utils.input_args import MLMArgParser
 from ner.modelling_utils.ner_modelling import NERModellingDP
 from shared.modelling_utils.helpers import create_data_loader
 from shared.utils.helpers import write_json_lines, append_json_lines
 
-ner_parser = NERArgParser()
+ner_parser = MLMArgParser()
 
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
-args.train_data = "bio_train1.jsonl"
-args.eval_data = "bio_val1.jsonl"
-args.data_format = "bio"
-args.evaluate_steps = 400
-args.logging_steps = 400
-args.train_batch_size = 16
-args.eval_batch_size = 16
-args.epochs = 2
-args.n_trials = 15
-args.load_alvenir_pretrained = True
-args.model_name = "akt-mlm"
-# args.model_name = "base"
-
-args.entities = [
-    "PERSON",
-    "LOKATION",
-    "ADRESSE",
-    "HELBRED",
-    "ORGANISATION",
-    "KOMMUNE",
-    "TELEFONNUMMER",
-]
+args.train_data = "train.jsonl"
+args.eval_data = "validation.jsonl"
+# args.data_format = "bio"
+args.evaluate_steps = 1000
+args.logging_steps = 1000
+args.train_batch_size = 8
+args.eval_batch_size = 8
+args.epochs = 3
+args.n_trials = 10
+args.load_alvenir_pretrained = False
+args.model_name = "base"
+args.differential_privacy = True
 
 model_name_to_print = (
     args.custom_model_name if args.custom_model_name else args.model_name
 )
 
-ner_modelling = NERModellingDP(args=args)
+mlm_modelling = MLMModellingDP(args=args)
 
 
-def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_decay):
-    model = ner_modelling.get_model()
+def train_model(learning_rate, epsilon, delta, lot_size, max_length):
+    model = mlm_modelling.get_model()
 
     for param in model.bert.embeddings.parameters():
         param.requires_grad = False
@@ -56,27 +47,27 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
-        weight_decay=weight_decay,
+        weight_decay=mlm_modelling.args.weight_decay,
     )
 
-    ner_modelling.load_data()
+    mlm_modelling.load_data()
 
-    ner_modelling.save_config(
-        output_dir=ner_modelling.output_dir,
-        metrics_dir=ner_modelling.metrics_dir,
-        args=ner_modelling.args,
+    mlm_modelling.save_config(
+        output_dir=mlm_modelling.output_dir,
+        metrics_dir=mlm_modelling.metrics_dir,
+        args=mlm_modelling.args,
     )
 
     train_wrapped, train_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.train),
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.train),
         batch_size=lot_size,
-        data_collator=ner_modelling.data_collator,
+        data_collator=mlm_modelling.data_collator,
     )
-    ner_modelling.args.max_length = max_length
+    mlm_modelling.args.max_length = max_length
     _, eval_loader = create_data_loader(
-        data_wrapped=ner_modelling.tokenize_and_wrap_data(ner_modelling.data.eval),
-        batch_size=ner_modelling.args.eval_batch_size,
-        data_collator=ner_modelling.data_collator,
+        data_wrapped=mlm_modelling.tokenize_and_wrap_data(mlm_modelling.data.eval),
+        batch_size=mlm_modelling.args.eval_batch_size,
+        data_collator=mlm_modelling.data_collator,
         shuffle=False,
     )
 
@@ -88,38 +79,38 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
         module=model,
         optimizer=optimizer,
         data_loader=train_loader,
-        epochs=ner_modelling.args.epochs,
+        epochs=mlm_modelling.args.epochs,
         target_epsilon=epsilon,
         target_delta=delta,
-        max_grad_norm=ner_modelling.args.max_grad_norm,
+        max_grad_norm=mlm_modelling.args.max_grad_norm,
         # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
         grad_sample_mode="hooks",
     )
 
     step = 0
     eval_scores = []
-    for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch", unit="epoch"):
-        model = model.to(ner_modelling.args.device)
+    for epoch in tqdm(range(mlm_modelling.args.epochs), desc="Epoch", unit="epoch"):
+        model = model.to(mlm_modelling.args.device)
         train_losses = []
         lrs = []
         with BatchMemoryManager(
             data_loader=train_loader,
-            max_physical_batch_size=ner_modelling.args.train_batch_size,
+            max_physical_batch_size=mlm_modelling.args.train_batch_size,
             optimizer=optimizer,
         ) as memory_safe_data_loader:
             for batch in tqdm(
                 memory_safe_data_loader,
-                desc=f"Epoch {epoch} of {ner_modelling.args.epochs}",
+                desc=f"Epoch {epoch} of {mlm_modelling.args.epochs}",
                 unit="batch",
             ):
                 model.train()
 
                 output = model(
-                    input_ids=batch["input_ids"].to(ner_modelling.args.device),
+                    input_ids=batch["input_ids"].to(mlm_modelling.args.device),
                     attention_mask=batch["attention_mask"].to(
-                        ner_modelling.args.device
+                        mlm_modelling.args.device
                     ),
-                    labels=batch["labels"].to(ner_modelling.args.device),
+                    labels=batch["labels"].to(mlm_modelling.args.device),
                 )
                 loss = output.loss
 
@@ -127,8 +118,8 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
                 loss.backward()
                 optimizer.step()
 
-                if step > 0 and (step % ner_modelling.args.evaluate_steps == 0):
-                    eval_score = ner_modelling.evaluate(
+                if step > 0 and (step % mlm_modelling.args.evaluate_steps == 0):
+                    eval_score = mlm_modelling.evaluate(
                         model=model, val_loader=eval_loader
                     )
                     eval_score.step = step
@@ -143,7 +134,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
     append_json_lines(
-        output_dir=ner_modelling.metrics_dir,
+        output_dir=mlm_modelling.metrics_dir,
         data=dataclasses.asdict(max_f1),
         filename="best_f1",
     )
@@ -153,18 +144,16 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length, weight_deca
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    # epsilon = trial.suggest_float("epsilon", 1.0, 8.0)
+    # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
     lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     max_length = trial.suggest_categorical("max_length", [64, 128, 256])
-    # delta = trial.suggest_float("delta", 0.0005, 0.003)
-    weight_decay = trial.suggest_float("weight_decay", 0.001, 0.009, log=True)
-    learning_rate = trial.suggest_float("learning_rate", 0.0001, 0.999, log=True)
+    # delta = trial.suggest_float("delta", 1e-6, 1e-2)
+    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
     wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
-        name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
-        f"{round(weight_decay, 5)}-{lot_size}-{max_length}",
+        name=f"DP-lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-{lot_size}-{max_length}",
     )
 
     f_1 = train_model(
@@ -173,7 +162,6 @@ def objective(trial):
         delta=0.002,
         lot_size=lot_size,
         max_length=max_length,
-        weight_decay=weight_decay,
     )
 
     trial.report(f_1, step=10)

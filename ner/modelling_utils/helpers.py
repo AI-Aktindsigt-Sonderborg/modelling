@@ -25,16 +25,23 @@ def align_labels_with_tokens(labels, word_ids):
     return new_labels
 
 
-def get_label_list(ner_entities: List[str]):
+def get_label_list(ner_entities: List[str], data_format: str = "bilou"):
+
+
     # ner_entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"]
     id2label = {}
     label_list = ["O"]
     for entity in ner_entities:
         begin = "B-" + entity
         inside = "I-" + entity
-        last = "L-" + entity
-        unique = "U-" + entity
-        label_list.extend([begin, inside, last, unique])
+        label_list.append(begin)
+        label_list.append(inside)
+        if data_format == 'bilou':
+            last = "L-" + entity
+            unique = "U-" + entity
+            label_list.append(last)
+            if not unique == "U-ADRESSE":
+                label_list.append(unique)
 
     for i, label in enumerate(label_list):
         id2label[i] = label
