@@ -2,30 +2,20 @@
 import itertools
 import os
 import re
-import sys
-import traceback
-from typing import List
 from collections import Counter
 from itertools import groupby
-from mlm.data_utils.data_prep_input_args import DataPrepArgParser
+from typing import List
+
 import nltk
 from sklearn.model_selection import train_test_split
 
-from ner.data_utils.custom_dataclasses import DataPrepConstants
-from ner.data_utils.helpers import (
-    filter_language,
-    delete_duplicate_annotations,
-    reindexing_first_or_last,
-    fix_skewed_indices,
-    handle_wrong_annotation_end_letter,
-)
-from mlm.local_constants import DATA_DIR, CONF_DATA_DIR, METADATA_DIR
+from mlm.data_utils.data_prep_input_args import DataPrepArgParser
+from mlm.local_constants import CONF_DATA_DIR, METADATA_DIR
+from sc.data_utils.prep_scrape import ClassifiedScrapePreprocessing
 from sc.local_constants import CONF_DATA_DIR as SC_CONF_DATA_DIR
 from shared.utils.helpers import read_json, read_json_lines, write_json_lines
-from sc.data_utils.prep_scrape import ClassifiedScrapePreprocessing
 
-sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
-
+# sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 def create_sentences_from_one_document(
     input_data: dict, data_number: int, file_number: int, label_mapping: List[dict]
@@ -73,7 +63,19 @@ def create_sentences_from_one_document(
 
 
 if __name__ == "__main__":
+    """
+    Script reads all jsonlines files with the pattern "raw*" from CONF_DATA 
+    folder and creates unique sentences for both mlm and SeqMod. Files 
+    "all_sentences.jsonl" and "unique_sentences.jsonl" are created in 
+    mlm CONF_DATA dir and sc CONF_DATA dir.
+    Run script from command line example:
+    python -m mlm.data_utils.mlm_sen --sc_class_size <Number of observations 
+        in each class used for SegMod>
+    """
+
     prep_parser = DataPrepArgParser()
+
+
     prep_args = prep_parser.parser.parse_args()
 
     total_sentences: int = 0
@@ -121,13 +123,6 @@ if __name__ == "__main__":
 
     unique1 = []
     for text, group in grouped_data.items():
-        # print(group)
-        # print(f"sentence: {text}")
-        # if len(group) > 1:
-        #     # print(f"sentence: {text}")
-        #     for label in group:
-        #         # print(f"  {label}")
-        #         # print(f"  {label['label']}")
         if len(group) == 1:
             unique1.append({"text": text, "label": group[0]['label']})
 
