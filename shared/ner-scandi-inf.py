@@ -6,7 +6,10 @@ ner = pipeline(task='ner',
                model='../ner/models/24-akt-mlm-BIO/best_model',
                aggregation_strategy='first')
 
-result = ner('Kasper Schjødt-Hansen er medejer i virksomheden Alvenir Aps og har ofte hovedpine.')
+sentence = 'Kasper Schjødt-Hansen er medejer i virksomheden Alvenir Aps og har ofte ekstrem hovedpine.'
+print(sentence)
+
+result = ner(sentence)
 
 pd_result = pd.DataFrame.from_records(result)
 
