@@ -13,12 +13,13 @@ sentence = 'Kasper Schjødt-Hansen er medejer i virksomheden Alvenir Aps og har 
 
 
 result = ner(sentence)
+print()
 print("Input sætning:")
 print(sentence)
 
 
 pd_result = pd.DataFrame.from_records(result)
-
+print()
 print("Entiteter: ")
 print(pd_result)
 
