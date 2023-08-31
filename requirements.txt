@@ -18,3 +18,4 @@ seqeval
 evaluate
 langdetect
 wandb
+pillow
