@@ -1,5 +1,4 @@
 from transformers import pipeline
-
 import pandas as pd
 
 ner = pipeline(task='ner',

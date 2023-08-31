@@ -131,8 +131,6 @@ class SequenceClassification(Modelling):
         @param batch: batch of data
         @return: tokens for each batch
         """
-        # ToDo: split into words before feeding tokenizer?
-        #  use fx word_tokenize(line, language='danish') from nltk
 
         batch['text'] = [
             line for line in batch['text'] if
@@ -155,8 +153,6 @@ class SequenceClassification(Modelling):
         @param batch: batch of data
         @return: tokens for each batch
         """
-        # ToDo: split into words before feeding tokenizer?
-        #  use fx word_tokenize(line, language='danish') from nltk
 
         batch['text'] = [
             line for line in batch['text'] if

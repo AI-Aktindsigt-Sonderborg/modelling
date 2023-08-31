@@ -12,50 +12,103 @@ Brug
 ----
 Modellen er finetunet til Named Entity Recognition (NER) og er trænet til at forudsige følgende kategorier:
 
-.. table::
+.. list-table::
+   :header-rows: 1
 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | Label        | Navn         | Beskrivelse                                                                                          |
-   +==============+==============+======================================================================================================+
-   | PERSON       | Person       | Navn på en person (fx *Kasper Hansen* eller *Birgitte*)                                              |
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | ORGANISATION | Organisation | Navn på en organisation (fx *Alvenir Aps* eller *Aktio*)                                             | 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | LOKATION     | Lokation     | Navn på en lokation (fx *Danmark* eller *Fælledparken*)                                              | 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | HELBRED      | Helbred      | Ord relaterede til helbred (fx *hovedpine* eller *OCD*)                                              | 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | KOMMUNE      | Kommune      | Navn på en kommune (fx *Sønderborg Kommune*)                                                         | 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
-   | TELEFONNUMMER| Telefonnummer| Telefonnummer (fx *11 22 33 69*, *11223344* eller *1122 3344*)                                       | 
-   +--------------+--------------+------------------------------------------------------------------------------------------------------+
+   * - Tag
+     - Navn
+     - Beskrivelse
+   * - PERSON
+     - Person
+     - Navn på en person (fx *Kasper Hansen* eller *Birgitte*)
+   * - ORGANISATION
+     - Organisation
+     - Navn på en organisation (fx *Alvenir Aps* eller *Aktio*)
+   * - LOKATION
+     - Lokation
+     - Navn på en lokation (fx *Danmark* eller *Kongens Have*)
+   * - HELBRED
+     - Helbred
+     - Ord relaterede til helbred (fx *hovedpine* eller *OCD*)
+   * - KOMMUNE
+     - Kommune
+     - Navn på en kommune (fx *Sønderborg Kommune*)
+   * - TELEFONNUMMER
+     - Telefonnummer
+     - Telefonnummer (fx *11 22 33 69*, *11223344* eller *1122 3344*)
 
 
 Datasæt
 -------
-Modellen er trænet på 49191 unikke sætninger og valideret på 2359 sætninger under træningen. Herefter modellen evalueret på et udeholdt test-sæt bestående af 25 entiteter fra hver kategori.
+Modellen er trænet på 49191 unikke sætninger og valideret på 2359 sætninger under træningen. Herefter modellen evalueret på et udeholdt test-sæt bestående af 25 entiteter **beskriv i data** fra hver kategori.
 Den rå data er genereret af **Aktio** og overleveret til Alvenir som en jsonlines fil. Data er blevet filtreret,
 opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt af Alvenir.
 Se :ref:`data-home` for en beskrivelse af datasættet.
 
 Mere information
 ----------------
-I denne `artikel <https://arxiv.org/pdf/2004.10964.pdf>`_ fra 2020 beskrives hvordan
-en `Masked Language Model (MLM) <https://www.sbert.net/examples/unsupervised_learning/MLM/README.html>`_ kan
-benyttes til at videretræne prætrænede modeller på ikke-annoteret domænespecifikt
-data kan forhøje kvaliteten af domænerelevante vector embeddings signifikant.
-Modellen optimeres ved at maskere enkelte ord i sætninger for derefter at forudsige hvilket ord, der er maskeret.
 
 Eksempel
 --------
+Du kan benytte modellen til at forudsige entiteter sådan her:
+
+
 
 .. code-block:: python
 	:linenos:
 
-	# Python code here
-	def test(a: bool = False):
-   		print("hello")
+	from transformers import pipeline
+	import pandas as pd
 
-Resultater
-----------
+	ner = pipeline(task='ner',
+       		       model='../ner/models/21-dp-base-BIO/best_model',
+            	   aggregation_strategy='first')
 
+	sentence = 'Kasper Schjødt-Hansen er medarbejder i virksomheden Alvenir Aps og har ofte ekstrem hovedpine.' \
+           ' Han bor på Blegdamsvej 85, 2100 København Ø som ligger i Københavns Kommune.' \
+           ' Hans tlf nummer er 12345560 og han er fra Danmark. Blegamsvej er tæt på Fælledparken.'
+
+
+	result = ner(sentence)
+	print(pd.DataFrame.from_records(result))
+
+## Resultater
+Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER score på det førnævnte test-sæt. 
+
+.. list-table::
+   :header-rows: 1
+
+   * - Model
+     - F1-score
+     - Beskrivelse
+   * - last-model-ner-akt
+     - 0
+     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter
+   * - base-ner-akt
+     - 0
+     - NBailab-base finetunet på NER-annoterede aktindsigter
+   * - akt-mlm-ner-akt
+     - 0
+     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter
+   * - akt-mlm-ner-akt-dp-8
+     - 0
+     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 8`
+   * - akt-mlm-ner-akt-dp-1
+     - 0
+     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 1`
+
+
+## Træningsprocedure
+
+### Hyperparametre
+
+### Træningsresultater
+
+### Framework versioner
+ - transformers 4.19.2
+ - opacus 1.2.0
+ - datasets 2.2.2
+ - pandas
+ - seaborn
+ - numpy==1.22.3
+ - wandb

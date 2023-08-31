@@ -2,7 +2,6 @@ import argparse
 import os
 from typing import List
 
-import evaluate
 import numpy as np
 import torch
 from datasets import ClassLabel, load_dataset
@@ -16,22 +15,20 @@ from tqdm import tqdm
 from transformers import (
     AutoTokenizer,
     DataCollatorForTokenClassification,
-    AutoModelForTokenClassification,
 )
 
-from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, get_dane_val
+from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, \
+    get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
 from shared.data_utils.custom_dataclasses import EvalScore, NEROutput
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.custom_modeling_bert import BertForTokenClassification
+from shared.modelling_utils.custom_modeling_bert import \
+    BertForTokenClassification
 from shared.modelling_utils.helpers import get_lr, log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
-
-seqeval = evaluate.load("seqeval")
-f1_seq = evaluate.load("f1")
 
 
 class NERModelling(Modelling):
@@ -50,7 +47,8 @@ class NERModelling(Modelling):
             self.id2label,
             self.label2id,
             self.label2weight,
-        ) = get_label_list(self.args.entities, data_format=self.args.data_format)
+        ) = get_label_list(self.args.entities,
+                           data_format=self.args.data_format)
         self.class_labels = ClassLabel(
             num_classes=len(self.args.labels), names=self.args.labels
         )
@@ -91,7 +89,8 @@ class NERModelling(Modelling):
 
         with torch.no_grad():
             # get model predictions and labels
-            for i, batch in enumerate(tqdm(val_loader, unit="batch", desc="Eval")):
+            for i, batch in enumerate(
+                tqdm(val_loader, unit="batch", desc="Eval")):
                 # output = model(
                 #     input_ids=batch["input_ids"].to(self.args.device),
                 #     attention_mask=batch["attention_mask"].to(self.args.device),
@@ -100,14 +99,16 @@ class NERModelling(Modelling):
                 if not self.args.weight_classes:
                     output = model(
                         input_ids=batch["input_ids"].to(self.args.device),
-                        attention_mask=batch["attention_mask"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
                         labels=batch["labels"].to(self.args.device),
                     )
                     batch_loss = output.loss.item()
                 else:
                     output = model(
                         input_ids=batch["input_ids"].to(self.args.device),
-                        attention_mask=batch["attention_mask"].to(self.args.device),
+                        attention_mask=batch["attention_mask"].to(
+                            self.args.device),
                         labels=batch["labels"].to(self.args.device),
                         class_weights=self.class_weights.to(self.args.device),
                     )
@@ -121,11 +122,13 @@ class NERModelling(Modelling):
                 # See nn.CrossEntropyLoss(): ignore_index for more information
 
                 batch_labels = [
-                    [self.id2label[l] for l in label if l != -100] for label in labels
+                    [self.id2label[l] for l in label if l != -100] for label in
+                    labels
                 ]
 
                 batch_preds = [
-                    [self.id2label[p] for (p, l) in zip(prediction, label) if l != -100]
+                    [self.id2label[p] for (p, l) in zip(prediction, label) if
+                     l != -100]
                     for prediction, label in zip(preds, labels)
                 ]
 
@@ -156,13 +159,16 @@ class NERModelling(Modelling):
         # calculate metrics of interest
         acc = accuracy_score(y_true, y_pred)
         f_1 = f1_score(y_true, y_pred, average="macro")
-        f_1_none_ = f1_score(y_true, y_pred, average=None, labels=self.args.labels)
+        f_1_none_ = f1_score(y_true, y_pred, average=None,
+                             labels=self.args.labels)
         f_1_none = [
-            {self.args.labels[i]: f_1_none_[i]} for i in range(len(self.args.labels))
+            {self.args.labels[i]: f_1_none_[i]} for i in
+            range(len(self.args.labels))
         ]
         loss = float(np.mean(loss))
 
-        print(f"\n" f"eval loss: {loss}\t" f"eval acc: {acc}\t" f"eval f1: {f_1}\t")
+        print(
+            f"\n" f"eval loss: {loss}\t" f"eval acc: {acc}\t" f"eval f1: {f_1}\t")
 
         if conf_plot:
             # y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
@@ -241,7 +247,8 @@ class NERModelling(Modelling):
             return tokenized_inputs
 
         tokenized_dataset = data.map(
-            tokenize_and_align_labels, batched=True, remove_columns=data.column_names
+            tokenize_and_align_labels, batched=True,
+            remove_columns=data.column_names
         )
         tokenized_dataset.set_format("torch")
         wrapped = DatasetWrapper(tokenized_dataset)
@@ -262,7 +269,8 @@ class NERModelling(Modelling):
             else:
                 self.data.train = load_dataset(
                     "json",
-                    data_files=os.path.join(self.data_dir, self.args.train_data),
+                    data_files=os.path.join(self.data_dir,
+                                            self.args.train_data),
                     split="train",
                 )
 
@@ -335,7 +343,8 @@ class NERModelling(Modelling):
 
         return wrapped
 
-    def predict(self, model, sentence: str, labels: List[str] = None) -> NEROutput:
+    def predict(self, model, sentence: str,
+                labels: List[str] = None) -> NEROutput:
         """
         Predict class from input sentence
         :param model: model
@@ -351,7 +360,8 @@ class NERModelling(Modelling):
             return_tensors="pt",
         )
 
-        decoded_text = self.tokenizer.decode(token_ids=tokenized["input_ids"][0])
+        decoded_text = self.tokenizer.decode(
+            token_ids=tokenized["input_ids"][0])
         model.to(self.args.device)
         output = model(
             **tokenized.to(self.args.device),
@@ -363,7 +373,8 @@ class NERModelling(Modelling):
         preds_actual = [self.id2label[pred] for pred in preds]
 
         embedding = (
-            torch.mean(output.hidden_states[-2], dim=1).detach().cpu().numpy()[0]
+            torch.mean(output.hidden_states[-2], dim=1).detach().cpu().numpy()[
+                0]
         )
         return NEROutput(
             sentence=sentence,

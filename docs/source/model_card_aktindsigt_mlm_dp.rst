@@ -6,7 +6,7 @@ Beskrivelse
 -----------
 SAS-modellen er en generel bert-base model videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
 Modellen er trænet på 1125808 sætninger genereret på baggrund af data baseret på aktindsigter udtrukket hos Sønderborg Kommune.
-Modellen er trænet med :math:`(\epsilon, \delta)`-differential privacy med parametre :math:`\epsilon = 8`, :math:`\delta = 0.002`.
+Modellen er trænet med :math:`(\varepsilon, \delta)`-differential privacy med parametre :math:`\varepsilon = 8`, :math:`\delta = 0.002`.
 
 
 Brug
