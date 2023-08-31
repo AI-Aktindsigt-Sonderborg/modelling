@@ -131,6 +131,23 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
                     wandb.log({"step": eval_score.step})
                     wandb.log({"learning rate": learning_rate})
 
+                    if step >= int(
+                        11 * args.evaluate_steps
+                    ):  # and eval_score.accuracy < 0.15:
+                        tenth_last = eval_scores[-10]
+                        last_nine = eval_scores[-9:]
+
+                        max_acc = max(last_nine, key=lambda x: x.accuracy)
+
+                        if step >= int(
+                            5 * args.evaluate_steps) and eval_score.accuracy < 0.05:
+                            print("Pruning trial")
+                            raise optuna.exceptions.TrialPruned()
+
+                        if max_acc.accuracy < tenth_last.accuracy:
+                            print("Pruning trial")
+                            raise optuna.exceptions.TrialPruned()
+
                 step += 1
     max_f1 = max(reversed(eval_scores), key=lambda x: x.f_1)
     append_json_lines(
@@ -145,23 +162,23 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
     # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
-    lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
-    max_length = trial.suggest_categorical("max_length", [64, 128, 256])
+    # lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
+    # max_length = trial.suggest_categorical("max_length", [64, 128, 256])
     # delta = trial.suggest_float("delta", 1e-6, 1e-2)
-    learning_rate = trial.suggest_float("learning_rate", 1e-4, 1e-3, log=True)
+    learning_rate = trial.suggest_float("learning_rate", 0.00005, 0.0005, log=True)
     wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
 
     wandb.init(
         reinit=True,
-        name=f"DP-lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-{lot_size}-{max_length}",
+        name=f"DP-lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}",
     )
 
     f_1 = train_model(
         learning_rate=learning_rate,
         epsilon=8,
         delta=0.002,
-        lot_size=lot_size,
-        max_length=max_length,
+        lot_size=64,
+        max_length=64,
     )
 
     trial.report(f_1, step=10)
