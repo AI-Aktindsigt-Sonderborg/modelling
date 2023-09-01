@@ -72,7 +72,8 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 	result = ner(sentence)
 	print(pd.DataFrame.from_records(result))
 
-## Resultater
+Resultater
+----------
 Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER score på det førnævnte test-sæt. 
 
 .. list-table::
@@ -98,13 +99,18 @@ Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-sou
      - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 1`
 
 
-## Træningsprocedure
+Træningsprocedure
+-----------------
 
-### Hyperparametre
+Hyperparametre
+^^^^^^^^^^^^^^
 
-### Træningsresultater
+Træningsresultater
+^^^^^^^^^^^^^^^^^^
 
-### Framework versioner
+Framework versioner
+^^^^^^^^^^^^^^^^^^^
+
  - transformers 4.19.2
  - opacus 1.2.0
  - datasets 2.2.2
