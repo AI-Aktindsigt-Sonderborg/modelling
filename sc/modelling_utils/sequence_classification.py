@@ -378,8 +378,7 @@ class SequenceClassificationDP(SequenceClassification):
             DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-            validation data
+        :param val_loader: DataLoader containing validation data
         :param step: Given step
         :return:
             if self.eval_data: return model, eval_losses, eval_accuracies,

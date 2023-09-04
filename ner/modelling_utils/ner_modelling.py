@@ -290,7 +290,6 @@ class NERModelling(Modelling):
                 self.args.epsilon = None
                 self.args.max_grad_norm = None
 
-        if self.args.evaluate_during_training:
             if self.args.train_data == "dane":
                 self.data.eval = get_dane_val(subset=self.args.data_subset)
             else:
@@ -469,8 +468,7 @@ class NERModellingDP(NERModelling):
         DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
+        :param val_loader: If DataLoader containing validation data
         :param step: Given step
         :return: if self.eval_data: return model, eval_losses, eval_accuracies,
         step, lrs

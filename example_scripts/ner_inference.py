@@ -16,7 +16,7 @@ args = ner_parser.parser.parse_args()
 args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION",
                  "KOMMUNE", "TELEFONNUMMER"]
 
-args.evaluate_during_training = False
+
 args.load_alvenir_pretrained = True
 
 args.model_name = '<model_name>'

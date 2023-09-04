@@ -21,7 +21,7 @@ LABELS = list(label_dict)
 
 args = sc_parser.parser.parse_args()
 args.labels = LABELS
-args.evaluate_during_training = False
+
 args.load_alvenir_pretrained = True
 
 args.model_name = 'last_model-2022-12-21_10-53-25'

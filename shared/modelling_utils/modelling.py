@@ -126,7 +126,6 @@ class Modelling:
                 self.args.epsilon = None
                 self.args.max_grad_norm = None
 
-        if self.args.evaluate_during_training:
             self.data.eval = load_dataset(
                 "json",
                 data_files=os.path.join(self.data_dir, self.args.eval_data),
@@ -411,15 +410,6 @@ class Modelling:
                     metrics=eval_scores,
                 )
 
-        else:
-            # Training without evaluation
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs = self.train_epoch(
-                    model=model,
-                    train_loader=train_loader,
-                    optimizer=optimizer,
-                    step=step,
-                )
 
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
@@ -438,8 +428,8 @@ class Modelling:
         model,
         train_loader: DataLoader,
         optimizer,
+        val_loader: DataLoader,
         epoch: int = None,
-        val_loader: DataLoader = None,
         step: int = 0,
         eval_scores: List[EvalScore] = None,
     ):
@@ -450,8 +440,8 @@ class Modelling:
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
+        :param val_loader: DataLoader containing
+            validation data
         :param step: Given step
         :return: if self.eval_data: return model, eval_losses, eval_accuracies,
         step, lrs
@@ -488,9 +478,7 @@ class Modelling:
             )
             step += 1
 
-        if self.data.eval:
-            return model, step, lrs, eval_scores
-        return model, step, lrs
+        return model, step, lrs, eval_scores
 
     def train_batch(
         self,

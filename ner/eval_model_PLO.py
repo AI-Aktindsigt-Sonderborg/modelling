@@ -16,7 +16,7 @@ args.model_name = "saattrupdan/nbailab-base-ner-scandi"
 # For NER models: these should be located in below directory
 args.data_format = "bio"
 args.load_alvenir_pretrained = False
-args.evaluate_during_training = False
+
 args.replace_head = False
 args.differential_privacy = False
 args.test = True

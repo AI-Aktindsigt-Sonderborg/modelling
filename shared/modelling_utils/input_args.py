@@ -70,8 +70,6 @@ class ModellingArgParser:
     :param bool --save_only_best_model: Whether to only save best model -
         overwrites save_steps if True (default: True)
     :param int --eval_batch_size: Batch size for evaluation (default: 32)
-    :param bool --evaluate_during_training: Whether to evaluate model during
-        training (default: True)
     :param bool --make_plots: Whether to plot running learning rate,
         loss and accuracies (default: True)
     :param List[str] --eval_metrics: Define eval metrics to evaluate best
@@ -327,7 +325,7 @@ class ModellingArgParser:
             metavar='<int>',
             help="Batch size for evaluation")
         eval_params.add_argument(
-            "--evaluate_during_training",
+            "--do_train",
             type=lambda x: bool(strtobool(x)),
             default=True,
             metavar='<bool>',
