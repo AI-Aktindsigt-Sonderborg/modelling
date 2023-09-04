@@ -216,6 +216,8 @@ if __name__ == "__main__":
     data_prep = NERDataPreprocessing(prep_args)
     # prep_args.add_dane = True
 
+    prep_args.entities = DataPrepConstants.standard_ner_entities
+
     if prep_args.create_bilou:
         data_prep.create_bilou(args=prep_args)
 
