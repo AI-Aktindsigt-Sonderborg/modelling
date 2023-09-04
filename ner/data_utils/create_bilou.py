@@ -579,7 +579,7 @@ if __name__ == "__main__":
             entity_data.extend(single_obs_data)
 
         write_json_lines(out_dir=DATA_DIR, data=entity_data,
-                         filename="bilou_0409")
+                         filename="bilou_0409_2")
 
     print(f"Total valid sentences: {len(entity_data)}")
     print(f"word/tag length mismatch errors: {word_tag_mismatch_errors}")
