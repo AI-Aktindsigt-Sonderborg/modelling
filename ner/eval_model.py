@@ -1,6 +1,8 @@
 # to be created
 
 from textwrap import wrap
+
+from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.local_constants import PREP_DATA_DIR
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
@@ -26,6 +28,9 @@ args.test = True
 args.eval_batch_size = 1
 args.normalize_conf = "true"
 args.max_length = 512
+
+args.entities = DataPrepConstants.standard_ner_entities
+
 # args.test_data = "bilou_val.jsonl"
 # args.concat_bilu = True
 
@@ -39,10 +44,6 @@ args.max_length = 512
 
 
 modelling = NERModelling(args)
-print(modelling.label2id)
-
-print(modelling.id2label)
-
 modelling.load_data(train=False, test=args.test)
 
 wrapped, test_loader = create_data_loader(
@@ -60,12 +61,3 @@ model.config.id2label = modelling.id2label
 eval_scores = modelling.evaluate(model=model, val_loader=test_loader, conf_plot=True)
 
 print(eval_scores)
-# print("len test_loader")
-# print(len(test_loader))
-
-# print("len dataset")
-# print(len(modelling.data.test))
-
-# print(model.config.label2id)
-
-# print(model.config.id2label)
