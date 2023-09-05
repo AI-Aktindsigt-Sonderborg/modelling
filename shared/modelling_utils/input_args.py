@@ -343,6 +343,13 @@ class ModellingArgParser:
             default=['loss', 'accuracy'],
             metavar='<str>',
             help="define eval metrics to evaluate best model")
+        eval_params.add_argument(
+            "--log_wandb",
+            type=lambda x: bool(strtobool(x)),
+            default=True,
+            metavar='<bool>',
+            help="Whether log using W&B.")
+
 
     def add_dp_params(self):
         """

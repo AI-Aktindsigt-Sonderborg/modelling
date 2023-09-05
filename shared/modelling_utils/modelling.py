@@ -154,13 +154,10 @@ class Modelling:
             for tag in self.data.train["tags"]:
                 ner_tags.extend([self.label2id[label] for label in tag])
 
-            # ner_tags = np.concatenate(list(map(lambda x: self.label2id[]self.data.train["tags"])
+            assert sorted(list(set(ner_tags))) == sorted(list(set(label_ids)))
+
             ner_tags = np.array(ner_tags)
 
-            # y = np.concatenate(self.data.train["ner_tags"])
-            # ToDo: Very important that all classes are represented in training - consider making a validity check to see if all classes are represented
-            # data - OBSOBS: This is only implemented correctly for NERModelling
-            # label_ids = [label_id for label_id in label_ids if label_id in y]
             if self.args.manual_class_weighting:
                 self.class_weights = torch.tensor(
                     compute_class_weight(
@@ -365,9 +362,10 @@ class Modelling:
         """
         load data, set up training and train model
         """
-
-        wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
-        wandb.init(reinit=True, name=self.args.output_name)
+        # FixMe: Delete api key before end of project
+        if self.args.log_wandb:
+            wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
+            wandb.init(reinit=True, name=self.args.output_name)
 
         model, optimizer, train_loader = self.set_up_training()
 
@@ -545,13 +543,12 @@ class Modelling:
             eval_score.step = step
             eval_score.epoch = epoch
 
-            # log to wandb
-            wandb.log({"eval f1": eval_score.f_1})
-            # wandb.log({"eval f1 per class": eval_score.f_1_none})
-            wandb.log({"eval loss": eval_score.loss})
-            wandb.log({"accuracy": eval_score.accuracy})
-            # wandb.log({"step": eval_score.step})
-            wandb.log({"learning rate": get_lr(optimizer)[0]})
+            if self.args.log_wandb:
+                wandb.log({"eval f1": eval_score.f_1})
+                wandb.log({"eval loss": eval_score.loss})
+                wandb.log({"accuracy": eval_score.accuracy})
+                wandb.log({"learning rate": get_lr(optimizer)[0]})
+                wandb.log({"step": eval_score.step})
 
             append_json_lines(
                 output_dir=self.metrics_dir,

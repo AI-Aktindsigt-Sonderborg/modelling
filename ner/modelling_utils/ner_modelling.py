@@ -35,6 +35,9 @@ class NERModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
+        if not self.args.custom_model_name:
+            self.args.output_name = "ner-" + self.args.output_name
+
         if not args.test:
             self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         else:
