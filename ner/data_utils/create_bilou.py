@@ -95,7 +95,6 @@ def create_bilou_from_one_document(
     input_data: dict,
     data_number: int,
     print_stats: bool = False,
-    print_each_sentence: int = 0,
 ):
     word_tag_mismatch_error: int = 0
     wrong_raw_index: int = 0
@@ -116,10 +115,8 @@ def create_bilou_from_one_document(
         if page_num not in keys_list:
             current_page_annotations = None
             sorted_page_annotations = None
-            current_page_annotations_original = None
         else:
             current_page_annotations = input_data["text_annotation"][page_num]
-            current_page_annotations_original = current_page_annotations
 
             (
                 current_page_annotations,
@@ -191,7 +188,6 @@ def create_bilou_from_one_document(
 
                     start_index_init = annotation["annotation"]["start"]
                     end_index_init = annotation["annotation"]["end"]
-                    true_orig_init = pdf_text[start_index_init:end_index_init]
 
                     annotated_content = annotation["annotation"][
                         "content"].replace(
@@ -536,7 +532,6 @@ if __name__ == "__main__":
             input_data=raw_data[args[2] - 1],
             data_number=args[2] - 1,
             print_stats=True,
-            print_each_sentence=args[3],
         )
 
         word_tag_mismatch_errors += errors[0]
