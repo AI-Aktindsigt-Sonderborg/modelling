@@ -120,7 +120,7 @@ def delete_duplicate_annotations(data, filtered_list):
         updated data, filtered_list and whether annotation was deleted
     -------
     """
-    error = 0
+    error: int = 0
     if data["annotation"]["state"] != "deleted":
         filtered_annotation = {
             "content": data["annotation"]["content"],

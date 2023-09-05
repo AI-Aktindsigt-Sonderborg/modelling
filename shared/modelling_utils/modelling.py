@@ -154,6 +154,8 @@ class Modelling:
             for tag in self.data.train["tags"]:
                 ner_tags.extend([self.label2id[label] for label in tag])
 
+            # important that all tags are represented in training set -
+            # otherwise we stop training
             assert sorted(list(set(ner_tags))) == sorted(list(set(label_ids)))
 
             ner_tags = np.array(ner_tags)

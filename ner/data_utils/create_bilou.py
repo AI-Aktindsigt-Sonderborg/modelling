@@ -21,23 +21,21 @@ from shared.utils.helpers import read_json, read_json_lines, write_json_lines
 sentence_splitter = nltk.data.load("tokenizers/punkt/danish.pickle")
 
 
-def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
+def fix_faulty_indices(current_page_annotations, pdf_text):
     indices_reindexed = 0
     annotation_errors = 0
 
     if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
-        BLACKLIST_HELBRED = read_json(
+        blacklist_helbred = read_json(
             filepath=os.path.join(DATA_DIR, "blacklist_helbred.json")
         )
 
-        BLACKLIST_FORB = read_json(
+        blacklist_forb = read_json(
             filepath=os.path.join(DATA_DIR, "blacklist_forbrydelse.json")
         )
 
     filtered_annotation_list = []
-    for i, annotation in enumerate(current_page_annotations):
-        annotation_error = 0
-
+    for _, annotation in enumerate(current_page_annotations):
         (
             annotation,
             filtered_annotation_list,
@@ -48,25 +46,18 @@ def fix_faulty_indices(current_page_annotations, pdf_text, document_num):
 
     for annotation_num, annotation in enumerate(current_page_annotations):
         if os.path.isfile(os.path.join(DATA_DIR, "blacklist_helbred.json")):
-            if annotation["annotation"]["content"] in BLACKLIST_HELBRED:
-                annotation_error = 1
+            if annotation["annotation"]["content"] in blacklist_helbred:
                 del current_page_annotations[annotation_num]
                 continue
 
-            if annotation["annotation"]["content"] in BLACKLIST_FORB:
-                annotation_error = 1
+            if annotation["annotation"]["content"] in blacklist_forb:
                 del current_page_annotations[annotation_num]
                 continue
 
-        annotated_class = annotation["annotation"]["annotation"]
-        start_index_init = annotation["annotation"]["start"]
+
         end_index_init = annotation["annotation"]["end"]
-        true_original_init = pdf_text[start_index_init:end_index_init]
-        annotated_content_init = annotation["annotation"]["content"]
 
         annotation, annotation_error = reindexing_first_or_last(data=annotation)
-        start_index = annotation["annotation"]["start"]
-        end_index = annotation["annotation"]["end"]
 
         annotated_content = annotation["annotation"]["content"]
 
@@ -134,8 +125,7 @@ def create_bilou_from_one_document(
                 current_page_annotations,
                 indices_reindexed,
                 annotation_errors,
-            ) = fix_faulty_indices(current_page_annotations, pdf_text,
-                                   data_number)
+            ) = fix_faulty_indices(current_page_annotations, pdf_text)
             document_annotation_errors += annotation_errors
 
             sorted_page_annotations = sorted(
@@ -143,15 +133,14 @@ def create_bilou_from_one_document(
             )
 
             filtered_annotation_list = []
-            for i, annotation in enumerate(current_page_annotations):
+            for _, annotation in enumerate(current_page_annotations):
                 (
                     annotation,
                     filtered_annotation_list,
-                    annotation_error,
+                    annotation_error
                 ) = delete_duplicate_annotations(
                     data=annotation, filtered_list=filtered_annotation_list
                 )
-                # assert current_page_annotations[i] == annotation
 
         splitted_sentences = pdf_text.split("\n\n")
 
