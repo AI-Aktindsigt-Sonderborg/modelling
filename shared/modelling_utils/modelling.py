@@ -111,14 +111,12 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split="train",
             )
-            # ToDo: lot or batch size?
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size * self.args.epochs
             )
 
             if self.args.differential_privacy:
                 if self.args.compute_delta:
-                    # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
                     self.args.delta = 1 / len(self.data.train)
             else:
                 self.args.delta = None
@@ -151,7 +149,15 @@ class Modelling:
 
         if self.args.weight_classes:
             label_ids = [self.label2id[label] for label in self.args.labels]
-            y = np.concatenate(self.data.train["ner_tags"])
+
+            ner_tags = []
+            for tag in self.data.train["tags"]:
+                ner_tags.extend([self.label2id[label] for label in tag])
+
+            # ner_tags = np.concatenate(list(map(lambda x: self.label2id[]self.data.train["tags"])
+            ner_tags = np.array(ner_tags)
+
+            # y = np.concatenate(self.data.train["ner_tags"])
             # ToDo: Very important that all classes are represented in training - consider making a validity check to see if all classes are represented
             # data - OBSOBS: This is only implemented correctly for NERModelling
             # label_ids = [label_id for label_id in label_ids if label_id in y]
@@ -160,13 +166,15 @@ class Modelling:
                     compute_class_weight(
                         class_weight=self.label2weight,
                         classes=np.unique(label_ids),
-                        y=y,
+                        y=ner_tags,
                     )
                 ).float()
             else:
                 self.class_weights = torch.tensor(
                     compute_class_weight(
-                        class_weight="balanced", classes=np.unique(label_ids), y=y
+                        class_weight="balanced",
+                        classes=np.unique(label_ids),
+                        y=ner_tags,
                     )
                 ).float()
 
@@ -409,7 +417,6 @@ class Modelling:
                     lrs=all_lrs,
                     metrics=eval_scores,
                 )
-
 
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
