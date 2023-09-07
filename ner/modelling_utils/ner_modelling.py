@@ -94,10 +94,6 @@ class NERModelling(Modelling):
             # get model predictions and labels
             for i, batch in enumerate(
                 tqdm(val_loader, unit="batch", desc="Eval")):
-                # output = model(
-                #     input_ids=batch["input_ids"].to(self.args.device),
-                #     attention_mask=batch["attention_mask"].to(self.args.device),
-                #     labels=batch["labels"].to(self.args.device))
 
                 if not self.args.weight_classes:
                     output = model(
@@ -144,9 +140,6 @@ class NERModelling(Modelling):
                         single_preds = [p for (p, l) in
                                         zip(batch_preds[0], batch_labels[0])
                                         if l[2:] == entity_to_eval]
-                        # print("printing")
-                        # print(single_labels)
-                        # print(single_preds)
 
                         y_true.extend([single_labels])
                         y_pred.extend([single_preds])
@@ -174,8 +167,6 @@ class NERModelling(Modelling):
             f"\n" f"eval loss: {loss}\t" f"eval acc: {acc}\t" f"eval f1: {f_1}\t")
 
         if conf_plot:
-            # y_true_plot = list(map(lambda x: self.id2label[int(x)], y_true))
-            # y_pred_plot = list(map(lambda x: self.id2label[int(x)], y_pred))
 
             plot_confusion_matrix(
                 y_true=y_true,

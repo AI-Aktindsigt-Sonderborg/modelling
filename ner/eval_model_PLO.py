@@ -1,12 +1,8 @@
 # to be created
 
-from textwrap import wrap
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
 from shared.modelling_utils.helpers import create_data_loader
-
-# from ner.data_utils.get_dataset import tokenize_and_align_labels_for_dataset
-from shared.data_utils.helpers import DatasetWrapper
 
 sc_parser = NERArgParser()
 
@@ -28,7 +24,6 @@ args.entities = ["PERSON", "LOKATION", "ORGANISATION", "MISC"]
 # args.concat_bilu = True
 
 modelling = NERModelling(args)
-
 
 # SE_acc = sqrt(p_class * ((1-p_class)/N)))
 # np.sqrt(0.7627 * ((1-0.7627)/3742))
@@ -60,7 +55,6 @@ modelling.label2id = {
     "I-PERSON": 5,
     "O": 8,
 }
-
 
 print()
 
@@ -95,7 +89,6 @@ modelling.label2id = {
     "O": 8,
 }
 
-
 # modelling.id2label = {
 #   "0": "B-LOKATION",
 #  "1": "I-LOKATION",
@@ -120,7 +113,8 @@ model = modelling.get_model()
 model.config.label2id = modelling.label2id
 model.config.id2label = modelling.id2label
 
-eval_scores = modelling.evaluate(model=model, val_loader=test_loader, conf_plot=True)
+eval_scores = modelling.evaluate(model=model, val_loader=test_loader,
+                                 conf_plot=True)
 
 print(eval_scores)
 print("len test_loader")
