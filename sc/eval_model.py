@@ -14,6 +14,9 @@ LABELS = list(label_dict)
 
 args = sc_parser.parser.parse_args()
 
+# Important that log_wandb is False
+args.log_wandb = False
+
 # args.model_name = 'sarnikowski/convbert-small-da-cased'
 args.model_name = 'last_model-2022-12-21_10-53-25'
 args.labels = LABELS

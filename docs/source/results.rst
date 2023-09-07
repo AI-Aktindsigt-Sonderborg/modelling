@@ -39,8 +39,8 @@ Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-sou
    * - last-model-ner-akt
      - 0
      - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter
-   * - base-ner-akt
-     - 0
+   * - ner-base-akt
+     - 84.5 %
      - NBailab-base finetunet på NER-annoterede aktindsigter
    * - akt-mlm-ner-akt
      - 0

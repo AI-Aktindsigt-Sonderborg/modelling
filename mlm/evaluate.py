@@ -15,6 +15,9 @@ if __name__ == '__main__':
     mlm_parser = MLMArgParser()
     args = mlm_parser.parser.parse_args()
 
+    # Important that log_wandb is False
+    args.log_wandb = False
+
     mlm_eval = MLMModelling(args=args)
     mlm_eval.load_data(train=False)
     mlm_eval.model = BertForMaskedLM.from_pretrained(

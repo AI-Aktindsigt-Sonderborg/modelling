@@ -8,6 +8,8 @@ from shared.modelling_utils.helpers import create_data_loader
 sc_parser = NERArgParser()
 
 args = sc_parser.parser.parse_args()
+# Important that log_wandb is False
+args.log_wandb = False
 
 # args.model_name = 'babba'
 # For NER models: these should be located in below directory
