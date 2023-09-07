@@ -98,6 +98,12 @@ class Modelling:
             self.args.model_name = predefined_hf_models(self.args.model_name)
             self.model_path = self.args.model_name
 
+        # FixMe: Delete api key before end of project
+        if self.args.log_wandb:
+            wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
+            wandb.init(reinit=True, name=self.args.output_name)
+
+
     def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
@@ -364,10 +370,6 @@ class Modelling:
         """
         load data, set up training and train model
         """
-        # FixMe: Delete api key before end of project
-        if self.args.log_wandb:
-            wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
-            wandb.init(reinit=True, name=self.args.output_name)
 
         model, optimizer, train_loader = self.set_up_training()
 
@@ -429,6 +431,9 @@ class Modelling:
                 dp=self.args.differential_privacy,
             )
         self.model = model
+
+        if self.args.log_wandb:
+            wandb.finish()
 
     def train_epoch(
         self,

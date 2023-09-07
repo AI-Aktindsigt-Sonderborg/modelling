@@ -4,6 +4,7 @@ from typing import List
 
 import numpy as np
 import torch
+import wandb
 from datasets import ClassLabel, load_dataset
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
@@ -71,6 +72,10 @@ class NERModelling(Modelling):
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
+
+        if self.args.log_wandb:
+            wandb.run.tags = ['NER']
+
 
     def evaluate(
         self, model, val_loader: DataLoader, conf_plot: bool = False
@@ -443,6 +448,9 @@ class NERModellingDP(NERModelling):
         self.metrics_dir = os.path.join(self.output_dir, "metrics")
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
+
+        if self.args.log_wandb:
+            wandb.run.tags = ['NER', 'DP']
 
     def train_epoch(
         self,
