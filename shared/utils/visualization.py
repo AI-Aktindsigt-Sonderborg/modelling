@@ -1,13 +1,14 @@
 # pylint: disable=too-many-locals
 import os
+from collections import OrderedDict
 from typing import List
 
 import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
-from collections import OrderedDict
 from sklearn.metrics import f1_score, precision_score, recall_score
+
 from shared.data_utils.custom_dataclasses import EvalScore
 
 

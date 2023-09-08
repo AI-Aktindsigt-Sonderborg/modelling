@@ -50,7 +50,6 @@ Content:
 	:caption: Kodedokumentation
 
 	github
-	/auto_examples/index
 	code_overview
 
 

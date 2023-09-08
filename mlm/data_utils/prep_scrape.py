@@ -4,7 +4,7 @@ import json
 import os.path
 import random
 import re
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Optional
 
 import nltk.data
 import numpy as np
@@ -433,6 +433,3 @@ if __name__ == '__main__':
     prep_args = prep_parser.parser.parse_args()
     data_preprocessor = RawScrapePreprocessing(args=prep_args)
     data_preprocessor.run()
-    # data_preprocessor.extract_danish_and_save_from_raw()
-    # data_preprocessor.create_unique_sentences()
-    # data_preprocessor.split_train_val()

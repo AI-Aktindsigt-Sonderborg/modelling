@@ -3,10 +3,10 @@
 import sys
 import traceback
 
+from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 from shared.utils.helpers import init_logging
-from ner.data_utils.custom_dataclasses import DataPrepConstants
 
 logger = init_logging(model_type='NER', log_path='logs/model_log.log')
 
@@ -43,8 +43,6 @@ if args.static_lr:
     args.lr_freezed_warmup_steps = None
     args.lr_freezed = None
     args.lr_start_decay = None
-
-
 
 args.cmd_line_args = sys.argv
 

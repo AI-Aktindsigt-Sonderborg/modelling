@@ -13,4 +13,4 @@ Der er trænet N modeller... Se modeldokumentation for de enkelte modeller neden
    model_card_aktindsigt_ner_dp
 
 
-Se eksempler på træning af og inferens på modellerne under :doc:`/auto_examples/index`.
+Se eksempler på træning af og inferens på modellerne under Modeller.

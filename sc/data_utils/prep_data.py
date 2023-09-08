@@ -1,6 +1,5 @@
 import argparse
 import itertools
-import os.path
 from typing import List
 
 import nltk.data
@@ -142,12 +141,13 @@ class DataPreprocessing:
         grouped = [[x for x in list_data if x['label'] == y] for y in label_set]
         return grouped
 
+
 if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
     data_preprocessor = DataPreprocessing(args=prep_args)
 
-    data = read_json_lines(input_dir=CONF_DATA_DIR, )
+    data = read_json_lines(input_dir=CONF_DATA_DIR, filename="unique_sentences_with_label1")
     grouped_data = data_preprocessor.group_data_by_class(list_data=data)
     data_preprocessor.train_val_test_to_json_split(
         class_grouped_data=grouped_data,

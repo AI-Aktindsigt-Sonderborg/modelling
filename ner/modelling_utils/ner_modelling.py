@@ -76,7 +76,6 @@ class NERModelling(Modelling):
         if self.args.log_wandb:
             wandb.run.tags = ['NER']
 
-
     def evaluate(
         self, model, val_loader: DataLoader, conf_plot: bool = False
     ) -> EvalScore:
@@ -171,7 +170,6 @@ class NERModelling(Modelling):
             f"\n" f"eval loss: {loss}\t" f"eval acc: {acc}\t" f"eval f1: {f_1}\t")
 
         if conf_plot:
-
             plot_confusion_matrix(
                 y_true=y_true,
                 y_pred=y_pred,

@@ -1,7 +1,7 @@
 .. _model-card-open-mlm:
 
-Tværkommunal sprogmodel (Del 1)
-===============================
+Tværkommunal Sprogmodel Del 1 (TS1)
+===================================
 Beskrivelse
 -----------
 Den første del af den tværkommunale sprogmodel modellen er en generel bert-base videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.

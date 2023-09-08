@@ -17,7 +17,6 @@ class DataPrepArgParser:
     :param int --split_train_n_times: Split train set n times into n+1 training sets (default: 0)
     :param str --excel_classification_file: Name of annotated excel file (default: skrab_01.xlsx)
     :param str --classified_scrape_file: Name of classified scrape file (default: classified_scrape)
-    :param str --data_type: 'unlabelled' or 'labelled' (default: unlabelled)
     :param bool --lower_case: Whether to lower case all sentences. If doing mlm,
         very important to check whether classified data is lowercased (default: False)
     """
