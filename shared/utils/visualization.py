@@ -69,7 +69,8 @@ def plot_confusion_matrix(
     normalize: str = "true",
     save_fig: bool = True,
     concat_bilou: bool = False,
-    eval_single: bool = False
+    eval_single: bool = False,
+    title: str = "",
 ):
     """Function is self-explanatory"""
 
@@ -95,6 +96,7 @@ def plot_confusion_matrix(
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
     plt.figure(figsize=(20, 14))
+    plt.title(title)
     sn.heatmap(
         df_cm,
         annot=True,
