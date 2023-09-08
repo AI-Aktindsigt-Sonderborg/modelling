@@ -87,7 +87,6 @@ class NERModelling(Modelling):
         :param val_loader:
         :return: mean eval loss and mean accuracy
         """
-        # ToDo: check if relevant
 
         model = model.to(self.args.device)
 
@@ -100,24 +99,24 @@ class NERModelling(Modelling):
             for i, batch in enumerate(
                 tqdm(val_loader, unit="batch", desc="Eval")):
 
-                if not self.args.weight_classes:
-                    output = model(
-                        input_ids=batch["input_ids"].to(self.args.device),
-                        attention_mask=batch["attention_mask"].to(
-                            self.args.device),
-                        labels=batch["labels"].to(self.args.device),
-                    )
-                    batch_loss = output.loss.item()
-                else:
-                    output = model(
-                        input_ids=batch["input_ids"].to(self.args.device),
-                        attention_mask=batch["attention_mask"].to(
-                            self.args.device),
-                        labels=batch["labels"].to(self.args.device),
-                        class_weights=self.class_weights.to(self.args.device),
-                    )
+                # ToDo: we dont weight classes when we evaluate
+                output = model(
+                    input_ids=batch["input_ids"].to(self.args.device),
+                    attention_mask=batch["attention_mask"].to(
+                        self.args.device),
+                    labels=batch["labels"].to(self.args.device),
+                )
+                batch_loss = output.loss.item()
 
-                    batch_loss = output.loss.item()
+                # else:
+                #     output = model(
+                #         input_ids=batch["input_ids"].to(self.args.device),
+                #         attention_mask=batch["attention_mask"].to(
+                #             self.args.device),
+                #         labels=batch["labels"].to(self.args.device),
+                #         class_weights=self.class_weights.to(self.args.device),
+                #     )
+                # batch_loss = output.loss.item()
 
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()

@@ -111,7 +111,7 @@ class DataPrepArgParser:
                  'If doing mlm, very important to check whether mlm model is trained with lower case ',
             metavar='<bool>')
         self.parser.add_argument(
-            "--entities",
+            "--",
             type=str,
             nargs='*',
             default=["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION",
@@ -142,4 +142,3 @@ class DataPrepArgParser:
             metavar='<str>',
             default=None,
             help="Print specific entity for data inspection.")
-

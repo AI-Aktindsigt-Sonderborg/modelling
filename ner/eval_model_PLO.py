@@ -30,8 +30,8 @@ modelling = NERModelling(args)
 
 
 modelling.load_data(train=False, test=args.test)
-# for i in range(len(modelling.data.test)):
-#     modelling.data.test[i]['tags'] = [x if x in modelling.args.labels else "O" for x in modelling.data.test[i]['tags']]
+
+
 
 modelling.id2label = {
     0: "B-LOKATION",
