@@ -97,6 +97,18 @@ class NERDataPreprocessing:
         write_json_lines(
             out_dir=DATA_DIR, filename="bilou_" + out_suffix, data=bilou_data
         )
+
+        if args.create_bio_file:
+            bio_data = bilou_data
+
+            for obs in bio_data:
+                obs["tags"] = map_bilou_to_bio(obs["tags"])
+
+            write_json_lines(
+                out_dir=DATA_DIR, filename="bio_" + out_suffix,
+                data=bio_data
+            )
+
         return bilou_data
 
     @staticmethod

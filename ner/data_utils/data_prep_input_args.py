@@ -25,6 +25,12 @@ class DataPrepArgParser:
             default=False,
             help="Whether to create bilou or use existing")
         self.parser.add_argument(
+            '--create_bio_file',
+            type=lambda x: bool(strtobool(x)),
+            metavar='<bool>',
+            default=False,
+            help="Whether to create bio file when filtering entities")
+        self.parser.add_argument(
             '-oif', '--origin_input_file',
             type=str,
             metavar='<str>',
@@ -41,12 +47,6 @@ class DataPrepArgParser:
             type=float,
             default=0.95, metavar='<float>',
             help='training set size between 0 and 1')
-        self.parser.add_argument(
-            '--add_ppl',
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            help='whether or not to add ppl_score to unique sentences',
-            metavar='<bool>')
         self.parser.add_argument(
             '--ppl_threshold',
             type=int,

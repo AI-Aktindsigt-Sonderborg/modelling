@@ -9,10 +9,11 @@ if __name__ == "__main__":
     args = arg_parser.parser.parse_args()
 
     args.create_bilou = True
+    args.create_bio_file = True
     args.origin_input_file = "origin_vejen"
 
     # Create data for model without CPR and Forbrydelse
-    args.bilou_input_file = "bilou_vejen1"
+    args.bilou_input_file = "bilou_vejen"
 
     # data_prep = NERDataPreprocessing(args)
 
