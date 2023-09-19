@@ -25,8 +25,8 @@ args.evaluate_steps = 1500
 args.logging_steps = 1500
 args.train_batch_size = 8
 args.eval_batch_size = 8
-args.epochs = 3
-args.n_trials = 10
+args.epochs = 10
+args.n_trials = 15
 args.load_alvenir_pretrained = False
 args.model_name = "base"
 args.differential_privacy = True
@@ -139,8 +139,10 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 
                         max_acc = max(last_nine, key=lambda x: x.accuracy)
 
-                        if step >= int(
-                            5 * args.evaluate_steps) and eval_score.accuracy < 0.05:
+                        if (
+                            step >= int(5 * args.evaluate_steps)
+                            and eval_score.accuracy < 0.05
+                        ):
                             print("Pruning trial")
                             raise optuna.exceptions.TrialPruned()
 
@@ -161,7 +163,7 @@ def train_model(learning_rate, epsilon, delta, lot_size, max_length):
 
 # e99e480bf10627b2fa2ed6f2a9fe58472e3cb992
 def objective(trial):
-    # epsilon = trial.suggest_float("epsilon", 1.0, 10.0)
+    epsilon = trial.suggest_float("epsilon", 1.0, 100.0)
     # lot_size = trial.suggest_categorical("lot_size", [64, 128, 256, 512])
     # max_length = trial.suggest_categorical("max_length", [64, 128, 256])
     # delta = trial.suggest_float("delta", 1e-6, 1e-2)
@@ -175,7 +177,7 @@ def objective(trial):
 
     f_1 = train_model(
         learning_rate=learning_rate,
-        epsilon=8,
+        epsilon=epsilon,
         delta=0.002,
         lot_size=64,
         max_length=64,
