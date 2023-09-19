@@ -85,7 +85,6 @@ class NERDataPreprocessing:
         -------
         """
         bilou_data = read_json_lines(input_dir=DATA_DIR, filename=args.bilou_input_file)
-        # labels, id2label, label2id, _ = get_label_list(args.entities)
 
         out_suffix = "".join([x[0] for x in args.entities])
 
