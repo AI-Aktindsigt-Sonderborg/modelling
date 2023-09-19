@@ -195,9 +195,9 @@ class NERDataPreprocessing:
                 for obs in test_data:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
-                train_outfile = "bio_train2"
-                val_outfile = "bio_val2"
-                test_outfile = "bio_test2"
+                train_outfile = "bio_train"
+                val_outfile = "bio_val"
+                test_outfile = "bio_test"
 
             write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
             write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile, data=val)
