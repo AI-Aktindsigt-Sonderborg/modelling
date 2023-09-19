@@ -8,19 +8,19 @@ if __name__ == "__main__":
     arg_parser = DataPrepArgParser()
     args = arg_parser.parser.parse_args()
 
+    # Generel fixed args
     args.create_bilou = True
     args.create_bio_file = True
-    args.origin_input_file = "origin_vejen"
+    # args.origin_input_file = "origin_vejen"
 
-    # Create data for model without CPR and Forbrydelse
+    # Create bilou
     args.bilou_input_file = "bilou_vejen"
-
-    # data_prep = NERDataPreprocessing(args)
-
-    args.entities = DataPrepConstants.standard_ner_entities
-
     if args.create_bilou:
         NERDataPreprocessing.create_bilou(args=args)
+
+
+    # Create data for model without CPR and Forbrydelse
+    args.entities = DataPrepConstants.standard_ner_entities
 
     bilou = NERDataPreprocessing.filter_entities(args)
     # ---------------------------------------------------------
@@ -29,10 +29,5 @@ if __name__ == "__main__":
     args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
                                  "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
                                  "FORBRYDELSE", "CPR"]
-
-    args.bilou_input_file = "bilou_vejen2"
-
-    if args.create_bilou:
-        NERDataPreprocessing.create_bilou(args=args)
 
     bilou = NERDataPreprocessing.filter_entities(args)
