@@ -35,14 +35,3 @@ if __name__ == "__main__":
         NERDataPreprocessing.create_bilou(args=args)
 
     bilou = NERDataPreprocessing.filter_entities(args)
-
-    # data_prep.train_val_test_to_json_split(
-    #     args=prep_args,
-    #     data=bilou,
-    #     train_size=prep_args.split,
-    #     test_size=prep_args.test_size,
-    #     train_outfile=prep_args.train_outfile,
-    #     val_outfile=prep_args.val_outfile,
-    #     test_outfile=prep_args.test_outfile,
-    #     add_dane=prep_args.add_dane,
-    # )
