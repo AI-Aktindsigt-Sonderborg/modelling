@@ -19,7 +19,7 @@ if __name__ == "__main__":
         NERDataPreprocessing.create_bilou(args=args)
 
 
-    # Create data for model without CPR and Forbrydelse
+    # Create data for model excluding CPR and Forbrydelse
     args.entities = DataPrepConstants.standard_ner_entities
 
     bilou = NERDataPreprocessing.filter_entities(args)
