@@ -36,7 +36,7 @@ args.normalize_conf = "true"
 args.max_length = 512
 
 if args.entities == ["PLAHOKTFC"]:
-    ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
+    args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
      "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
      "FORBRYDELSE", "CPR"]
 
