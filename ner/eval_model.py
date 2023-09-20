@@ -1,14 +1,15 @@
 """
 Script to evaluate specific NER model. Model folder should be located in
-"../modelling/ner/models" and the model it self should be placed in
+"../modelling/ner/models" and the model itself should be placed in
 "..<model_name>/best_model" folder.
 
-The data file used for evaluation should be placed in "../ner/data/preprocessed_data/".
+The data file used for evaluation should be placed in "../ner/data/preprocessed_data/"
 
+For CLI arguments run python -m ´ner.eval_model -h´
 
-
-
-
+Example call:
+    ´python -m ner.eval_model --test_data vejen_PLAHOKT.jsonl
+    --model_name dp-1-ner-SAS --concat_bilou true´
 """
 
 from ner.data_utils.custom_dataclasses import DataPrepConstants
@@ -34,7 +35,12 @@ args.eval_batch_size = 1
 args.normalize_conf = "true"
 args.max_length = 512
 
-args.entities = DataPrepConstants.standard_ner_entities
+if args.entities == "PLAHOKTFC":
+    ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
+     "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
+     "FORBRYDELSE", "CPR"]
+
+# args.entities = DataPrepConstants.standard_ner_entities
 
 modelling = NERModelling(args)
 modelling.load_data(train=False, test=args.test)
