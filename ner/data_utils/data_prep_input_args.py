@@ -102,4 +102,4 @@ class DataPrepArgParser:
             type=str,
             metavar='<str>',
             default=None,
-            help="Print specific entity for data inspection.")
+            help="Whether to load data from custom directory")

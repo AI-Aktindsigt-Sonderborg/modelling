@@ -21,7 +21,7 @@ PROJECT_GENERIC_DIRS = [
     "metadata",
     "models",
     "plots",
-    "preprocessed_data",
+    "data/preprocessed_data",
     "results",
 ]
 

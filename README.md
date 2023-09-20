@@ -1,8 +1,8 @@
 # semantic-modelling
 ## Setup
 - Clone repository to relevant directory on aktio GPU
-- Create python==3.8 env
-- Install cuda IF not already installed: 
+- Create python==3.8 env (`conda create -n <repo_name> python==3.8`)
+- Install cuda IF not already installed:
   - via https://pytorch.org/get-started/locally/ and conda.
   - Find cuda version by running  `nvidia-smi` in terminal and then:
   - `conda install pytorch torchvision torchaudio cudatoolkit=<cuda_version> -c pytorch`

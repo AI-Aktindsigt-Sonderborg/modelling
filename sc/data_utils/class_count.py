@@ -20,6 +20,8 @@ if prep_args.custom_data_dir:
         data_dir = PREP_DATA_DIR
     if prep_args.custom_data_dir == "data":
         data_dir = DATA_DIR
+    else:
+        data_dir = prep_args.custom_data_dir
 
 data = read_json_lines(data_dir, prep_args.train_outfile)
 ERROR_COUNT = 0
