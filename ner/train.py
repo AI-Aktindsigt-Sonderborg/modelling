@@ -16,7 +16,13 @@ ner_parser = NERArgParser()
 args, leftovers = ner_parser.parser.parse_known_args()
 args.test = False
 
-args.entities = DataPrepConstants.standard_ner_entities
+# args.entities = DataPrepConstants.standard_ner_entities
+
+if args.entities == ["PLAHOKTFC"]:
+    args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
+     "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
+     "FORBRYDELSE", "CPR"]
+
 
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
