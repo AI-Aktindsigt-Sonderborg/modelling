@@ -7,13 +7,13 @@ The data file used for evaluation should be placed in "../ner/data/preprocessed_
 
 For CLI arguments run python -m ´ner.eval_model -h´
 
-Example call for model **excluding** CPR and FORBRYDELSE:
-    ´python -m ner.eval_model --test_data vejen_PLAHOKT.jsonl
-    --model_name ner-SAS-dp --concat_bilou true´
+Example call for model excluding CPR and FORBRYDELSE:
+    python -m ner.eval_model --test_data vejen_PLAHOKT.jsonl
+    --model_name ner-SAS-dp --concat_bilou true
 
-Example call for model **including** CPR and FORBRYDELSE:
-    ´python -m ner.eval_model --test_data vejen_PLAHOKT.jsonl
-    --model_name ner-SAS-FC --concat_bilou true´ --entities PLAHOKTFC
+Example call for model including CPR and FORBRYDELSE:
+    python -m ner.eval_model --test_data vejen_PLAHOKTFC.jsonl
+    --model_name ner-SAS-FC --concat_bilou true --entities PLAHOKTFC
 
 """
 
