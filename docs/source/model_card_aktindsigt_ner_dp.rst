@@ -4,13 +4,37 @@ Assisteret Anonymisering af Personhenførbar Data på Aktindsigter (AAPDA)
 ========================================================================
 Beskrivelse
 -----------
-AAPDA-modellen er en model finetunet til Named Entity Recognition med det formål at semi-automatisk anonymisere aktindsigtsdokumenter fra Sønderborg Kommune.
-Modellen er finetunet på :ref:`model-card-aktindsigt-mlm-dp`.
-Modellen er trænet på 49191 sætninger genereret på baggrund af data annoteret baseret på aktindsigter fra Sønderborg Kommune.
+AAPDA-modellerne er modeller finetunet til Named Entity Recognition med det formål at semi-automatisk anonymisere aktindsigtsdokumenter fra Sønderborg Kommune.
+Modellerne er finetunet på :ref:`model-card-aktindsigt-mlm-dp`.
+Modellerne er trænet på 49191 sætninger genereret på baggrund af data annoteret baseret på aktindsigter fra Sønderborg Kommune.
+
+
+Delmodeller
+^^^^^^^^^^^
+NER-modellerne er trænet på tre forskellige måder: En ikke-privat baseline model og to modeller trænet med differential privacy med hhv. :math:`\varepsilon = 8` og :math:`\varepsilon = 1` **(kilde?)**. Den anden DP parameter :math:`\delta` er sat til 1 over længden af træningsdatasættet **(kilde?)**. Derudover er modellerne trænet på to
+
+.. list-table::
+   :header-rows: 1
+
+   * - Model
+     - Beskrivelse
+   * - sas-ner
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter excl. Forbrydelse og CPR
+   * - sas-ner-dp-8
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 8` excl. Forbrydelse og CPR
+   * - sas-ner-dp-1
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 1` excl. Forbrydelse og CPR
+   * - sas-ner-fc
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter
+   * - sas-ner-fc-dp-8
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 8`
+   * - sas-ner-fc-dp-1
+     - Sønderborg Aktindsigt Sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 1`
+
 
 Brug
 ----
-Modellen er finetunet til Named Entity Recognition (NER) og er trænet til at forudsige følgende kategorier:
+Modellerne er finetunet til Named Entity Recognition (NER) og er trænet til at forudsige følgende kategorier:
 
 .. list-table::
    :header-rows: 1
@@ -36,6 +60,12 @@ Modellen er finetunet til Named Entity Recognition (NER) og er trænet til at fo
    * - TELEFONNUMMER
      - Telefonnummer
      - Telefonnummer (fx *11 22 33 69*, *11223344* eller *1122 3344*)
+   * - CPR
+     - CPR nummer
+     - CPR - **høj usikkerhed** (fx *01011990 1234*, *01011990-1234* eller *010119901234*)
+   * - FORBRYDELSE
+     - Forbrydelse
+     - Forbrydelse - **høj usikkerhed** (fx *tyveri*, *vold* eller *psykisk vold*)
 
 
 Datasæt
@@ -72,31 +102,28 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 	result = ner(sentence)
 	print(pd.DataFrame.from_records(result))
 
+
 Resultater
 ----------
-Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER score på det førnævnte test-sæt. 
+Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER score på det førnævnte test-sæt.
 
 .. list-table::
    :header-rows: 1
 
    * - Model
-     - F1-score
-     - Beskrivelse
-   * - last-model-ner-akt
+     - Macro F1-score
+   * - sas-ner
      - 0
-     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter
-   * - base-ner-akt
+   * - sas-ner-dp-8
      - 0
-     - NBailab-base finetunet på NER-annoterede aktindsigter
-   * - akt-mlm-ner-akt
+   * - sas-ner-dp-8
      - 0
-     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter
-   * - akt-mlm-ner-akt-dp-8
+   * - sas-ner-fc
      - 0
-     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 8`
-   * - akt-mlm-ner-akt-dp-1
+   * - sas-ner-fc-dp-8
      - 0
-     - Sønderborg aktindsigt sprogmodel finetunet på NER-annoterede aktindsigter med DP - :math:`\varepsilon = 1`
+   * - sas-ner-fc-dp-1
+     - 0
 
 
 Træningsprocedure
