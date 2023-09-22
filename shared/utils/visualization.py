@@ -89,6 +89,7 @@ def plot_confusion_matrix(
         )
         print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
         print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
+        print(f"eval f1 concat all classes: {f1_score(y_true, y_pred, average=None)}")
 
     # print(labels)
     # print(y_true)
