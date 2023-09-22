@@ -1,6 +1,9 @@
 # pylint: skip-file
 import dataclasses
 
+import numpy as np
+from sklearn.utils import compute_class_weight
+
 import optuna
 import torch
 import wandb
@@ -26,10 +29,10 @@ args.logging_steps = 300
 # args.save_steps = 300
 args.train_batch_size = 64
 args.eval_batch_size = 64
-args.epochs = 10
-args.n_trials = 15
+args.epochs = 5
+args.n_trials = 10
 args.load_alvenir_pretrained = True
-args.model_name = "akt-mlm"
+args.model_name = "SAS"
 args.differential_privacy = False
 # args.model_name = "base"
 
@@ -65,6 +68,30 @@ def train_model(trial, learning_rate, max_length, weight_decay):
 
     ner_modelling.load_data()
 
+    if args.weight_classes:
+        label_ids = [ner_modelling.label2id[label] for label in args.labels]
+
+        ner_tags = []
+        for tag in ner_modelling.data.train["tags"]:
+            ner_tags.extend([ner_modelling.label2id[label] for label in tag])
+
+        # important that all tags are represented in training set -
+        # otherwise we stop training
+        assert sorted(list(set(ner_tags))) == sorted(list(set(label_ids)))
+
+        ner_tags = np.array(ner_tags)
+
+        ner_modelling.class_weights = torch.tensor(
+            compute_class_weight(
+                class_weight="balanced",
+                classes=np.unique(label_ids),
+                y=ner_tags,
+            )
+        ).float()
+
+        ner_modelling.args.class_weights = ner_modelling.class_weights.tolist()
+
+
     ner_modelling.save_config(
         output_dir=ner_modelling.output_dir,
         metrics_dir=ner_modelling.metrics_dir,
@@ -90,8 +117,6 @@ def train_model(trial, learning_rate, max_length, weight_decay):
     eval_scores = []
     for epoch in tqdm(range(ner_modelling.args.epochs), desc="Epoch", unit="epoch"):
         model = model.to(ner_modelling.args.device)
-        train_losses = []
-        lrs = []
 
         for batch in tqdm(
             train_loader,
@@ -99,12 +124,20 @@ def train_model(trial, learning_rate, max_length, weight_decay):
             unit="batch",
         ):
             model.train()
+            if not args.weight_classes:
+                output = model(
+                    input_ids=batch["input_ids"].to(ner_modelling.args.device),
+                    attention_mask=batch["attention_mask"].to(ner_modelling.args.device),
+                    labels=batch["labels"].to(ner_modelling.args.device),
+                )
+            else:
+                output = model(
+                    input_ids=batch["input_ids"].to(ner_modelling.args.device),
+                    attention_mask=batch["attention_mask"].to(ner_modelling.args.device),
+                    labels=batch["labels"].to(ner_modelling.args.device),
+                    class_weights=ner_modelling.class_weights.to(ner_modelling.args.device),
+                )
 
-            output = model(
-                input_ids=batch["input_ids"].to(ner_modelling.args.device),
-                attention_mask=batch["attention_mask"].to(ner_modelling.args.device),
-                labels=batch["labels"].to(ner_modelling.args.device),
-            )
             loss = output.loss
 
             optimizer.zero_grad()
@@ -165,7 +198,7 @@ def objective(trial):
         name=f"lap-{args.load_alvenir_pretrained}-{round(learning_rate, 5)}-"
         f"{round(weight_decay, 5)}-{max_length}",
     )
-
+    wandb.run.tags = ['NER', 'HP-tuning']
     f_1 = train_model(
         trial=trial,
         learning_rate=learning_rate,
