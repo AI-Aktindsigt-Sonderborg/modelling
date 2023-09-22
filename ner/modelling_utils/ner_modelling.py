@@ -179,8 +179,8 @@ class NERModelling(Modelling):
                 concat_bilou=self.args.concat_bilou,
                 normalize=self.args.normalize_conf,
                 eval_single=self.args.eval_single,
-                title=self.args.test_data
-
+                title=self.args.test_data,
+                metrics_dir=self.metrics_dir
             )
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss, f_1_none=f_1_none)

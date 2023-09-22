@@ -9,7 +9,9 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score, precision_score, recall_score
 
+from ner.local_constants import MODEL_DIR
 from shared.data_utils.custom_dataclasses import EvalScore
+from shared.utils.helpers import write_json_lines
 
 
 def plot_running_results(
@@ -72,6 +74,7 @@ def plot_confusion_matrix(
     concat_bilou: bool = False,
     eval_single: bool = False,
     title: str = "",
+    metrics_dir = ""
 ):
     """Function is self-explanatory"""
 
@@ -84,13 +87,19 @@ def plot_confusion_matrix(
             )
         )
 
+        f1_none_ = f1_score(y_true, y_pred, average=None, labels=labels)
+        f1_none = [
+            {labels[i]: f1_none_[i]} for i in range(len(labels))
+        ]
+        write_json_lines(out_dir=metrics_dir, filename=f"f1_concat-{model_name}", data=f1_none)
+
         print(
             f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}"
         )
         print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
         print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
         print("-----")
-        print(f"eval f1 concat all classes: {f1_score(y_true, y_pred, average=None)}")
+        print(f"eval f1 concat all classes: {f1_none}")
         print("----")
 
     # print(labels)
