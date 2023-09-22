@@ -86,20 +86,21 @@ def plot_confusion_matrix(
                 [label[2:] if label != "O" else label for label in labels]
             )
         )
-
+        f1_macro = f1_score(y_true, y_pred, average='macro')
         f1_none_ = f1_score(y_true, y_pred, average=None, labels=labels)
-        f1_none = [
+        f1_print = [
             {labels[i]: f1_none_[i]} for i in range(len(labels))
         ]
-        write_json_lines(out_dir=metrics_dir, filename=f"f1_concat-{model_name}", data=f1_none)
+        f1_print.append(f1_macro)
+        write_json_lines(out_dir=metrics_dir, filename=f"f1_concat-{model_name}", data=f1_print)
 
         print(
             f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}"
         )
         print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
-        print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
+        print(f"eval f1 concat: {f1_macro}")
         print("-----")
-        print(f"eval f1 concat all classes: {f1_none}")
+        print(f"eval f1 concat all classes: {f1_print}")
         print("----")
 
     # print(labels)
