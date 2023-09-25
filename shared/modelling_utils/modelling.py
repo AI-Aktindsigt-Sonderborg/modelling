@@ -100,7 +100,7 @@ class Modelling:
 
         # FixMe: Delete api key before end of project
         if self.args.log_wandb:
-            wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
+            wandb.login(key="<api_key>")
             wandb.init(reinit=True, name=self.args.output_name)
 
 

@@ -108,7 +108,7 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 
 Resultater
 ----------
-Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER score på det førnævnte test-sæt.
+Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER et `tilfældigt genereret og ikke-manuelt valideret test-sæt`.
 
 .. list-table::
    :header-rows: 1
@@ -125,14 +125,14 @@ Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-sou
      - CPR F1
      - FOR F1
    * - sas-ner
-     - 0.81
-     - 0.93
-     - 0.70
-     - 0.85
-     - 0.49
-     - 0.68
-     - 0.96
+     - 0.86
      - 0.95
+     - 0.77
+     - 0.90
+     - 0.63
+     - 0.77
+     - 0.96
+     - 0.92
      - NA
      - NA
    * - sas-ner-dp-8
@@ -197,9 +197,72 @@ Træningsprocedure
 
 Hyperparametre
 ^^^^^^^^^^^^^^
+.. list-table::
+   :header-rows: 1
 
-Træningsresultater
-^^^^^^^^^^^^^^^^^^
+   * - Model
+     - learning_rate
+     - train_batch_size
+     - eval_batch_size
+     - optimizer
+     - lot_size
+     - epsilon
+     - delta
+     - num_epochs
+   * - sas-ner
+     - 0.86
+     - 0.95
+     - 0.77
+     - 0.90
+     - 0.63
+     - 0.77
+     - 0.96
+     - 0.92
+   * - sas-ner-dp-8
+     - 0.84
+     - 0.97
+     - 0.64
+     - 0.85
+     - 0.65
+     - 0.73
+     - 0.94
+     - 0.95
+   * - sas-ner-dp-1
+     - 0.75
+     - 0.94
+     - 0.51
+     - 0.82
+     - 0.59
+     - 0.62
+     - 0.86
+     - 0.75
+   * - sas-ner-fc
+     - 0.80
+     - 0.96
+     - 0.70
+     - 0.88
+     - 0.43
+     - 0.70
+     - 0.97
+     - 0.90
+   * - sas-ner-fc-dp-8
+     - 0.82
+     - 0.96
+     - 0.66
+     - 0.87
+     - 0.62
+     - 0.69
+     - 0.94
+     - 0.92
+   * - sas-ner-fc-dp-1
+     - 0.69
+     - 0.95
+     - 0.56
+     - 0.84
+     - 0.40
+     - 0.66
+     - 0.88
+     - 0.78
 
 Framework versioner
 ^^^^^^^^^^^^^^^^^^^
@@ -210,4 +273,4 @@ Framework versioner
  - pandas
  - seaborn
  - numpy==1.22.3
- - wandb
+ - pytorch 1.13.0+cu11
