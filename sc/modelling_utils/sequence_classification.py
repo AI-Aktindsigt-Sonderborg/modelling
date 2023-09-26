@@ -368,8 +368,8 @@ class SequenceClassificationDP(SequenceClassification):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-                    optimizer: DPOptimizer, epoch: int = None,
-                    val_loader: DataLoader = None,
+                    optimizer: DPOptimizer,
+                    val_loader: DataLoader = None, epoch: int = None,
                     step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch

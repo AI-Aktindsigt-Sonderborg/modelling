@@ -9,7 +9,6 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score, precision_score, recall_score
 
-from ner.local_constants import MODEL_DIR
 from shared.data_utils.custom_dataclasses import EvalScore
 from shared.utils.helpers import write_json_lines
 
@@ -34,7 +33,8 @@ def plot_running_results(
     @param delta: Delta for title
     """
     file_path = os.path.join(output_dir, "results")
-    title = os.path.join(f"Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}")
+    title = os.path.join(
+        f"Epochs: {epochs}, Epsilon: {epsilon},  Delta: {delta}")
     plt.ioff()
 
     metric_steps = [x.step for x in metrics]
@@ -74,7 +74,7 @@ def plot_confusion_matrix(
     concat_bilou: bool = False,
     eval_single: bool = False,
     title: str = "",
-    metrics_dir = ""
+    metrics_dir=""
 ):
     """Function is self-explanatory"""
 
@@ -92,12 +92,14 @@ def plot_confusion_matrix(
             {labels[i]: f1_none_[i]} for i in range(len(labels))
         ]
         f1_print.append(f1_macro)
-        write_json_lines(out_dir=metrics_dir, filename=f"f1_concat-{model_name}", data=f1_print)
+        write_json_lines(out_dir=metrics_dir,
+                         filename=f"f1_concat-{model_name}", data=f1_print)
 
         print(
             f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}"
         )
-        print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
+        print(
+            f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
         print(f"eval f1 concat: {f1_macro}")
         print("-----")
         print(f"eval f1 concat all classes: {f1_print}")
@@ -106,7 +108,8 @@ def plot_confusion_matrix(
     # print(labels)
     # print(y_true)
 
-    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels, normalize=normalize)
+    conf_matrix = confusion_matrix(y_true, y_pred, labels=labels,
+                                   normalize=normalize)
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
     plt.figure(figsize=(20, 14))
@@ -125,7 +128,8 @@ def plot_confusion_matrix(
 
     plt.tight_layout()
     if save_fig:
-        filepath = os.path.join(plots_dir, f'conf_plot_{model_name.replace("/", "_")}')
+        filepath = os.path.join(plots_dir,
+                                f'conf_plot_{model_name.replace("/", "_")}')
         if concat_bilou:
             filepath += "-concat_bilou"
         if eval_single:

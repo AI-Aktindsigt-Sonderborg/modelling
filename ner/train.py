@@ -3,7 +3,6 @@
 import sys
 import traceback
 
-from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling, NERModellingDP
 from shared.utils.helpers import init_logging
@@ -20,9 +19,8 @@ args.test = False
 
 if args.entities == ["PLAHOKTFC"]:
     args.entities = ["PERSON", "LOKATION", "ADRESSE", "HELBRED",
-     "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
-     "FORBRYDELSE", "CPR"]
-
+                     "ORGANISATION", "KOMMUNE", "TELEFONNUMMER",
+                     "FORBRYDELSE", "CPR"]
 
 model_name_to_print = args.custom_model_name if \
     args.custom_model_name else args.model_name
@@ -33,7 +31,7 @@ if leftovers:
                    f'{leftovers}. Ignoring...')
 
 if args.freeze_layers and args.lr_freezed < args.learning_rate:
-    logger.warning(f'lr_freezed must be higher than lr')
+    logger.warning('lr_freezed must be higher than lr')
     print('exiting - try again')
     ner_parser.parser.exit()
 
