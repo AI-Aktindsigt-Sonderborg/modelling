@@ -1,14 +1,17 @@
 # pylint: disable=too-many-locals
 import os
+from collections import OrderedDict
 from typing import List
 
 import pandas as pd
 import seaborn as sn
 from matplotlib import pyplot as plt
 from sklearn.metrics import confusion_matrix
-from collections import OrderedDict
 from sklearn.metrics import f1_score, precision_score, recall_score
+
+from ner.local_constants import MODEL_DIR
 from shared.data_utils.custom_dataclasses import EvalScore
+from shared.utils.helpers import write_json_lines
 
 
 def plot_running_results(
@@ -69,7 +72,9 @@ def plot_confusion_matrix(
     normalize: str = "true",
     save_fig: bool = True,
     concat_bilou: bool = False,
-    eval_single: bool = False
+    eval_single: bool = False,
+    title: str = "",
+    metrics_dir = ""
 ):
     """Function is self-explanatory"""
 
@@ -81,12 +86,22 @@ def plot_confusion_matrix(
                 [label[2:] if label != "O" else label for label in labels]
             )
         )
+        f1_macro = f1_score(y_true, y_pred, average='macro')
+        f1_none_ = f1_score(y_true, y_pred, average=None, labels=labels)
+        f1_print = [
+            {labels[i]: f1_none_[i]} for i in range(len(labels))
+        ]
+        f1_print.append(f1_macro)
+        write_json_lines(out_dir=metrics_dir, filename=f"f1_concat-{model_name}", data=f1_print)
 
         print(
             f"eval precision concat: {precision_score(y_true, y_pred, average='macro')}"
         )
         print(f"eval recall concat: {recall_score(y_true, y_pred, average='macro')}")
-        print(f"eval f1 concat: {f1_score(y_true, y_pred, average='macro')}")
+        print(f"eval f1 concat: {f1_macro}")
+        print("-----")
+        print(f"eval f1 concat all classes: {f1_print}")
+        print("----")
 
     # print(labels)
     # print(y_true)
@@ -95,6 +110,7 @@ def plot_confusion_matrix(
     df_cm = pd.DataFrame(conf_matrix, index=labels, columns=labels)
 
     plt.figure(figsize=(20, 14))
+    plt.title(title)
     sn.heatmap(
         df_cm,
         annot=True,

@@ -85,7 +85,6 @@ class NERDataPreprocessing:
         -------
         """
         bilou_data = read_json_lines(input_dir=DATA_DIR, filename=args.bilou_input_file)
-        # labels, id2label, label2id, _ = get_label_list(args.entities)
 
         out_suffix = "".join([x[0] for x in args.entities])
 
@@ -98,6 +97,18 @@ class NERDataPreprocessing:
         write_json_lines(
             out_dir=DATA_DIR, filename="bilou_" + out_suffix, data=bilou_data
         )
+
+        if args.create_bio_file:
+            bio_data = bilou_data
+
+            for obs in bio_data:
+                obs["tags"] = map_bilou_to_bio(obs["tags"])
+
+            write_json_lines(
+                out_dir=DATA_DIR, filename="bio_" + out_suffix,
+                data=bio_data
+            )
+
         return bilou_data
 
     @staticmethod
@@ -195,9 +206,9 @@ class NERDataPreprocessing:
                 for obs in test_data:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
-                train_outfile = "bio_train1"
-                val_outfile = "bio_val1"
-                test_outfile = "bio_test1"
+                train_outfile = "bio_train"
+                val_outfile = "bio_val"
+                test_outfile = "bio_test"
 
             write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
             write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile, data=val)
@@ -215,6 +226,8 @@ if __name__ == "__main__":
     # prep_args.create_bilou = True
     data_prep = NERDataPreprocessing(prep_args)
     # prep_args.add_dane = True
+
+    prep_args.entities = DataPrepConstants.standard_ner_entities
 
     if prep_args.create_bilou:
         data_prep.create_bilou(args=prep_args)

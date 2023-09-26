@@ -5,6 +5,7 @@ from typing import List
 
 import numpy as np
 import torch
+import wandb
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -33,6 +34,9 @@ class MLMModelling(Modelling):
     def __init__(self, args: argparse.Namespace):
         super().__init__(args=args)
 
+        if not self.args.custom_model_name:
+            self.args.output_name = "mlm-" + self.args.output_name
+
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
         self.data_dir = DATA_DIR
@@ -46,6 +50,10 @@ class MLMModelling(Modelling):
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
+
+        if self.args.log_wandb:
+            wandb.run.tags = ['MLM']
+
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -291,6 +299,9 @@ class MLMModellingDP(MLMModelling):
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
+        if self.args.log_wandb:
+            wandb.run.tags = ['MLM', 'DP']
+
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
@@ -302,8 +313,7 @@ class MLMModellingDP(MLMModelling):
         DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
+        :param val_loader: DataLoader containing validation data
         :param step: Given step
         :return: if self.eval_data: return model, eval_losses, eval_accuracies,
         step, lrs

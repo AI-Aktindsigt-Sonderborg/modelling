@@ -1,9 +1,10 @@
+from collections import Counter
 from itertools import groupby
 
 from ner.data_utils.data_prep_input_args import DataPrepArgParser
 from ner.local_constants import DATA_DIR, PREP_DATA_DIR
 from shared.utils.helpers import read_json_lines, get_sublist_length
-from collections import Counter
+
 prep_parser = DataPrepArgParser()
 prep_args = prep_parser.parser.parse_args()
 
@@ -68,8 +69,6 @@ for i, obs in enumerate(data_bilou):
                 print("---sentence_anon---")
                 print(obs["sentence_anon"])
 
-
-
 total_entities.sort()
 total_labels.sort()
 
@@ -77,7 +76,6 @@ first_entity_count = Counter(first_entity)
 
 grouped_entities = [list(group) for key, group in groupby(total_entities)]
 grouped_labels = [list(group) for key, group in groupby(total_labels)]
-
 
 # sorted_first_entity = sorted(grouped_first_entity, key=get_sublist_length, reverse=True)
 sorted_entities = sorted(grouped_entities, key=get_sublist_length, reverse=True)
@@ -99,4 +97,3 @@ print()
 print(f"Total sentences: {len(data_bilou)}")
 print(f"Total entities: {len(total_entities)}")
 print(f"Total labels: {len(total_labels)}")
-

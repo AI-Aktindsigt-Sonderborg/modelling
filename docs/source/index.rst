@@ -31,7 +31,8 @@ Content:
    aisig
    data
    models
-   modelling
+   results
+
 
 .. toctree::
 	:maxdepth: 2
@@ -49,7 +50,6 @@ Content:
 	:caption: Kodedokumentation
 
 	github
-	/auto_examples/index
 	code_overview
 
 

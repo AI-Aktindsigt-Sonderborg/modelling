@@ -1,28 +1,15 @@
 import argparse
-import hashlib
 import json
 import os.path
 import random
-import re
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional
 
 import nltk.data
 import numpy as np
-from ftfy import fix_encoding
-from tqdm import tqdm
 
 from mlm.data_utils.data_prep_input_args import DataPrepArgParser
-from mlm.data_utils.helpers import split_sentences
-from mlm.local_constants import DATA_DIR, FILTERED_SCRAPE_DIR, \
-    SCRAPED_DATA_DIR, CONF_DATA_DIR, METADATA_DIR
-
-
-from sc.local_constants import CLASS_DATA_DIR
-from shared.data_utils.helpers import score_gpt2, load_model_for_ppl, \
-    find_letters_and_word_count
-from shared.utils.helpers import TimeCode, read_json_lines, write_json_lines, \
-    write_text_lines, read_json
-from shared.utils.helpers import count_num_lines
+from mlm.local_constants import DATA_DIR, CONF_DATA_DIR
+from shared.utils.helpers import write_json_lines
 
 DEFAULT_UNIQUE_SENTENCES_FILE = 'unique_sentences_mlm1.jsonl'
 
@@ -75,7 +62,6 @@ class RawDataPreprocessing:
         #     self.filter_ppl_scores()
         #     self.split_train_val(in_file='approved_sentences_ppl.json')
         self.split_train_val()
-
 
     def split_train_val(self,
                         in_file: str = DEFAULT_UNIQUE_SENTENCES_FILE,

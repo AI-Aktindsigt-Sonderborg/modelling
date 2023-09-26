@@ -21,7 +21,7 @@ PROJECT_GENERIC_DIRS = [
     "metadata",
     "models",
     "plots",
-    "preprocessed_data",
+    "data/preprocessed_data",
     "results",
 ]
 
@@ -31,3 +31,5 @@ for generic_dir in GENERIC_DIRS:
 for project_dir in PROJECT_DIRS:
     for project_generic_dir in PROJECT_GENERIC_DIRS:
         os.makedirs(os.path.join(project_dir, project_generic_dir), exist_ok=True)
+
+
