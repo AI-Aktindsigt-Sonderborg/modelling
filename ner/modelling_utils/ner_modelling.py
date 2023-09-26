@@ -96,16 +96,6 @@ class NERModelling(Modelling):
                 )
                 batch_loss = output.loss.item()
 
-                # else:
-                #     output = model(
-                #         input_ids=batch["input_ids"].to(self.args.device),
-                #         attention_mask=batch["attention_mask"].to(
-                #             self.args.device),
-                #         labels=batch["labels"].to(self.args.device),
-                #         class_weights=self.class_weights.to(self.args.device),
-                #     )
-                # batch_loss = output.loss.item()
-
                 preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
                 labels = batch["labels"].cpu().numpy()
                 # We ignore tokens with value "-100" as these are padding tokens
@@ -186,20 +176,7 @@ class NERModelling(Modelling):
             labels_tokenized = []
 
             for i, label in enumerate(examples["tags"]):
-                #                label = [
-                #                   "B-MISC"
-                #                  if lab in ["B-KOMMUNE", "B-ADRESSE", "B-HELBRED", "B-TELEFONNUMMER"]
-                #                 else lab
-                #                for lab in label
-                #           ]
-
-                #          label = [
-                #             "I-MISC"
-                #            if lab in ["I-KOMMUNE", "I-ADRESSE", "I-HELBRED", "I-TELEFONNUMMER"]
-                #           else lab
-                #          for lab in label
-                #     ]
-
+                
                 label = [self.label2id[lab] for lab in label]
 
                 label_tokenized = self.tokenizer.tokenize(
