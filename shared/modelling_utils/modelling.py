@@ -87,8 +87,6 @@ class Modelling:
             model_dir = (
                 args.custom_model_dir if args.custom_model_dir else MLM_MODEL_DIR
             )
-            if self.args.sc_demo:
-                model_dir = SC_MODEL_DIR
             self.model_path = os.path.join(
                 model_dir, self.args.model_name, "best_model"
             )
