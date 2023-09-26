@@ -196,7 +196,6 @@ class Modelling:
             data_collator=self.data_collator,
         )
 
-        # ToDo: Consider assigning model to class such that it is injected directly for training and inference
         model = self.get_model()
         dummy_trainer_ = self.create_dummy_trainer(
             train_data_wrapped=train_data_wrapped, model=model

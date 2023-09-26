@@ -11,7 +11,7 @@ Modellerne er trænet på 49191 sætninger genereret på baggrund af data annote
 
 Delmodeller
 ^^^^^^^^^^^
-NER-modellerne er trænet på tre forskellige måder: En ikke-privat baseline model og to modeller trænet med differential privacy med hhv. :math:`\varepsilon = 8` og :math:`\varepsilon = 1` **(kilde?)**. Den anden DP parameter :math:`\delta` er sat til 1 over længden af træningsdatasættet **(kilde?)**. Derudover er modellerne trænet på to
+NER-modellerne er trænet på tre forskellige måder: En ikke-privat baseline model og to modeller trænet med differential privacy med hhv. :math:`\varepsilon = 8` og :math:`\varepsilon = 1` (se `SmartNoise Whitepaper <https://azure.microsoft.com/mediahandler/files/resourcefiles/microsoft-smartnoisedifferential-privacy-machine-learning-case-studies/SmartNoise%20Whitepaper%20Final%203.8.21.pdf>`_ og `Learning with Privacy at Scale <https://machinelearning.apple.com/research/learning-with-privacy-at-scale>`_  for valg af :math:`\varepsilon` i industrien). Den anden DP parameter :math:`\delta` er sat til 1 over længden af træningsdatasættet (se `LLM CAN BE STRONG DP LEARNERS <https://arxiv.org/pdf/2110.05679.pdf>`_. Derudover er modellerne trænet med to forskellige sæt af entititer - med og uden entiteterne **Forbrydelse** og **CPR numre**.
 
 .. list-table::
    :header-rows: 1
@@ -73,9 +73,9 @@ Modellerne er finetunet til Named Entity Recognition (NER) og er trænet til at 
 
 Datasæt
 -------
-Modellen er trænet på 49191 unikke sætninger og valideret på 2359 sætninger under træningen. Herefter modellen evalueret på et udeholdt test-sæt bestående af 25 entiteter **beskriv i data** fra hver kategori.
+Modellen er trænet på 49191 unikke sætninger og valideret på 2359 sætninger under træningen. Herefter modellen evalueret på et udeholdt test-sæt bestående af 25 entiteter fra hver kategori.
 Den rå data er genereret af **Aktio** og overleveret til Alvenir som en jsonlines fil. Data er blevet filtreret,
-opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt af Alvenir.
+opdelt i unikke sætninger og derefter inddelt i trænings-, test- og valideringssæt af Alvenir.
 Se :ref:`data-home` for en beskrivelse af datasættet.
 
 Mere information
@@ -86,7 +86,6 @@ Eksempel
 Du kan benytte modellen til at forudsige entiteter sådan her:
 
 
-
 .. code-block:: python
 	:linenos:
 
@@ -94,7 +93,7 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 	import pandas as pd
 
 	ner = pipeline(task='ner',
-       		       model='../ner/models/21-dp-base-BIO/best_model',
+       		       model='../ner/models/sas-ner/best_model',
             	   aggregation_strategy='first')
 
 	sentence = 'Kasper Schjødt-Hansen er medarbejder i virksomheden Alvenir Aps og har ofte ekstrem hovedpine.' \
@@ -210,10 +209,10 @@ Hyperparametre
      - delta
      - num_epochs
    * - sas-ner
-     - 0.86
-     - 0.95
-     - 0.77
-     - 0.90
+     - :math:`4.21e^{-5}`
+     - 64
+     - 64
+     - AdamW with betas=(0.9,0.999) and epsilon=1e-08
      - 0.63
      - 0.77
      - 0.96
