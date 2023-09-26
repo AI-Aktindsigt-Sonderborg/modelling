@@ -33,7 +33,8 @@ class NERDataPreprocessing:
             input arguments from :class: `.DataPrepArgParser`.
 
         """
-        raw_data = read_json_lines(input_dir=DATA_DIR, filename=args.origin_input_file)
+        raw_data = read_json_lines(input_dir=DATA_DIR,
+                                   filename=args.origin_input_file)
 
         word_tag_mismatch_errors: int = 0
         wrong_index_errors: int = 0
@@ -84,7 +85,8 @@ class NERDataPreprocessing:
         :param argparse.Namespace args: input arguments from :class: `.DataPrepArgParser`.
         -------
         """
-        bilou_data = read_json_lines(input_dir=DATA_DIR, filename=args.bilou_input_file)
+        bilou_data = read_json_lines(input_dir=DATA_DIR,
+                                     filename=args.bilou_input_file)
 
         out_suffix = "".join([x[0] for x in args.entities])
 
@@ -198,7 +200,6 @@ class NERDataPreprocessing:
                 for obs in train:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
 
-
                 # val = train_val_split[1]
                 for obs in val:
                     obs["tags"] = map_bilou_to_bio(obs["tags"])
@@ -210,8 +211,10 @@ class NERDataPreprocessing:
                 val_outfile = "bio_val"
                 test_outfile = "bio_test"
 
-            write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile, data=train)
-            write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile, data=val)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=train_outfile,
+                             data=train)
+            write_json_lines(out_dir=PREP_DATA_DIR, filename=val_outfile,
+                             data=val)
             write_json_lines(
                 out_dir=PREP_DATA_DIR, filename=test_outfile, data=test_data
             )
@@ -222,10 +225,7 @@ class NERDataPreprocessing:
 if __name__ == "__main__":
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
-    # prep_args.bilou_input_file = 'bilou_entities_kasper_all'
-    # prep_args.create_bilou = True
     data_prep = NERDataPreprocessing(prep_args)
-    # prep_args.add_dane = True
 
     prep_args.entities = DataPrepConstants.standard_ner_entities
 

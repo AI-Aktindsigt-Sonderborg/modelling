@@ -9,7 +9,6 @@ from typing import List
 
 import numpy as np
 import torch
-import wandb
 from datasets import load_dataset
 from opacus import PrivacyEngine
 from sklearn.metrics import accuracy_score, f1_score
@@ -97,11 +96,6 @@ class Modelling:
             self.args.model_name = predefined_hf_models(self.args.model_name)
             self.model_path = self.args.model_name
 
-        if self.args.log_wandb:
-            wandb.login(key="<api_key>")
-            wandb.init(reinit=True, name=self.args.output_name)
-
-
     def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
@@ -164,28 +158,20 @@ class Modelling:
 
             ner_tags = np.array(ner_tags)
 
-            if self.args.manual_class_weighting:
-                self.class_weights = torch.tensor(
-                    compute_class_weight(
-                        class_weight=self.label2weight,
-                        classes=np.unique(label_ids),
-                        y=ner_tags,
-                    )
-                ).float()
-            else:
-                self.class_weights = torch.tensor(
-                    compute_class_weight(
-                        class_weight="balanced",
-                        classes=np.unique(label_ids),
-                        y=ner_tags,
-                    )
-                ).float()
+            self.class_weights = torch.tensor(
+                compute_class_weight(
+                    class_weight="balanced",
+                    classes=np.unique(label_ids),
+                    y=ner_tags,
+                )
+            ).float()
 
             self.args.class_weights = self.class_weights.tolist()
 
         if self.args.save_config:
             self.save_config(
-                output_dir=self.output_dir, metrics_dir=self.metrics_dir, args=self.args
+                output_dir=self.output_dir, metrics_dir=self.metrics_dir,
+                args=self.args
             )
 
         train_data_wrapped, train_loader = create_data_loader(
@@ -253,8 +239,7 @@ class Modelling:
             output_dir=self.output_dir,
             learning_rate=learning_rate_init,
             weight_decay=self.args.weight_decay,
-            fp16=self.args.use_fp16,
-            # lr_scheduler_type='polynomial' # bert use linear scheduling
+            fp16=False,
         )
 
         # Dummy training for optimizer
@@ -288,7 +273,8 @@ class Modelling:
             )
 
         self.args.lr_warmup_steps = int(
-            np.ceil(0.1 * (self.args.total_steps - self.args.freeze_layers_n_steps))
+            np.ceil(
+                0.1 * (self.args.total_steps - self.args.freeze_layers_n_steps))
         )
         self.args.lr_start_decay = int(
             np.ceil(
@@ -313,7 +299,7 @@ class Modelling:
             self.scheduler = create_scheduler(
                 optimizer,
                 start_factor=(self.args.learning_rate / self.args.lr_freezed)
-                / self.args.lr_warmup_steps,
+                             / self.args.lr_warmup_steps,
                 end_factor=self.args.learning_rate / self.args.lr_freezed,
                 total_iters=self.args.lr_warmup_steps,
             )
@@ -326,13 +312,15 @@ class Modelling:
             self.scheduler = create_scheduler(
                 optimizer,
                 start_factor=1,
-                end_factor=self.args.learning_rate / (self.args.total_steps - step),
+                end_factor=self.args.learning_rate / (
+                        self.args.total_steps - step),
                 total_iters=self.args.total_steps - step,
             )
         return model
 
     @staticmethod
-    def save_config(output_dir: str, metrics_dir: str, args: argparse.Namespace):
+    def save_config(output_dir: str, metrics_dir: str,
+                    args: argparse.Namespace):
         """
         Save config file with input arguments
         :param output_dir: model directory
@@ -346,7 +334,8 @@ class Modelling:
             os.makedirs(metrics_dir)
 
         with open(
-            os.path.join(metrics_dir, "training_run_config.json"), "w", encoding="utf-8"
+            os.path.join(metrics_dir, "training_run_config.json"), "w",
+            encoding="utf-8"
         ) as outfile:
             json.dump(args.__dict__, outfile, indent=2)
 
@@ -382,7 +371,8 @@ class Modelling:
             )
 
             eval_scores = []
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
+            for epoch in tqdm(range(self.args.epochs), desc="Epoch",
+                              unit="epoch"):
                 model, step, lrs, eval_scores = self.train_epoch(
                     model=model,
                     train_loader=train_loader,
@@ -427,9 +417,6 @@ class Modelling:
                 dp=self.args.differential_privacy,
             )
         self.model = model
-
-        if self.args.log_wandb:
-            wandb.finish()
 
     def train_epoch(
         self,
@@ -546,13 +533,6 @@ class Modelling:
             eval_score.step = step
             eval_score.epoch = epoch
 
-            if self.args.log_wandb:
-                wandb.log({"eval f1": eval_score.f_1})
-                wandb.log({"eval loss": eval_score.loss})
-                wandb.log({"accuracy": eval_score.accuracy})
-                wandb.log({"learning rate": get_lr(optimizer)[0]})
-                wandb.log({"step": eval_score.step})
-
             append_json_lines(
                 output_dir=self.metrics_dir,
                 filename="eval_scores",
@@ -589,7 +569,8 @@ class Modelling:
         append_json_lines(
             output_dir=self.metrics_dir,
             filename="train_loss",
-            data={"epoch": epoch, "step": step, "score": float(np.mean(train_losses))},
+            data={"epoch": epoch, "step": step,
+                  "score": float(np.mean(train_losses))},
         )
 
         learning_rates.append(
@@ -598,7 +579,8 @@ class Modelling:
 
         return model, optimizer, eval_scores, train_losses, learning_rates
 
-    def save_model_at_step(self, model, epoch, step, save_best_model: bool, eval_score):
+    def save_model_at_step(self, model, epoch, step, save_best_model: bool,
+                           eval_score):
         """
         Save model at step and overwrite best_model if the model
         have improved evaluation performance.
@@ -765,7 +747,8 @@ class Modelling:
         )
 
         trainer_test.save_model(output_dir=output_dir)
-        torch.save(model.state_dict(), os.path.join(output_dir, "model_weights.json"))
+        torch.save(model.state_dict(),
+                   os.path.join(output_dir, "model_weights.json"))
 
     def evaluate(self, model, val_loader: DataLoader) -> EvalScore:
         """
@@ -790,7 +773,8 @@ class Modelling:
                     labels=batch["labels"].to(self.args.device),
                 )
 
-                batch_preds = np.argmax(output.logits.detach().cpu().numpy(), axis=-1)
+                batch_preds = np.argmax(output.logits.detach().cpu().numpy(),
+                                        axis=-1)
                 batch_labels = batch["labels"].cpu().numpy()
                 batch_loss = output.loss.item()
 
@@ -803,6 +787,7 @@ class Modelling:
         f_1 = f1_score(y_true, y_pred, average="macro")
         loss = float(np.mean(loss))
 
-        print(f"\n" f"eval loss: {loss} \t" f"eval acc: {acc}" f"eval f1: {f_1}")
+        print(
+            f"\n" f"eval loss: {loss} \t" f"eval acc: {acc}" f"eval f1: {f_1}")
 
         return EvalScore(accuracy=acc, f_1=f_1, loss=loss)

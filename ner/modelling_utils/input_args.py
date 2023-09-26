@@ -67,7 +67,7 @@ class NERArgParser(ModellingArgParser):
             "-mn", "--model_name",
             type=str,
             default='last_model',
-            help="foundation model from huggingface",
+            help="foundation model from huggingface or local if -lap is true",
             metavar='<str>')
         ner_params.add_argument(
             "--entities",
@@ -100,4 +100,3 @@ class NERArgParser(ModellingArgParser):
             metavar='<bool>',
             default=False,
             help="Whether to only evaluate one entity per sentence")
-

@@ -24,8 +24,7 @@ class ModellingArgParser:
         (default: False)
     :param int --freeze_layers_n_steps: Number of steps to train head only -
         if freeze_layers is true freeze_layers_n_steps must be > 0 (default: 0)
-    :param bool --sc_demo: Whether to use model for demo purposes -
-        this is not for training (default: False)
+
 
     *Training*
 
@@ -36,8 +35,6 @@ class ModellingArgParser:
     :param int --max_length: Max length for a text input (default: 64)
     :param int --epochs: Number of epochs to train model (default: 20)
     :param float --weight_decay: Weight decay (default: 0.01)
-    :param bool --use_fp16: Set to True, if your GPU supports FP16 operations
-        (default: False)
     :param int --lot_size: Lot size specifies the sample size of which noise
         is injected into. Must be larger and multiple of batch size -- in
         None-DP models lot size is set to train_batch_size, which is then used as
@@ -154,13 +151,6 @@ class ModellingArgParser:
             help="number of steps to train head only - if freeze_layers is true"
                  " freeze_layers_n_steps must be > 0",
             metavar='<int>')
-        model_params.add_argument(
-            "--sc_demo",
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            metavar='<bool>',
-            help="whether to use model for demo purposes - this is not for"
-                 "training")
 
     def add_training_params(self):
         """
@@ -199,12 +189,6 @@ class ModellingArgParser:
             help="Weight decay",
             metavar='<float>')
         training_params.add_argument(
-            "--use_fp16",
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            metavar='<bool>',
-            help="Set to True, if your GPU supports FP16 operations")
-        training_params.add_argument(
             "--lot_size", "-ls",
             type=int,
             default=64,
@@ -232,12 +216,6 @@ class ModellingArgParser:
             metavar='<bool>',
             default=False,
             help="Whether to add class weights for loss - only implemented for NER for now")
-        training_params.add_argument(
-            "-mcw", "--manual_class_weighting",
-            type=lambda x: bool(strtobool(x)),
-            metavar='<bool>',
-            default=False,
-            help="Whether to weight classes manually.")
         training_params.add_argument(
             "--n_trials",
             type=int,
@@ -325,12 +303,6 @@ class ModellingArgParser:
             metavar='<int>',
             help="Batch size for evaluation")
         eval_params.add_argument(
-            "--do_train",
-            type=lambda x: bool(strtobool(x)),
-            default=True,
-            metavar='<bool>',
-            help="Whether to evaluate model during training")
-        eval_params.add_argument(
             "--make_plots",
             type=lambda x: bool(strtobool(x)),
             default=True,
@@ -343,12 +315,6 @@ class ModellingArgParser:
             default=['loss', 'accuracy'],
             metavar='<str>',
             help="define eval metrics to evaluate best model")
-        eval_params.add_argument(
-            "--log_wandb",
-            type=lambda x: bool(strtobool(x)),
-            default=False,
-            metavar='<bool>',
-            help="Whether log using W&B.")
 
 
     def add_dp_params(self):

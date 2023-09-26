@@ -5,7 +5,6 @@ from typing import List
 
 import numpy as np
 import torch
-import wandb
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
 from opacus.optimizers import DPOptimizer
@@ -50,10 +49,6 @@ class MLMModelling(Modelling):
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
-
-        if self.args.log_wandb:
-            wandb.run.tags = ['MLM']
-
 
     def tokenize_and_wrap_data(self, data: Dataset):
         """
@@ -298,9 +293,6 @@ class MLMModellingDP(MLMModelling):
 
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
-
-        if self.args.log_wandb:
-            wandb.run.tags = ['MLM', 'DP']
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,

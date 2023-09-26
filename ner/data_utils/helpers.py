@@ -196,9 +196,6 @@ def reindexing_first_or_last(data):
         except IndexError:
             try:
                 data["annotation"]["state"] = "deleted"
-                # print(f"removing annotation {annotation_num} from {document_num + 1}")
-                # del current_page_annotations[annotation_num]
-                # print(f"removed annotation {annotation_num} from {document_num + 1}")
             except Exception:
                 print("data might already be removed")
             break
@@ -217,12 +214,11 @@ def handle_wrong_annotation_end_letter(data: dict, text: str, patterns: dict,
                     data["annotation"]["content"] + replacement
                 )
                 data["annotation"]["end"] = (
-                        data["annotation"]["end"] + len(replacement)
-                        )
+                    data["annotation"]["end"] + len(replacement)
+                )
                 return data, error
 
     return data, error
-
 
 
 def fix_skewed_indices(text, data, reindex_counter,

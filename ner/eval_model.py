@@ -26,9 +26,6 @@ sc_parser = NERArgParser()
 
 args = sc_parser.parser.parse_args()
 
-# Important that log_wandb is False
-args.log_wandb = False
-
 # For NER models: these should be located in below directory
 args.custom_model_dir = "ner/models"
 args.data_format = "bio"

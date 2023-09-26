@@ -64,12 +64,12 @@ def create_sentences_from_one_document(
 
 if __name__ == "__main__":
     """
-    Script reads all jsonlines files with the pattern "raw*" from CONF_DATA 
-    folder and creates unique sentences for both mlm and SeqMod. Files 
-    "all_sentences.jsonl" and "unique_sentences.jsonl" are created in 
+    Script reads all jsonlines files with the pattern "raw*" from CONF_DATA
+    folder and creates unique sentences for both mlm and SeqMod. Files
+    "all_sentences.jsonl" and "unique_sentences.jsonl" are created in
     mlm CONF_DATA dir and sc CONF_DATA dir.
     Run script from command line example:
-    python -m mlm.data_utils.mlm_sen --sc_class_size <Number of observations 
+    python -m mlm.data_utils.mlm_sen --sc_class_size <Number of observations
         in each class used for SegMod>
     """
 
