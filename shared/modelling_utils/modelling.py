@@ -98,6 +98,12 @@ class Modelling:
             self.args.model_name = predefined_hf_models(self.args.model_name)
             self.model_path = self.args.model_name
 
+        # FixMe: Delete api key before end of project
+        if self.args.log_wandb:
+            wandb.login(key="<api_key>")
+            wandb.init(reinit=True, name=self.args.output_name)
+
+
     def load_data(self, train: bool = True, test: bool = False):
         """
         Load data using datasets.load_dataset for training and evaluation
@@ -111,14 +117,12 @@ class Modelling:
                 data_files=os.path.join(self.data_dir, self.args.train_data),
                 split="train",
             )
-            # ToDo: lot or batch size?
             self.args.total_steps = int(
                 len(self.data.train) / self.args.train_batch_size * self.args.epochs
             )
 
             if self.args.differential_privacy:
                 if self.args.compute_delta:
-                    # ToDo: figure out if 1/(2*len(train)) or 1/(len(train))
                     self.args.delta = 1 / len(self.data.train)
             else:
                 self.args.delta = None
@@ -126,7 +130,6 @@ class Modelling:
                 self.args.epsilon = None
                 self.args.max_grad_norm = None
 
-        if self.args.evaluate_during_training:
             self.data.eval = load_dataset(
                 "json",
                 data_files=os.path.join(self.data_dir, self.args.eval_data),
@@ -152,22 +155,31 @@ class Modelling:
 
         if self.args.weight_classes:
             label_ids = [self.label2id[label] for label in self.args.labels]
-            y = np.concatenate(self.data.train["ner_tags"])
-            # ToDo: Very important that all classes are represented in training - consider making a validity check to see if all classes are represented
-            # data - OBSOBS: This is only implemented correctly for NERModelling
-            # label_ids = [label_id for label_id in label_ids if label_id in y]
+
+            ner_tags = []
+            for tag in self.data.train["tags"]:
+                ner_tags.extend([self.label2id[label] for label in tag])
+
+            # important that all tags are represented in training set -
+            # otherwise we stop training
+            assert sorted(list(set(ner_tags))) == sorted(list(set(label_ids)))
+
+            ner_tags = np.array(ner_tags)
+
             if self.args.manual_class_weighting:
                 self.class_weights = torch.tensor(
                     compute_class_weight(
                         class_weight=self.label2weight,
                         classes=np.unique(label_ids),
-                        y=y,
+                        y=ner_tags,
                     )
                 ).float()
             else:
                 self.class_weights = torch.tensor(
                     compute_class_weight(
-                        class_weight="balanced", classes=np.unique(label_ids), y=y
+                        class_weight="balanced",
+                        classes=np.unique(label_ids),
+                        y=ner_tags,
                     )
                 ).float()
 
@@ -184,7 +196,6 @@ class Modelling:
             data_collator=self.data_collator,
         )
 
-        # ToDo: Consider assigning model to class such that it is injected directly for training and inference
         model = self.get_model()
         dummy_trainer_ = self.create_dummy_trainer(
             train_data_wrapped=train_data_wrapped, model=model
@@ -359,9 +370,6 @@ class Modelling:
         load data, set up training and train model
         """
 
-        wandb.login(key="3c41fac754b2accc46e0705fa9ae5534f979884a")
-        wandb.init(reinit=True, name=self.args.output_name)
-
         model, optimizer, train_loader = self.set_up_training()
 
         code_timer = TimeCode()
@@ -411,16 +419,6 @@ class Modelling:
                     metrics=eval_scores,
                 )
 
-        else:
-            # Training without evaluation
-            for epoch in tqdm(range(self.args.epochs), desc="Epoch", unit="epoch"):
-                model, step, lrs = self.train_epoch(
-                    model=model,
-                    train_loader=train_loader,
-                    optimizer=optimizer,
-                    step=step,
-                )
-
                 all_lrs.append(lrs)
         code_timer.how_long_since_start()
         if self.args.save_model_at_end:
@@ -433,13 +431,16 @@ class Modelling:
             )
         self.model = model
 
+        if self.args.log_wandb:
+            wandb.finish()
+
     def train_epoch(
         self,
         model,
         train_loader: DataLoader,
         optimizer,
+        val_loader: DataLoader,
         epoch: int = None,
-        val_loader: DataLoader = None,
         step: int = 0,
         eval_scores: List[EvalScore] = None,
     ):
@@ -450,8 +451,8 @@ class Modelling:
         :param train_loader: Data loader of type DataLoader
         :param optimizer: Default is AdamW optimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-        validation data
+        :param val_loader: DataLoader containing
+            validation data
         :param step: Given step
         :return: if self.eval_data: return model, eval_losses, eval_accuracies,
         step, lrs
@@ -488,9 +489,7 @@ class Modelling:
             )
             step += 1
 
-        if self.data.eval:
-            return model, step, lrs, eval_scores
-        return model, step, lrs
+        return model, step, lrs, eval_scores
 
     def train_batch(
         self,
@@ -550,13 +549,12 @@ class Modelling:
             eval_score.step = step
             eval_score.epoch = epoch
 
-            # log to wandb
-            wandb.log({"eval f1": eval_score.f_1})
-            # wandb.log({"eval f1 per class": eval_score.f_1_none})
-            wandb.log({"eval loss": eval_score.loss})
-            wandb.log({"accuracy": eval_score.accuracy})
-            # wandb.log({"step": eval_score.step})
-            wandb.log({"learning rate": get_lr(optimizer)[0]})
+            if self.args.log_wandb:
+                wandb.log({"eval f1": eval_score.f_1})
+                wandb.log({"eval loss": eval_score.loss})
+                wandb.log({"accuracy": eval_score.accuracy})
+                wandb.log({"learning rate": get_lr(optimizer)[0]})
+                wandb.log({"step": eval_score.step})
 
             append_json_lines(
                 output_dir=self.metrics_dir,

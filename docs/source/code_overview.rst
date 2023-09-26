@@ -1,12 +1,13 @@
+.. _code-overview:
+
 Kodeoversigt
 ============
-Koden er opdelt i to overordnede komponenter - Data-præprocessering og Modellering. Kode-eksempler og beskrivelse af de forskellige klasser og metoder for hver af disse:
+Nedenstående indholdsfortegnelse indeholder eksempler, beskrivelse og inputparameter på koden der er udviklet til træning af de forskellige modeller beskrevet i :ref:`models-home`:
 
 .. toctree::
 	:maxdepth: 2
-	:caption: Komponenter
+	:caption: Indhold
 
-	code_data_prep
 	code_modelling
 
 

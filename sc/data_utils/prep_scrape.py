@@ -26,7 +26,6 @@ class ClassifiedScrapePreprocessing:
             from sc.data_utils.prep_scrape import ClassifiedScrapePreprocessing
             prep_parser = DataPrepArgParser()
             prep_args = prep_parser.parser.parse_args()
-            prep_args.data_type = 'labelled'
             data_preprocessor = ClassifiedScrapePreprocessing(args=prep_args)
             concat_data = data_preprocessor.concat_all_classified_data()
             grouped_data = data_preprocessor.group_data_by_class(
@@ -42,7 +41,7 @@ class ClassifiedScrapePreprocessing:
     :CLI eksempel:
         ::
 
-            python -m sc.data_utils.prep_scrape --data_type labelled
+            python -m sc.data_utils.prep_scrape
 
     Metoder
     -------
@@ -196,15 +195,7 @@ if __name__ == '__main__':
     prep_parser = DataPrepArgParser()
     prep_args = prep_parser.parser.parse_args()
 
-    prep_args.data_type = 'labelled'
-    # prep_args.excel_classification_file = 'aalborg_kommune_done.xlsx'
-    # prep_args.classified_scrape_file = 'aalborg_classified_scrape'
-
-    # prep_args.excel_classification_file = 'blandet_mindre_kommuner_done.xlsx'
-    # prep_args.classified_scrape_file = 'mixed_classified_scrape'
-
     data_preprocessor = ClassifiedScrapePreprocessing(prep_args)
-    # data_preprocessor.read_xls_save_json()
 
     concat_data = data_preprocessor.concat_all_classified_data()
     grouped_data = data_preprocessor.group_data_by_class(

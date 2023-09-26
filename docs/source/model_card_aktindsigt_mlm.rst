@@ -1,11 +1,13 @@
-.. _model-card-open-mlm:
+.. _model-card-aktindsigt-mlm:
 
-Tværkommunal Sprogmodel Del 1 (TS1)
-===================================
+Sønderborg Aktindsigt Sprogmodel (SAS)
+======================================
 Beskrivelse
 -----------
-Den første del af den tværkommunale sprogmodel modellen er en generel bert-base videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
-Modellen er trænet på 2672566 sætninger genereret på baggrund af data skrapet fra hovedparten af alle danske kommuner.
+SAS-modellen er en generel bert-base model videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
+Modellen er trænet på 1125808 sætninger genereret på baggrund af data baseret på aktindsigter udtrukket hos Sønderborg Kommune.
+Modellen er trænet med :math:`(\varepsilon, \delta)`-differential privacy med parametre :math:`\varepsilon = 8`, :math:`\delta = 0.002`.
+
 
 Brug
 ----
@@ -14,10 +16,9 @@ bør den finetunes til specifikke opgaver fx. Named Entity Recognition (NER) ell
 
 Datasæt
 -------
-Modellen er trænet på 2672566 unikke sætninger og valideret på 54543 sætninger.
-Den rå html tekst skrapet fra de **N antal** kommuner og **M antal** KL områder (**Mangler databeskrivelse her fra Aktio**) er blevet filtreret,
-opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt - se class:`.RawScrapePreprocessing` for
-for beskrivelse af koden benyttet til præprocessering af det skrabede data.
+Modellen er trænet på 1125808 unikke sætninger og valideret på 5658 sætninger.
+Den rå data er genereret af **Aktio** og overleveret til Alvenir som **8** jsonlines filer. Data er blevet filtreret,
+opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt af Alvenir.
 Se :ref:`data-home` for en beskrivelse af datasættet.
 
 Mere information
@@ -35,5 +36,5 @@ Eksempel
 	:linenos:
 
 	# Python code here
-	def test(a: bool = True):
+	def test(a: bool = False):
    		print("hello")

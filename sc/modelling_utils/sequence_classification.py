@@ -6,6 +6,7 @@ from typing import List
 
 import numpy as np
 import torch
+import wandb
 from datasets import ClassLabel
 from opacus import GradSampleModule
 from opacus.data_loader import DPDataLoader
@@ -49,6 +50,9 @@ class SequenceClassification(Modelling):
 
         self.tokenizer = self.get_tokenizer()
         self.data_collator = self.get_data_collator()
+
+        if self.args.log_wandb:
+            wandb.run.tags = ['SC']
 
     def evaluate(self, model, val_loader: DataLoader,
                  conf_plot: bool = False) -> EvalScore:
@@ -131,8 +135,6 @@ class SequenceClassification(Modelling):
         @param batch: batch of data
         @return: tokens for each batch
         """
-        # ToDo: split into words before feeding tokenizer?
-        #  use fx word_tokenize(line, language='danish') from nltk
 
         batch['text'] = [
             line for line in batch['text'] if
@@ -155,8 +157,6 @@ class SequenceClassification(Modelling):
         @param batch: batch of data
         @return: tokens for each batch
         """
-        # ToDo: split into words before feeding tokenizer?
-        #  use fx word_tokenize(line, language='danish') from nltk
 
         batch['text'] = [
             line for line in batch['text'] if
@@ -370,6 +370,9 @@ class SequenceClassificationDP(SequenceClassification):
         self.output_dir = os.path.join(MODEL_DIR, self.args.output_name)
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
+        if self.args.log_wandb:
+            wandb.run.tags = ['SC', 'DP']
+
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
                     optimizer: DPOptimizer, epoch: int = None,
                     val_loader: DataLoader = None,
@@ -382,8 +385,7 @@ class SequenceClassificationDP(SequenceClassification):
             DPDataLoader
         :param optimizer: Differentially private optimizer of type DPOptimizer
         :param epoch: Given epoch: int
-        :param val_loader: If evaluate_during_training: DataLoader containing
-            validation data
+        :param val_loader: DataLoader containing validation data
         :param step: Given step
         :return:
             if self.eval_data: return model, eval_losses, eval_accuracies,

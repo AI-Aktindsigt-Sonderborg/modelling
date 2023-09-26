@@ -14,9 +14,10 @@
 #
 import os
 import sys
+
 # import sphinxgallery
 sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('../../example_scripts'))
+#sys.path.insert(0, os.path.abspath('../../example_scripts'))
 
 project = 'modelling'
 copyright = '2023, Alvenir'
@@ -28,10 +29,12 @@ release = '0.1'
 
 extensions = ['recommonmark',
               'sphinx_rtd_theme',
+              'sphinx.ext.mathjax',
               # 'sphinx.ext.napoleon',
               'sphinx.ext.autodoc',
               'sphinx.ext.autosummary',
-              'sphinx_gallery.gen_gallery']
+              #'sphinx_gallery.gen_gallery'
+              ]
 
 
 
@@ -63,9 +66,9 @@ html_theme_options = {
 
 autodoc_member_order = 'bysource'
 
-sphinx_gallery_conf = {
-     'examples_dirs': '../../example_scripts',     # path to your example scripts
-     'gallery_dirs': 'auto_examples'
+#sphinx_gallery_conf = {
+ #    'examples_dirs': '../../example_scripts',     # path to your example scripts
+  #   'gallery_dirs': 'auto_examples'
     #'filename_pattern': '/execute_',
     #'expected_failing_examples': ['../example_scripts/plot_recognize.py']# path where to save gallery generated examples
-}
+#}
