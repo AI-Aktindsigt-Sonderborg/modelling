@@ -61,7 +61,7 @@ class ClassifiedScrapePreprocessing:
         :param ppl_filters: filter data on perplexity scores
         :param drop_na: drop not classified sentences
         """
-        # ToDo: find original ppl_filter - between 40 and 3000?
+
         data = pd.read_excel(
             os.path.join(file_dir, 'raw', self.args.excel_classification_file),
             sheet_name='Klassificering',

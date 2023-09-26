@@ -349,7 +349,6 @@ class MLMModellingDP(MLMModelling):
                     step,
                     lr=get_lr(optimizer)[0],
                     loss=float(np.mean(train_losses)),
-                    # ToDo: get_epsilon will break for epsilon < 3 with opacus==1.3.0
                     eps=self.privacy_engine.get_epsilon(self.args.delta),
                     delta=self.args.delta,
                     logging_steps=self.args.logging_steps)

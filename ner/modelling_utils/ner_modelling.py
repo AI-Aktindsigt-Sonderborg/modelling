@@ -98,7 +98,6 @@ class NERModelling(Modelling):
             for i, batch in enumerate(
                 tqdm(val_loader, unit="batch", desc="Eval")):
 
-                # ToDo: we dont weight classes when we evaluate
                 output = model(
                     input_ids=batch["input_ids"].to(self.args.device),
                     attention_mask=batch["attention_mask"].to(
@@ -382,7 +381,6 @@ class NERModelling(Modelling):
         )
 
     def get_tokenizer(self):
-        # ToDo: Consider do_lower_case=True, otherwise lowercase training data
         return AutoTokenizer.from_pretrained(
             self.model_path, local_files_only=self.args.load_alvenir_pretrained
         )

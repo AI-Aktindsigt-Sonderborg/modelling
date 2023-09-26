@@ -76,7 +76,6 @@ class Modelling:
         self.data_collator = None
         self.data = ModellingData
 
-        # ToDo: Experiment with freezing layers - see SPRIN-159
         if not self.args.freeze_layers:
             self.args.freeze_layers_n_steps = 0
             self.args.lr_freezed_warmup_steps = None
@@ -98,7 +97,6 @@ class Modelling:
             self.args.model_name = predefined_hf_models(self.args.model_name)
             self.model_path = self.args.model_name
 
-        # FixMe: Delete api key before end of project
         if self.args.log_wandb:
             wandb.login(key="<api_key>")
             wandb.init(reinit=True, name=self.args.output_name)
@@ -311,8 +309,7 @@ class Modelling:
 
         if self.args.freeze_layers and step == self.args.freeze_layers_n_steps:
             model = self.unfreeze_layers(model)
-            # ToDo: Below operation only works if lr is lower than lr_freezed:
-            #  fix this - also for SeqModelling
+
             self.scheduler = create_scheduler(
                 optimizer,
                 start_factor=(self.args.learning_rate / self.args.lr_freezed)
@@ -701,10 +698,6 @@ class Modelling:
             target_epsilon=self.args.epsilon,
             target_delta=self.args.delta,
             max_grad_norm=self.args.max_grad_norm,
-            # alphas=[1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64)),
-            # ToDo: hooks is the original opacus grad sampler. If we want
-            #  to try new features, then see
-            #  https://github.com/pytorch/opacus/releases
             grad_sample_mode="hooks",
         )
         return dp_model, dp_optimizer, dp_train_loader

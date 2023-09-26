@@ -80,7 +80,6 @@ def tokenize_and_align_labels_for_dataset(dataset, tokenizer):
             labels.append(label_ids)
             labels_tokenized.append(label_tokenized)
 
-        # ToDo: labels tokenized instead of labels?
         tokenized_inputs["labels"] = labels
         # tokenized_inputs["labels_tokenized"] = labels_tokenized
 

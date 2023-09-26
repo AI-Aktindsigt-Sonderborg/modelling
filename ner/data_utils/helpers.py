@@ -63,7 +63,6 @@ def split_sentences_bilou(
     text_splitted = (
         '\n'.join(sentence_splitter.tokenize(prep_text)))
 
-    # ToDo: Consider spacy to tokenize: https://github.com/alvenirai/rnd-ataja/blob/858e7e4ee5f35f2809ae396376b36398fe1c42c0/ataja/nlp/ataja_inference/modeling_ataja.py#L336
     text_splitted2 = sent_tokenize(prep_text, language='danish')
 
     # split text again by newlines

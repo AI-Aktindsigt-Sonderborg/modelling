@@ -112,7 +112,6 @@ def get_metrics(eval_scores: List[EvalScore],
                 save_best_model = False
                 break
 
-    # ToDo: Continue from here - extract metrics from previous best model
     # For max and min we reverse the list, such that we get the last element if
     # equal
     min_loss = min(reversed(eval_scores), key=lambda x: x.loss)
