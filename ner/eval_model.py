@@ -17,7 +17,6 @@ Example call for model including CPR and FORBRYDELSE:
 
 """
 
-from ner.data_utils.custom_dataclasses import DataPrepConstants
 from ner.modelling_utils.input_args import NERArgParser
 from ner.modelling_utils.ner_modelling import NERModelling
 from shared.modelling_utils.helpers import create_data_loader

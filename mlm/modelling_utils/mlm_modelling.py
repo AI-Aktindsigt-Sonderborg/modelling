@@ -192,14 +192,14 @@ class MLMModelling(Modelling):
                 #     for prediction, label in zip(preds, labels)
                 # ]
 
-
                 # labels_flat = labels.flatten()
                 # preds_flat = preds.flatten()
 
                 # We ignore tokens with value "-100" as these are padding tokens
                 # set by the tokenizer.
                 # See nn.CrossEntropyLoss(): ignore_index for more information
-                filtered = [[xv, yv] for xv, yv in zip(labels.flatten(), preds.flatten())
+                filtered = [[xv, yv] for xv, yv in
+                            zip(labels.flatten(), preds.flatten())
                             if xv != -100]
 
                 batch_labels = np.array([x[0] for x in filtered]).astype(int)
@@ -268,7 +268,6 @@ class MLMModelling(Modelling):
         if dp:
             model = model._module
 
-
         trainer_test = Trainer(
             model=model,
             args=TrainingArguments(output_dir=output_dir),
@@ -295,8 +294,8 @@ class MLMModellingDP(MLMModelling):
         self.metrics_dir = os.path.join(self.output_dir, 'metrics')
 
     def train_epoch(self, model: GradSampleModule, train_loader: DPDataLoader,
-                    optimizer: DPOptimizer, epoch: int = None,
-                    val_loader: DataLoader = None,
+                    optimizer: DPOptimizer,
+                    val_loader: DataLoader = None, epoch: int = None,
                     step: int = 0, eval_scores: List[EvalScore] = None):
         """
         Train one epoch with DP - modification of superclass train_epoch
