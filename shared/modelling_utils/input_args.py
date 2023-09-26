@@ -346,7 +346,7 @@ class ModellingArgParser:
         eval_params.add_argument(
             "--log_wandb",
             type=lambda x: bool(strtobool(x)),
-            default=True,
+            default=False,
             metavar='<bool>',
             help="Whether log using W&B.")
 

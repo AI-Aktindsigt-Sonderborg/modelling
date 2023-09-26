@@ -12,15 +12,7 @@ metadata/*
 /docs/build/*
 /docs/source/auto_examples/*
 logs/*
-ner/optuna*
-*/concat_model_metrics*
-ner/eval_model_*
-ner/train_hf*
-mlm/optuna*
-mlm/evaluate.py
-wandb/*
 docs/source/_build/*
-docs/unused_docs_backup*
 example_scripts_old/*
 *.pyc
 *.pyo
