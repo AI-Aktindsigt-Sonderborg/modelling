@@ -11,18 +11,18 @@ class NERArgParser(ModellingArgParser):
 
     *Data*
 
-    :param str --train_data: Training data file name (default: dane)
-    :param str --eval_data: Validation data file name (default: dane)
-    :param int --data_subset: Whether to subset data. Must be int
-        between 1 and 100=None. Only relevant while we are training and testing
-        on dane. (default: None)
+    :param str --train_data: Training data file name (default: bilou_train.jsonl)
+    :param str --eval_data: Validation data file name (default: bilou_val.jsonl)
+    :param str --test_data: Validation data file name (default: bilou_test.jsonl)
 
     *NER Model*
 
     :param bool --load_alvenir_pretrained: Whether to load local alvenir
         model (default: True)
     :param str --model_name: Foundation model from huggingface or alvenir
-        pretrained model (default: last_model)
+        pretrained model (default: sas)
+    :param str --data_format: whether to use BILOU or BIO format - input must be either 'bilou' or 'bio' (default: bio)
+    :param List[str] --entities: Entities to train on (default: ['PERSON', 'LOKATION', 'ADRESSE', 'HELBRED', 'ORGANISATION', 'KOMMUNE', 'TELEFONNUMMER'])
 
     """
 
@@ -66,7 +66,7 @@ class NERArgParser(ModellingArgParser):
         ner_params.add_argument(
             "-mn", "--model_name",
             type=str,
-            default='last_model',
+            default='sas',
             help="foundation model from huggingface or local if -lap is true",
             metavar='<str>')
         ner_params.add_argument(
@@ -75,7 +75,7 @@ class NERArgParser(ModellingArgParser):
             nargs='*',
             default=["PERSON", "LOKATION", "ADRESSE", "HELBRED", "ORGANISATION", "KOMMUNE", "TELEFONNUMMER"],
             metavar='<str>',
-            help="define eval metrics to evaluate best model")
+            help="Entities to train on")
         ner_params.add_argument(
             "--concat_bilou",
             type=lambda x: bool(strtobool(x)),
@@ -91,7 +91,7 @@ class NERArgParser(ModellingArgParser):
         ner_params.add_argument(
             "-df", "--data_format",
             type=str,
-            default="bilou",
+            default="bio",
             help="whether to use BILOU or BIO format - input must be either 'bilou' or 'bio'",
             metavar='<str>')
         ner_params.add_argument(

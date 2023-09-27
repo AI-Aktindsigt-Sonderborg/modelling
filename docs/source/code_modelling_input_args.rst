@@ -3,7 +3,7 @@
 Input parametre til modellering
 ===============================
 Her ses input parametre til de forskellige typer af modeller. Generelle parametre relevante for alle modeller er indeholdt i :class:`.ModellingArgParser`, mens de tre afledte klasser
-:class:`.MLMArgParser`, :class:`.SequenceModellingArgParser`, :class:`.NERArgParser` indeholder parametre specifikt relevante for de tre modeltyper MLM, SS og NER. 
+:class:`.MLMArgParser`, :class:`.SequenceModellingArgParser`, :class:`.NERArgParser` indeholder parametre specifikt relevante for de tre modeltyper MLM, SC og NER. 
 
 .. autoclass:: shared.modelling_utils.input_args.ModellingArgParser
 

@@ -6,7 +6,7 @@ Kodebasen som er dokumenteret her er tilvejebragt ifm. signaturprojektet "AI Akt
 Det overordnede formål med projektet har været at imødekomme især kommunale interesser ved at udvikle og udstille bredt favnende open-source (OS) resourcer, herunder specifikt to "natural language processing" NLP modeller til hhv. assisteret anonymisering af personhenførbare oplysninger i aktindsigtsrelevante dokumenter og semantisk søgning i det typisk omfattende kildematerialet som ligger til grund for en aktindsigtssag.
 
 Konkret har projektet bidraget med følgende resourcer:
-    * Et nyt dansk datasæt bestående af n unikke sætninger* som er skrabet fra de 98 kommuners hjemmesider. En delmængde af datasættet er desuden annoteret med KL-område til brug i træningen af en sætnings-klassifikations model.
+    * Et nyt dansk datasæt bestående af n unikke sætninger* som er skrabet fra 94 af de 98 kommuners hjemmesider. En delmængde af datasættet er desuden annoteret med KL-område til brug i træningen af en sætnings-klassifikations model.
     * En ny dansk sprogmodel trænet på ovenstående datasæt.
     * En ny kommunale sprogmodel trænet med differential privacy på aktindsigtsdata fra Sønderborg Kommune.
     * En ny kommunal named entity recognition (NER) model trænet med differential privacy på annoterede aktindsigtsdata fra Sønderborg Kommune.
@@ -14,15 +14,15 @@ Konkret har projektet bidraget med følgende resourcer:
 
 Vedr. den tværkommunale sprogmodel
 ----------------------------------------------
-Den tværkommunale...
+**Mangler**
 
 Vedr. den kommunal sprogmodel model til assisteret anonymisering af personhenførbart data
 -----------------------------------------------------------------------------------------
-Når der i projektøjemed bliver snakket om "assisteret anonymisering"...
+**Mangler**
 
 Vedr. den kommunal sprogmodel til semantisk søgning
 ---------------------------------------------------
-Ligeledes når vi snakker om "semantisk søgning" menes der...
+**Mangler**
 
 Vedr. Differential privacy og open-sourcing
 -------------------------------------------

@@ -107,7 +107,7 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 
 Resultater
 ----------
-Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER et `tilfældigt genereret og ikke-manuelt valideret test-sæt`.
+Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER et `tilfældigt genereret og ikke-manuelt valideret test-sæt`. OBS: tallene neden for er estimater og er angivet uden konfidensinterval.
 
 .. list-table::
    :header-rows: 1
@@ -190,7 +190,6 @@ Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-sou
      - 0.06
      - 0.87
 
-
 Træningsprocedure
 -----------------
 
@@ -212,7 +211,7 @@ Hyperparametre
      - :math:`4.21e^{-5}`
      - 64
      - 64
-     - AdamW with betas=(0.9,0.999) and epsilon=1e-08
+     - AdamW med betas=(0.9,0.999) og epsilon=1e-08
      - 0.63
      - 0.77
      - 0.96
@@ -265,11 +264,10 @@ Hyperparametre
 
 Framework versioner
 ^^^^^^^^^^^^^^^^^^^
-
- - transformers 4.19.2
- - opacus 1.2.0
- - datasets 2.2.2
- - pandas
- - seaborn
- - numpy==1.22.3
- - pytorch 1.13.0+cu11
+- transformers 4.19.2
+- opacus 1.2.0
+- datasets 2.2.2
+- pandas
+- seaborn
+- numpy==1.22.3
+- pytorch 1.13.0+cu11

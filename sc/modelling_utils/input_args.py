@@ -20,7 +20,7 @@ class SequenceModellingArgParser(ModellingArgParser):
 
     :param bool --load_alvenir_pretrained: Whether to load local alvenir
         model (default: True)
-    :param --model_name: Foundation model from huggingface (default: last_model)
+    :param --model_name: Foundation model from huggingface (default: ts1)
 
     """
 

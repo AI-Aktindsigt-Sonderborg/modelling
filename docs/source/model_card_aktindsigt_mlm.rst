@@ -1,13 +1,12 @@
 .. _model-card-aktindsigt-mlm:
 
-Sønderborg Aktindsigt Sprogmodel (SAS)
+Sønderborg Aktindsigt Sprogmodel (sas)
 ======================================
 Beskrivelse
 -----------
 SAS-modellen er en generel bert-base model videretrænet fra modellen `NB-BERT-base <https://huggingface.co/NbAiLab/nb-bert-base>`_.
 Modellen er trænet på 1125808 sætninger genereret på baggrund af data baseret på aktindsigter udtrukket hos Sønderborg Kommune.
-Modellen er trænet med :math:`(\varepsilon, \delta)`-differential privacy med parametre :math:`\varepsilon = 8`, :math:`\delta = 0.002`.
-
+Modellen er trænet uden differential privacy. Der er også trænet en model (sas-dp) med :math:`(\varepsilon, \delta)`-differential privacy med parametre :math:`\varepsilon = 8`, :math:`\delta = 8.9e^{-7}`. DP-modellen anbefales dog ikke at benyttes, ydeevnen er meget lav.
 
 Brug
 ----
@@ -29,12 +28,48 @@ benyttes til at videretræne prætrænede modeller på ikke-annoteret domænespe
 data kan forhøje kvaliteten af domænerelevante vector embeddings signifikant.
 Modellen optimeres ved at maskere enkelte ord i sætninger for derefter at forudsige hvilket ord, der er maskeret.
 
-Eksempel
---------
+Træningsprocedure
+-----------------
 
-.. code-block:: python
-	:linenos:
+Hyperparametre
+^^^^^^^^^^^^^^
+.. list-table::
+   :header-rows: 1
 
-	# Python code here
-	def test(a: bool = False):
-   		print("hello")
+   * - Model
+     - learning_rate
+     - train_batch_size
+     - eval_batch_size
+     - optimizer
+     - lot_size
+     - epsilon
+     - delta
+     - num_epochs
+   * - sas
+     - :math:`2.4e^{-5}`
+     - 32
+     - 32
+     - AdamW med betas=(0.9,0.999) og epsilon=1e-08
+     - NA
+     - NA
+     - NA
+     - 10
+   * - sas-dp-8
+     - 0.00015
+     - 8
+     - 8
+     - AdamW med betas=(0.9,0.999) og epsilon=1e-08
+     - 64
+     - 8
+     - :math:`8.89e^{-7}`
+     - 10
+
+Framework versioner
+^^^^^^^^^^^^^^^^^^^
+- transformers 4.19.2
+- opacus 1.2.0
+- datasets 2.2.2
+- pandas
+- seaborn
+- numpy==1.22.3
+- pytorch 1.13.0+cu11

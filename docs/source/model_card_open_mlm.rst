@@ -1,6 +1,6 @@
 .. _model-card-open-mlm:
 
-Tværkommunal Sprogmodel Del 1 (TS1)
+Tværkommunal Sprogmodel Del 1 (ts1)
 ===================================
 Beskrivelse
 -----------
@@ -15,8 +15,8 @@ bør den finetunes til specifikke opgaver fx. Named Entity Recognition (NER) ell
 Datasæt
 -------
 Modellen er trænet på 2672566 unikke sætninger og valideret på 54543 sætninger.
-Den rå html tekst skrapet fra de **N antal** kommuner og **M antal** KL områder (**Mangler databeskrivelse her fra Aktio**) er blevet filtreret,
-opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt - se class:`.RawScrapePreprocessing` for
+Den rå html tekst skrapet fra de 94 kommuner og 8 KL områder er blevet filtreret,
+opdelt i unikke sætninger og derefter inddelt i trænings- og valideringssæt - se vores `GitHub repository <https://github.com/AI-Aktindsigt-Sonderborg/modelling>`_ for
 for beskrivelse af koden benyttet til præprocessering af det skrabede data.
 Se :ref:`data-home` for en beskrivelse af datasættet.
 
@@ -28,12 +28,39 @@ benyttes til at videretræne prætrænede modeller på ikke-annoteret domænespe
 data kan forhøje kvaliteten af domænerelevante vector embeddings signifikant.
 Modellen optimeres ved at maskere enkelte ord i sætninger for derefter at forudsige hvilket ord, der er maskeret.
 
-Eksempel
---------
+Træningsprocedure
+-----------------
 
-.. code-block:: python
-	:linenos:
+Hyperparametre
+^^^^^^^^^^^^^^
+.. list-table::
+   :header-rows: 1
 
-	# Python code here
-	def test(a: bool = True):
-   		print("hello")
+   * - Model
+     - learning_rate
+     - train_batch_size
+     - eval_batch_size
+     - optimizer
+     - lot_size
+     - epsilon
+     - delta
+     - num_epochs
+   * - ts1
+     - :math:`0.0001`
+     - 64
+     - 32
+     - AdamW med betas=(0.9,0.999) og epsilon=1e-08
+     - NA
+     - NA
+     - NA
+     - 10
+
+Framework versioner
+^^^^^^^^^^^^^^^^^^^
+- transformers 4.19.2
+- opacus 1.2.0
+- datasets 2.2.2
+- pandas
+- seaborn
+- numpy==1.22.3
+- pytorch 1.13.0+cu11
