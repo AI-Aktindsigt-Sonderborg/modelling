@@ -16,7 +16,7 @@ args.labels = LABELS
 
 args.load_alvenir_pretrained = True
 
-args.model_name = 'ts1'
+args.model_name = 'ts2'
 args.custom_model_dir = MODEL_DIR
 
 modelling = SequenceClassification(args)
