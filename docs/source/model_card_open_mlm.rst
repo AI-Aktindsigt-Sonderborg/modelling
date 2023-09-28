@@ -41,18 +41,12 @@ Hyperparametre
      - train_batch_size
      - eval_batch_size
      - optimizer
-     - lot_size
-     - epsilon
-     - delta
      - num_epochs
    * - ts1
      - :math:`0.0001`
      - 64
      - 32
      - AdamW med betas=(0.9,0.999) og epsilon=1e-08
-     - NA
-     - NA
-     - NA
      - 10
 
 Framework versioner
