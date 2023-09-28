@@ -6,10 +6,10 @@ origin file must be placed in folder '../modelling/ner/data'
 Origin file must have '.jsonl' extension
 
 Navigate to project root folder and run script via terminal:
-    python -m ner.CVD --origin_input_file <origin_file_name>
+    python -m ner.cvd --origin_input_file <origin_file_name>
 
 Example run with origin file name 'origin_vejen.jsonl':
-    python -m ner.CVD --origin_input_file origin_vejen
+    python -m ner.cvd --origin_input_file origin_vejen
 
 Important files created from script placed in '../modelling/ner/data':
     bio_PLAHOKT.jsonl --> file to test model excluding CPR and Forbrydelse
