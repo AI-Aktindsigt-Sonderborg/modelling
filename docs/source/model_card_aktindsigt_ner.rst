@@ -107,7 +107,7 @@ Du kan benytte modellen til at forudsige entiteter sådan her:
 
 Resultater
 ----------
-Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER et `tilfældigt genereret og ikke-manuelt valideret test-sæt`. OBS: tallene neden for er estimater og er angivet uden konfidensinterval.
+Da NER-modellerne er finetunet på andre kategorier end de eksisterende open-source NER modeller er disse svære at sammenligne direkte. Nedenstående tabel viser de forskellige modellers Macro-F1 NER et `tilfældigt genereret og ikke-manuelt valideret test-sæt`. OBS: tallene nedenfor er estimater og er angivet uden konfidensinterval.
 
 .. list-table::
    :header-rows: 1
