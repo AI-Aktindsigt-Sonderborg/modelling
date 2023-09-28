@@ -26,6 +26,4 @@ Velkommen til dokumentation for AI-signatur projektet!
 	github
 	code_overview
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+:ref:`genindex`
