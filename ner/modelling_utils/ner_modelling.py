@@ -17,13 +17,13 @@ from transformers import (
     DataCollatorForTokenClassification,
 )
 
-from ner.data_utils.get_dataset import get_label_list_dane, get_dane_train, get_dane_val
 from ner.local_constants import MODEL_DIR, PREP_DATA_DIR
 from ner.local_constants import PLOTS_DIR
 from ner.modelling_utils.helpers import align_labels_with_tokens, get_label_list
 from shared.data_utils.custom_dataclasses import EvalScore, NEROutput
 from shared.data_utils.helpers import DatasetWrapper
-from shared.modelling_utils.custom_modeling_bert import BertForTokenClassification
+from shared.modelling_utils.custom_modeling_bert import \
+    BertForTokenClassification
 from shared.modelling_utils.helpers import get_lr, log_train_metrics_dp
 from shared.modelling_utils.modelling import Modelling
 from shared.utils.visualization import plot_confusion_matrix
@@ -53,16 +53,16 @@ class NERModelling(Modelling):
             num_classes=len(self.args.labels), names=self.args.labels
         )
 
-        if args.train_data == "dane":
-            (
-                self.args.labels,
-                self.id2label,
-                self.label2id,
-                self.label2weight,
-            ) = get_label_list_dane()
-            self.class_labels = ClassLabel(
-                num_classes=len(self.args.labels), names=self.args.labels
-            )
+        # if args.train_data == "dane":
+        #     (
+        #         self.args.labels,
+        #         self.id2label,
+        #         self.label2id,
+        #         self.label2weight,
+        #     ) = get_label_list_dane()
+        #     self.class_labels = ClassLabel(
+        #         num_classes=len(self.args.labels), names=self.args.labels
+        #     )
 
         self.data_dir = PREP_DATA_DIR
 
@@ -225,14 +225,13 @@ class NERModelling(Modelling):
         """
 
         if train:
-            if self.args.train_data == "dane":
-                self.data.train = get_dane_train(subset=self.args.data_subset)
-            else:
-                self.data.train = load_dataset(
-                    "json",
-                    data_files=os.path.join(self.data_dir, self.args.train_data),
-                    split="train",
-                )
+            # if self.args.train_data == "dane":
+            #     self.data.train = get_dane_train(subset=self.args.data_subset)
+            self.data.train = load_dataset(
+                "json",
+                data_files=os.path.join(self.data_dir, self.args.train_data),
+                split="train",
+            )
 
             print(f"len train: {len(self.data.train)}")
             self.args.total_steps = int(
@@ -250,14 +249,14 @@ class NERModelling(Modelling):
                 self.args.epsilon = None
                 self.args.max_grad_norm = None
 
-            if self.args.train_data == "dane":
-                self.data.eval = get_dane_val(subset=self.args.data_subset)
-            else:
-                self.data.eval = load_dataset(
-                    "json",
-                    data_files=os.path.join(self.data_dir, self.args.eval_data),
-                    split="train",
-                )
+            # if self.args.train_data == "dane":
+            #     self.data.eval = get_dane_val(subset=self.args.data_subset)
+
+            self.data.eval = load_dataset(
+                "json",
+                data_files=os.path.join(self.data_dir, self.args.eval_data),
+                split="train",
+            )
 
             print(f"len eval: {len(self.data.eval)}")
 

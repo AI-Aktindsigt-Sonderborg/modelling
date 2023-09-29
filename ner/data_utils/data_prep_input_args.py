@@ -94,8 +94,8 @@ class DataPrepArgParser:
         self.parser.add_argument(
             '--add_dane',
             type=lambda x: bool(strtobool(x)),
-            default=False,
-            help='whether or not to add dane data to training set',
+            default=True,
+            help='whether or not to convert bilou format to bio format used in dane',
             metavar='<bool>')
         self.parser.add_argument(
             '--custom_data_dir', '-cdd',
