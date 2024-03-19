@@ -54,7 +54,7 @@ Example call:
 
   `python -m sc.train --train_data train.jsonl --eval_data validation.jsonl`
   
-## Named Entity Recognition (AAPDA)
+## Named Entity Recognition (gdpr_anonymiseingsmodel)
 To see possible CLI options for this, run
 
   `python -m ner.train --help`
